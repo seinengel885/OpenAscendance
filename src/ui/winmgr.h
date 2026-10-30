@@ -202,6 +202,10 @@ class WinMgr final : public WindowStateIo {
   // the first use), in the files' language. Throws `std::out_of_range` past
   // the table.
   const std::string& static_string(int index);
+  // A text of the remake's own (not of the game files), in the files'
+  // language: `src/lang/<language>/openascendance.tsv`.
+  std::string remake_text(std::string_view english) const { return services_.files.text(kRemakeTexts, english); }
+  static constexpr std::string_view kRemakeTexts = "openascendance.txt";
 
   // Whether the game runs (`0x865f4`; message 2 and Alt+X clear it).
   bool running() const { return running_; }

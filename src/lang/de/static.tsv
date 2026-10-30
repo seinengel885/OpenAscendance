@@ -1,4 +1,97 @@
-# The species names (strings 101..121): number, English as the game reads it, German.
+# The strings of static.txt: number (R the species names 101..121, S the index of the others), English as the game reads it (a line break written \n), German.
+# Left English: the plural endings (13, 14, 28, 29, 32, 33), which help.txt uses too (the German texts drop them with %.0s), am/pm and the DOS messages.
+S000	(depleted)	(erschöpft)
+S001	(insufficient power)	(zu wenig Energie)
+S002	Unknown	Unbekannt
+S003	Sun %s	Sonne %s
+S004	Planet %s	Planet %s
+S005	\nOwned by %s	\nBesitzer: %s
+S006	\nMoving to Star Lane	\nUnterwegs zur Sternstraße
+S007	\nMoving to Planet	\nUnterwegs zum Planeten
+S008	Star Lane	Sternstraße
+S009	Red Link	Rote Straße
+S010	 to 	 nach 
+S011	%d of %d Species Known	%d von %d Spezies bekannt
+S012	Extinct	Ausgestorben
+S015	Your score is %d%%.\nThis gives you the title of %s	Deine Punktzahl: %d%%.\nDamit erhältst du den Titel %s
+S016	<EMPTY>	<LEER>
+S017	Day %d	Tag %d
+S020	Fleet	Flotte
+S021	Colonies	Kolonien
+S022	Discoveries	Entdeckungen
+S023	Load Game	Spiel laden
+S024	Save Game	Spiel speichern
+S025	Play Tutorial	Tutorial spielen
+S026	Selected System	Gewähltes System
+S027	%s Intelligence	Geheimdienst: %s
+S030	OK	OK
+S031	Name Your Colony	Benenne deine Kolonie
+S034	Name Your Ship	Benenne dein Schiff
+S035	Rename Your Ship?	Schiff umbenennen?
+S036	No Project	Kein Projekt
+S037	Pick a Location	Wähle einen Ort
+S038	%d day%s until completion	Noch %d Tag(e)%.0s
+S039	No Progress	Kein Fortschritt
+S040	(No Free Population)	(Keine freie Bevölkerung)
+S041	Tiny	Winzig
+S042	Small	Klein
+S043	Medium	Mittel
+S044	Large	Groß
+S045	Enormous	Riesig
+S046	Husk	Ödwelt
+S047	Primordial	Urwelt
+S048	Congenial	Gastlich
+S049	Eden	Eden
+S050	Mineral	Mineral
+S051	Supermineral	Supermineral
+S052	Chapel	Kapelle
+S053	Cathedral	Kathedrale
+S054	Special	Besonders
+S055	Tycoon	Magnat
+S056	Cornucopia	Füllhorn
+S057	Cancel	Abbrechen
+S058	Create Colony	Kolonie gründen
+S059	Abandon	Aufgeben
+S060	Build	Bauen
+S061	Leave Orbit	Orbit verlassen
+S062	Refit	Umrüsten
+S063	Invade	Invasion
+S064	Automate	Automatisieren
+S065	Research	Forschung
+S066	be discovered	Erforschung
+S067	No progress is being made on %s.	Kein Fortschritt bei %s.
+S068	Industry	Industrie
+S069	be completed	Fertigstellung
+S070	Prosperity	Wohlstand
+S071	Population	Bevölkerung
+S072	grow	Wachstum
+S073	%s is not growing.	%s wächst nicht.
+S074	%s has no more room to grow.	%s hat keinen Platz mehr zum Wachsen.
+S075	White	Weiß
+S076	Black	Schwarz
+S077	Red	Rot
+S078	industry	Industrie
+S079	Green	Grün
+S080	prosperity	Wohlstand
+S081	Blue	Blau
+S082	research	Forschung
+S083	Orbital	Orbital
+S084	Automated 	Automatisiert: 
+S085	 on %s Square	 auf Feld (%s)
+S086	No progress	Kein Fortschritt
+S088	Xenoarcheological Ruins	Xenoarchäologische Ruinen
+S089	%s Square	Feld (%s)
+S090	Orbital squares are used for building orbital structures such as Shipyards and Ships.	Auf Orbitalfeldern entstehen Orbitalbauten wie Werften und Schiffe.
+S091	White squares are ordinary habitable surface squares.	Weiße Felder sind gewöhnliche bewohnbare Oberflächenfelder.
+S092	Black squares are uninhabitable.  Most structures cannot be built on them.	Schwarze Felder sind unbewohnbar.  Die meisten Bauten lassen sich darauf nicht errichten.
+S093	%s squares increase the effectiveness of %s-producing structures.	Felder (%s) steigern die Wirkung der Bauten für %s.
+S094	%s %s Planet	Planet: %s, %s
+S095	No One	Niemand
+S096	Owned by \n%d\n%s	Besitzer: \n%d\n%s
+S097	Maximum Population  %d	Max. Bevölkerung  %d
+S098	Self Managed	Selbstverwaltet
+S099	%s %s: %d per day	%s - %s: %d pro Tag
+S100	%s will %s in %d day%s.	%s: %s in %d Tag(en)%.0s.
 R01	Minions	Minione
 R02	Snovemdomas	Snovemdomas
 R03	Orfa	Orfa
@@ -20,3 +113,58 @@ R18	Marmosians	Marmosianer
 R19	Chronomyst	Chronomisten
 R20	Chamachies	Chamachies
 R21	Nimbuloids	Nimbuloiden
+S122	Current Project:	Aktuelles Projekt:
+S123	(No Progress)	(Kein Fortschritt)
+S124	(%d day%s)	(%d Tag(e)%.0s)
+S125	Allows	Ermöglicht
+S126	Ships: Small and Medium Hulls	Schiffe: kleine und mittlere Rümpfe
+S127	Large Ship Hull	Großer Schiffsrumpf
+S128	Gigantic Ship Hull	Gigantischer Schiffsrumpf
+S129	(Self Managed)	(Selbstverwaltet)
+S130	%s Knowledge %s	Wissen der %s %s
+S135	 (%d Day%s)	 (%d Tag(e)%.0s)
+S136	(%s %s Planet)	(Planet: %s, %s)
+S137	Self-Managed	Selbstverwaltet
+S138	 - No Progress	 - Kein Fortschritt
+S139	 - %d day%s until completion	 - noch %d Tag(e)%.0s
+S140	Building %s%s	Baue %s%s
+S142	   (No Free Population)	   (Keine freie Bevölkerung)
+S143	Orbiting %s	Im Orbit um %s
+S144	in %s System	Im System %s
+S146	In Starlane to %s System\nETA - %d Day%s	Auf Sternstraße nach %s\nAnkunft in %d Tag(en)%.0s
+S147	Under Construction at %s	Im Bau bei %s
+S148	Being Refitted at %s	Wird umgerüstet bei %s
+S150	\nMoving to Starlane	\nUnterwegs zur Sternstraße
+S151	%s  (%d Planet%s Occupied, %d System%s Controlled)	%s  (Planeten besetzt: %d%.0s, Systeme kontrolliert: %d%.0s)
+S152	%s  (%d Ship%s, %d more allowed)	%s  (Schiffe: %d%.0s, %d weitere erlaubt)
+S153	Player Species	Deine Spezies
+S154	The %s %s	Die %s %s
+S155	Vacuous	Leer
+S156	Sparse	Dünn
+S157	Average	Mittel
+S158	Dense	Dicht
+S159	Very Dense	Sehr dicht
+S160	Peaceful	Friedlich
+S161	Neutral	Neutral
+S162	Hostile	Feindselig
+S163	Three	Drei
+S164	Four	Vier
+S165	Five	Fünf
+S166	Six	Sechs
+S167	Seven	Sieben
+S168	%s Star Cluster\n%s Species\n%s Atmosphere	Sternhaufen: %s\nSpezies: %s\nAtmosphäre: %s
+S169	Begin New Game	Neues Spiel beginnen
+S170	Unable to open file.	Datei lässt sich nicht öffnen.
+S178	Blue Giant	Blauer Riese
+S179	Pink-Red Giant	Rosaroter Riese
+S180	Red Giant	Roter Riese
+S181	Orange Giant	Oranger Riese
+S182	Blue Medium	Blauer Stern
+S183	White Medium	Weißer Stern
+S184	Yellow Medium	Gelber Stern
+S185	Light Yellow Medium	Hellgelber Stern
+S186	Orange Medium	Oranger Stern
+S187	Pink-Red Medium	Rosaroter Stern
+S188	Blue Dwarf	Blauer Zwerg
+S189	White Dwarf	Weißer Zwerg
+S190	Red Dwarf	Roter Zwerg

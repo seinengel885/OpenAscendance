@@ -1,0 +1,22 @@
+# The texts of the windows.txt buttons (TEXTITEM) and of the windows showing their name (NAME): number, English as the game reads it (`^` kept, a blank), German.
+M01	Play^Introduction	Intro^abspielen
+M02	Tutorial	Tutorial
+M03	New^Game	Neues^Spiel
+M04	Load^Game	Spiel^laden
+M05	Save^Game	Spiel^speichern
+M06	Return^to^Current^Game	Zurück^zum^aktuellen^Spiel
+M07	Exit^to^DOS	Spiel^beenden
+M08	Species	Spezies
+M09	Planets	Planeten
+M10	Ships	Schiffe
+M11	Research	Forschung
+M12	Special^Ability	Spezialfähigkeit
+M13	Atmosphere	Atmosphäre
+M14	Star^Density	Sterndichte
+M15	Player^Color	Spielerfarbe
+M16	Intelligence	Geheimdienst
+M17	My^Items	Mein^Angebot
+M18	Other^Items	Ihr^Angebot
+M19	Repeat	Wiederholen
+M20	Pass	Passen
+M21	Auto	Auto

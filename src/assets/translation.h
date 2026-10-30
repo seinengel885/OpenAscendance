@@ -5,10 +5,10 @@
 //     T01<TAB>Orbital Structures<TAB>Orbitale Strukturen
 //
 // a number for the reviewers, the English text as the game reads it (`^`
-// already a space), its translation (UTF-8; besides ASCII only the German
-// letters, which the fonts have in cp437, `fnt.h`). Lines starting with `#`
-// and texts without a translation are left out. A text the table lacks
-// stays English.
+// already a space, but kept in `windows.txt`; a line break written `\n`),
+// its translation (UTF-8; besides ASCII only the German letters, which the
+// fonts have in cp437, `fnt.h`). Lines starting with `#` and texts without
+// a translation are left out. A text the table lacks stays English.
 #pragma once
 
 #include <map>

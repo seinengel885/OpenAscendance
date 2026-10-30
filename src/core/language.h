@@ -1,6 +1,7 @@
-// The languages of the game's texts: the original's English, or a
-// translation of the remake's (`assets/translation.h`), chosen on the
-// options screen. Saves do not depend on it.
+// The languages of the game's texts: the game files' own (English, or
+// whatever language the installed files are in), or a translation of the
+// remake's (`assets/translation.h`), chosen on the options screen. Saves do
+// not depend on it.
 #pragma once
 
 #include <array>
@@ -9,20 +10,21 @@
 
 namespace oa {
 
-enum class Language { kEnglish, kGerman };
+enum class Language { kOriginal, kGerman };
 
 struct LanguageInfo {
   Language language;
   // The name in the settings file and of the translation's folder
   // (`src/lang/<key>`).
   std::string_view key;
-  // The name shown to the player, in that language.
+  // The name shown to the player, in that language ("Original": the files'
+  // own texts; its key stays "en", as in the settings files written so far).
   std::string_view label;
 };
 
 // Every language, in the order the options screen lists them.
 inline constexpr std::array<LanguageInfo, 2> kLanguages{{
-    {Language::kEnglish, "en", "English"},
+    {Language::kOriginal, "en", "Original"},
     {Language::kGerman, "de", "Deutsch"},
 }};
 

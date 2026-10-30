@@ -243,7 +243,14 @@ void restore_under(Image8& screen, const Pane& pane, std::span<const std::uint8_
 
 WinMgr::WinMgr(UiServices services, const WindowFactory& factory)
     : services_(std::move(services)), shapes_(services_.files) {
-  const WindowsTxt txt = parse_windows_txt(services_.files.load("windows.txt"));
+  WindowsTxt txt = parse_windows_txt(services_.files.load("windows.txt"));
+  for (WindowRecord& record : txt.windows) {
+    for (WindowItem& item : record.items) {
+      if (item.kind == 0) {
+        item.text = services_.files.text("windows.txt", item.text);
+      }
+    }
+  }
   std::vector<HazeTable>& haze = services_.gsystem.haze_tables();
   haze.clear();
   for (const std::string& file : txt.haze_tables) {

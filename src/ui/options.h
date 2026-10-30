@@ -42,7 +42,7 @@ struct RemakeOptions {
   int music_volume = kDefaultMusicVolume;
   int sfx_volume = kDefaultSfxVolume;
   // The texts' language (`GameFiles`), read at the program's start.
-  Language language = Language::kEnglish;
+  Language language = Language::kOriginal;
 
   bool operator==(const RemakeOptions&) const = default;
 };

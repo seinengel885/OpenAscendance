@@ -126,7 +126,7 @@ endtext
 pos 0 15
 flags TJ_HC
 text
-The language of the game's texts, from the next start of the program. Saves load in either language.
+The language of the game's texts, from the next start of the program. Original: the texts of the game files as installed. Saves load in either language.
 endtext
 pos 5 50
 button
@@ -188,6 +188,15 @@ void show_remake_help(WinMgr& wm, std::string_view topic) {
   }
   help->open_topic(kHelpFile, std::span(reinterpret_cast<const std::uint8_t*>(kHelpText.data()), kHelpText.size()),
                    topic);
+  HelpTopic& content = help->content();
+  for (HelpElement& element : content.elements) {
+    element.text = wm.remake_text(element.text);
+  }
+  for (HelpButton& button : content.buttons) {
+    if (button.title) {
+      button.title = wm.remake_text(*button.title);
+    }
+  }
   if (!wm.in_modal()) {
     wm.do_modal(*help, true);
   }

@@ -210,7 +210,9 @@ void GWindow::draw_text(std::uint8_t background) {
   GameFont& font = wm_.large_font();
   font.pane() = pane_;
   const int flags = (text_x_ == -1 ? kFontCenterH : 0) | (text_y_ == -1 ? kFontCenterV : 0);
-  font.draw_wrapped(screen, text_x_, text_y_, name_, flags, kDefault, 0xff, 0);
+  // The name is also the window's key (`find_window`): translated here only.
+  font.draw_wrapped(screen, text_x_, text_y_, wm_.services().files.text("windows.txt", name_), flags, kDefault, 0xff,
+                    0);
   if (border_) {
     draw_border(kTextColor);
   }

@@ -1,0 +1,34 @@
+# The remake's own texts (options screen, its help, the opening menu's Options button): number, English as in the code, German. The help texts with a key hint come twice: with it (desktop) and without (Android).
+O01	Options	Optionen
+O02	Off	Aus
+O03	Window	Fenster
+O04	Full Screen	Vollbild
+O05	Smooth	Weich
+O06	Sharp	Scharf
+O07	For the next new game	Für das nächste neue Spiel
+O08	From the next start	Ab dem nächsten Start
+O09	Sets the game variant of new games, the display and the sound.	Legt die Spielvariante neuer Spiele, die Anzeige und den Ton fest.
+O10	Each setting applies as soon as it is picked. OK keeps them, Cancel puts back those in force when this screen was opened. Shift and a click on a row tells more about it. Enter and Esc keep them too.	Jede Einstellung gilt, sobald sie gewählt ist. OK behält sie, Abbrechen stellt die beim Öffnen dieser Seite gültigen wieder her. Umschalt und ein Klick auf eine Zeile erklären sie näher. Auch Enter und Esc behalten sie.
+O11	Game Variant	Spielvariante
+O12	The rules and opponents of the next new game. Standard: those of Ascendancy version 1.6.5. Antagonizer: those of the Antagonizer edition, whose opponents play harder, with a few rule changes. peCustom: the Antagonizer's, as this fork develops them further. A game keeps its variant in its saves.	Regeln und Gegner des nächsten neuen Spiels. Standard: die von Ascendancy Version 1.6.5. Antagonizer: die der Antagonizer-Ausgabe, deren Gegner härter spielen, mit einigen Regeländerungen. peCustom: die des Antagonizers, wie dieser Fork sie weiterentwickelt. Ein Spiel behält seine Variante in seinen Spielständen.
+O13	Display	Anzeige
+O14	Plays in a window or on the full screen. Alt+Enter also switches between them.	Spielt im Fenster oder im Vollbild. Auch Alt+Enter wechselt zwischen beiden.
+O15	Scaling	Skalierung
+O16	How the picture is enlarged to the window. Smooth blends the pixels, Sharp keeps them square as on the original screen.	Wie das Bild auf das Fenster vergrößert wird. Weich verschmilzt die Pixel, Scharf lässt sie quadratisch wie auf dem Originalbildschirm.
+O17	Music	Musik
+O18	The music's volume: a click, a tap or a drag on the bar sets it, at the far left no music. At 100 % it plays as loud as in the original. The wheel and the arrow keys change it by steps; Alt+M switches the music off and back on at this volume.	Die Lautstärke der Musik: Klicken, Tippen oder Ziehen auf dem Balken stellt sie ein, ganz links keine Musik. Bei 100 % spielt sie so laut wie im Original. Mausrad und Pfeiltasten ändern sie schrittweise; Alt+M schaltet die Musik aus und mit dieser Lautstärke wieder ein.
+O19	Sound Effects	Soundeffekte
+O20	The sound effects' volume, played at each change: a click, a tap or a drag on the bar sets it, at the far left no sound effects. At 100 % they play as loud as in the original, louder than the music. The wheel and the arrow keys change it by steps; Alt+N switches them off and back on at this volume.	Die Lautstärke der Soundeffekte, bei jeder Änderung zu hören: Klicken, Tippen oder Ziehen auf dem Balken stellt sie ein, ganz links keine Soundeffekte. Bei 100 % spielen sie so laut wie im Original, lauter als die Musik. Mausrad und Pfeiltasten ändern sie schrittweise; Alt+N schaltet sie aus und mit dieser Lautstärke wieder ein.
+O21	Language	Sprache
+O22	The language of the game's texts, from the next start of the program. Original: the texts of the game files as installed. Saves load in either language.	Die Sprache der Spieltexte, ab dem nächsten Programmstart. Original: die Texte der installierten Spieldateien. Spielstände laden in jeder Sprache.
+O23	OK	OK
+O24	Keeps these settings and goes back to the opening menu. A new game variant applies to the next new game, a new language from the next start. Enter and Esc do the same.	Behält diese Einstellungen und kehrt zum Startmenü zurück. Eine neue Spielvariante gilt ab dem nächsten neuen Spiel, eine neue Sprache ab dem nächsten Start. Enter und Esc tun dasselbe.
+O25	Cancel	Abbrechen
+O26	Puts back the settings in force when this screen was opened and goes back to the opening menu.	Stellt die beim Öffnen dieser Seite gültigen Einstellungen wieder her und kehrt zum Startmenü zurück.
+O27	Deselect Item	Auswahl aufheben
+O28	This button is used to deselect the currently selected item, cancelling its move or target.	Mit diesem Knopf hebst du die Auswahl auf und brichst ihre Bewegung oder ihr Ziel ab.
+O29	Each setting applies as soon as it is picked. OK keeps them, Cancel puts back those in force when this screen was opened. Shift and a click on a row tells more about it.	Jede Einstellung gilt, sobald sie gewählt ist. OK behält sie, Abbrechen stellt die beim Öffnen dieser Seite gültigen wieder her. Umschalt und ein Klick auf eine Zeile erklären sie näher.
+O30	Plays in a window or on the full screen.	Spielt im Fenster oder im Vollbild.
+O31	The music's volume: a click, a tap or a drag on the bar sets it, at the far left no music. At 100 % it plays as loud as in the original.	Die Lautstärke der Musik: Klicken, Tippen oder Ziehen auf dem Balken stellt sie ein, ganz links keine Musik. Bei 100 % spielt sie so laut wie im Original.
+O32	The sound effects' volume, played at each change: a click, a tap or a drag on the bar sets it, at the far left no sound effects. At 100 % they play as loud as in the original, louder than the music.	Die Lautstärke der Soundeffekte, bei jeder Änderung zu hören: Klicken, Tippen oder Ziehen auf dem Balken stellt sie ein, ganz links keine Soundeffekte. Bei 100 % spielen sie so laut wie im Original, lauter als die Musik.
+O33	Keeps these settings and goes back to the opening menu. A new game variant applies to the next new game, a new language from the next start.	Behält diese Einstellungen und kehrt zum Startmenü zurück. Eine neue Spielvariante gilt ab dem nächsten neuen Spiel, eine neue Sprache ab dem nächsten Start.

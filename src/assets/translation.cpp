@@ -17,6 +17,21 @@ constexpr Letter kLetters[] = {
     {U'ä', '\x84'}, {U'ö', '\x94'}, {U'ü', '\x81'}, {U'Ä', '\x8e'}, {U'Ö', '\x99'}, {U'Ü', '\x9a'}, {U'ß', '\xe1'},
 };
 
+// Returns a table column with each `\n` made a line break (some strings of
+// `static.txt` hold line breaks).
+std::string line_breaks(std::string_view text) {
+  std::string out;
+  for (std::size_t i = 0; i < text.size(); ++i) {
+    if (text[i] == '\\' && i + 1 < text.size() && text[i + 1] == 'n') {
+      out += '\n';
+      ++i;
+    } else {
+      out += text[i];
+    }
+  }
+  return out;
+}
+
 }  // namespace
 
 std::string utf8_to_cp437(std::string_view text, std::string_view context) {
@@ -78,8 +93,8 @@ Translation::Translation(Language language) {
       if (translated.empty()) {
         continue;
       }
-      const std::string english = utf8_to_cp437(line.substr(tab1 + 1, tab2 - tab1 - 1), context);
-      if (!texts.emplace(english, utf8_to_cp437(translated, context)).second) {
+      const std::string english = utf8_to_cp437(line_breaks(line.substr(tab1 + 1, tab2 - tab1 - 1)), context);
+      if (!texts.emplace(english, utf8_to_cp437(line_breaks(translated), context)).second) {
         throw DataError(std::format("{}: '{}' translated twice", context, english));
       }
     }

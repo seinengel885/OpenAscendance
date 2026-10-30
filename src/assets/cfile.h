@@ -67,7 +67,7 @@ class GameFiles {
  public:
   // Throws `DataError` when the COB directory cannot be read. The texts are
   // in `language` (`text`).
-  explicit GameFiles(Install install, Language language = Language::kEnglish);
+  explicit GameFiles(Install install, Language language = Language::kOriginal);
 
   const Install& install() const { return install_; }
   const CobDirectory& directory() const { return directory_; }

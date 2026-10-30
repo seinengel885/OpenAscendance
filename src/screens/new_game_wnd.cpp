@@ -126,7 +126,7 @@ bool NewGameWnd::handle_event(int type, int a, int b) {
       TextLineReader lines(data);
       for (std::string& blurb : blurbs_) {
         const std::optional<std::string> line = lines.line();
-        blurb = line ? *line + "\n" : std::string();
+        blurb = line ? wm_.services().files.text("newgame.txt", *line) + "\n" : std::string();
       }
       return GWindow::handle_event(type, a, b);
     }

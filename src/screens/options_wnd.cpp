@@ -264,7 +264,7 @@ class VolumeSlider final : public GWindow {
     }
     GameFont& font = wm_.large_font();
     font.pane() = pane_;
-    const std::string caption = level_ == 0 ? "Off" : std::format("{} %", level_);
+    const std::string caption = level_ == 0 ? wm_.remake_text("Off") : std::format("{} %", level_);
     font.draw_wrapped(screen, 0, 0, caption, kFontCenterH | kFontCenterV, kDefault, 0xff, 0);
   }
 
@@ -338,7 +338,7 @@ class OptionsWnd final : public GWindow {
         continue;
       }
       for (int c = 0; c < n; ++c) {
-        auto button = std::make_unique<RemakeButton>(wm_, std::string(s.choices[static_cast<std::size_t>(c)]),
+        auto button = std::make_unique<RemakeButton>(wm_, wm_.remake_text(s.choices[static_cast<std::size_t>(c)]),
                                                      choice_pane(c, n, y0), std::string(s.help));
         button->set_message(kMessagePick, static_cast<int>(row), c);
         buttons.push_back(add(std::move(button)));
@@ -348,7 +348,8 @@ class OptionsWnd final : public GWindow {
         std::make_unique<RemakeButton>(wm_, wm_.static_string(kOkString), choice_pane(0, 2, kButtonsTop), "oa_ok");
     ok->set_message(kMessageOk, 0, 0);
     add(std::move(ok));
-    auto cancel = std::make_unique<RemakeButton>(wm_, "Cancel", choice_pane(1, 2, kButtonsTop), "oa_cancel");
+    auto cancel =
+        std::make_unique<RemakeButton>(wm_, wm_.remake_text("Cancel"), choice_pane(1, 2, kButtonsTop), "oa_cancel");
     cancel->set_message(kMessageCancel, 0, 0);
     add(std::move(cancel));
   }
@@ -426,7 +427,7 @@ class OptionsWnd final : public GWindow {
     Image8& screen = wm_.screen();
     GameFont& large = wm_.large_font();
     large.pane() = kTitlePane;
-    large.draw_wrapped(screen, 0, 4, name_, kFontCenterH | kFontCenterV, kDefault, 0xff, 0);
+    large.draw_wrapped(screen, 0, 4, wm_.remake_text(name_), kFontCenterH | kFontCenterV, kDefault, 0xff, 0);
     vfx_pane_wipe(screen, pane_, kBackColor);
     GameFont& small = wm_.small_font();
     for (std::size_t row = 0; row < settings_.size(); ++row) {
@@ -435,11 +436,11 @@ class OptionsWnd final : public GWindow {
       const Pane label{kLabelX0, y0, kLabelX1, y0 + kRowHeight - 1};
       large.pane() = label;
       if (s.note.empty()) {
-        large.draw_wrapped(screen, 0, 0, s.label, kFontCenterV, kDefault, 0xff, 0);
+        large.draw_wrapped(screen, 0, 0, wm_.remake_text(s.label), kFontCenterV, kDefault, 0xff, 0);
       } else {
-        large.draw_wrapped(screen, 0, 1, s.label, 0, kDefault, 0xff, 0);
+        large.draw_wrapped(screen, 0, 1, wm_.remake_text(s.label), 0, kDefault, 0xff, 0);
         small.pane() = label;
-        small.draw_wrapped(screen, 0, large.font().height + 4, s.note, 0, kDefault, 0xff, 0);
+        small.draw_wrapped(screen, 0, large.font().height + 4, wm_.remake_text(s.note), 0, kDefault, 0xff, 0);
       }
     }
     for (GWindow* child : children_) {
@@ -654,7 +655,8 @@ class MenuLayout {
       items_.push_back(w->items());
     }
     spread_ = spread_menu_buttons(panes_, static_cast<int>(panes_.size()) + 1);
-    auto options = std::make_unique<RemakeButton>(wm, "Options", spread_[kOptionsButtonIndex], "oa_options");
+    auto options =
+        std::make_unique<RemakeButton>(wm, wm.remake_text("Options"), spread_[kOptionsButtonIndex], "oa_options");
     options->set_message(kMessageChangeScreen, kScreenOptions, 1);
     options_id_ = wm.register_window(std::move(options));
   }
