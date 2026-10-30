@@ -30,7 +30,7 @@ build.
 ## Running
 
     build/debug/src/app/open_ascendance [--data <install dir> | --setup]
-        [--sharp | --smooth] [--fullscreen | --window] [--variant standard|antagonizer]
+        [--sharp | --smooth] [--fullscreen | --window] [--variant standard|antagonizer|pecustom]
 
 Without `--data` the game asks once for the install folder and remembers it.
 Alt+Enter toggles fullscreen. `--screenshot <file.bmp> [--frames N]` with

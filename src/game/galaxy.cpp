@@ -437,8 +437,7 @@ void cosmos_new_galaxy(Session& session, std::int16_t races, std::uint8_t specie
       Shift{20, 20, 20, 20, 20, 30, -20}, Shift{30, 30, 30, 30, 30, 40, -30}, Shift{20, 20, 20, 20, 20, 30, -20}};
   const std::size_t atmosphere = static_cast<std::size_t>(cosmos.atmosphere);
   if (atmosphere < 3) {
-    const Shift& shift =
-        (session.game->variant == Variant::kAntagonizer ? kAntagonizerShift : kStandardShift)[atmosphere];
+    const Shift& shift = (antagonizer_rules(session.game->variant) ? kAntagonizerShift : kStandardShift)[atmosphere];
     for (std::size_t i = 0; i < race_count; ++i) {
       Race& r = cosmos.races[i];
       std::int16_t* values[] = {&r.declare_war,     &r.accept_peace,     &r.propose_peace, &r.break_alliance,

@@ -39,7 +39,7 @@ inline RawAddress cosmos_address(const Session& session) {
   if (session.cosmos_address != 0) {
     return session.cosmos_address;
   }
-  return session.game->variant == Variant::kAntagonizer ? kAntagCosmosAddress : kPatchCosmosAddress;
+  return antagonizer_rules(session.game->variant) ? kAntagCosmosAddress : kPatchCosmosAddress;
 }
 
 // Returns the index of a record of the cosmos arrays.

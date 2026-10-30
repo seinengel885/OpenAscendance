@@ -17,6 +17,11 @@
 // exactly the original format. `load_game` loads an original file (no
 // trailer) as Antagonizer when its cosmos address is `ANTAG.EXE`'s, else as
 // Standard.
+//
+// A peCustom save follows the variant with its own format version (`u32`,
+// `kPeCustomSaveVersion`), so that later versions can append data and still
+// load the saves of the earlier ones: data is only ever appended, and a save
+// of an older version loads with that data's defaults.
 #pragma once
 
 #include <array>
@@ -37,6 +42,10 @@ namespace oa::game {
 // pointers). A save of an Antagonizer game uses the latter.
 inline constexpr RawAddress kPatchCosmosAddress = 0x214df8;
 inline constexpr RawAddress kAntagCosmosAddress = 0x219f6c;
+
+// The format version of the peCustom saves this build writes, the newest it
+// loads. Raise it when appending data to the peCustom trailer.
+inline constexpr std::uint32_t kPeCustomSaveVersion = 1;
 
 // Size of the window state of the v1.6.5 window table (`COSMOSWnd` 0xbe,
 // 4 values, a 7-entry list box, 1 value, `BatModeWnd` 0x1a08, 2 values, the
@@ -67,6 +76,9 @@ struct SaveImage {
   std::vector<Backdrop> backdrops;
   std::vector<std::uint8_t> window_state;  // kWindowStateSize bytes
   Variant variant = Variant::kStandard;    // the trailer's, Standard without
+  // The peCustom format version read (`kPeCustomSaveVersion` when saved); 0
+  // for the other variants.
+  std::uint32_t pe_custom_version = 0;
 };
 
 // Parses a save file. Throws `DataError` on a record-size mismatch, a count

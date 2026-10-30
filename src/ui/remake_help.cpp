@@ -56,7 +56,7 @@ endtext
 pos 0 15
 flags TJ_HC
 text
-The rules and opponents of the next new game. Standard: those of Ascendancy version 1.6.5. Antagonizer: those of the Antagonizer edition, whose opponents play harder, with a few rule changes. A game keeps its variant in its saves.
+The rules and opponents of the next new game. Standard: those of Ascendancy version 1.6.5. Antagonizer: those of the Antagonizer edition, whose opponents play harder, with a few rule changes. peCustom: the Antagonizer's, as this fork develops them further. A game keeps its variant in its saves.
 endtext
 pos 5 50
 button

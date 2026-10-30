@@ -563,7 +563,7 @@ bool BatModeWnd::fx_tractor() {
       float length = f32(left);
       // The pull's minimum: 64, 1280 in the Antagonizer (ANTAG 0x13370) for
       // both tractors, whatever the rule did.
-      const float minimum = s->game->variant == game::Variant::kAntagonizer ? 1280.0F : 64.0F;
+      const float minimum = game::antagonizer_rules(s->game->variant) ? 1280.0F : 64.0F;
       if (left < d(minimum)) {
         length = minimum;
       }

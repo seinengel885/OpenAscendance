@@ -152,7 +152,7 @@ void race_build_targets(Session& session, Race& race) {
 void race_update_attitude_drift(Session& session, Race& race) {
   Cosmos& cosmos = session.game->cosmos;
   const auto atmosphere = static_cast<std::uint8_t>(cosmos.atmosphere);
-  const bool antagonizer = session.game->variant == Variant::kAntagonizer;
+  const bool antagonizer = antagonizer_rules(session.game->variant);
   for (std::int16_t t = 0; t < cosmos.race_count; ++t) {
     const auto ut = static_cast<std::size_t>(t);
     if (ut == race.index || race.relation[ut] == kNotMet || cosmos.races[ut].extinct == -1) {
@@ -240,7 +240,7 @@ void race_bio_rhythm(Session& session, Race& race) {
     session.player_mood = wrap_i16(chop(m));
   }
   // The atmosphere's offset: PATCH +2 / +1 / -2, ANTAG 0x3c968 -4 / -2 / -6.
-  const bool antagonizer = session.game->variant == Variant::kAntagonizer;
+  const bool antagonizer = antagonizer_rules(session.game->variant);
   double offset = antagonizer ? -2.0 : 1.0;
   if (cosmos.atmosphere == Atmosphere::kHostile) {
     offset = antagonizer ? -6.0 : -2.0;

@@ -150,7 +150,7 @@ std::vector<std::uint8_t> race_list_actions(const Session& session, const Race& 
 // 0x3feb4; Antagonizer 0x44434 (peace and alliance rules by atmosphere).
 std::uint8_t race_choose_diplomatic_action(Session& session, Race& race, RaceIndex other, std::int32_t& arg) {
   Cosmos& cosmos = session.game->cosmos;
-  const bool antagonizer = session.game->variant == Variant::kAntagonizer;
+  const bool antagonizer = antagonizer_rules(session.game->variant);
   const std::uint8_t war_mask = antagonizer ? race_at_war_mask(session, race) : 0;
   const bool player = other == session.player_race;
   const std::int32_t colonies = cosmos.ranks[race.index].colonies;

@@ -170,7 +170,7 @@ std::uint16_t planet_init_surface(Session& session, Planet& planet, std::uint16_
 void planet_recalc_output(const Session& session, Planet& planet) {
   const GameTables& tables = *session.tables;
   const Cosmos& cosmos = session.game->cosmos;
-  const bool antagonizer = session.game->variant == Variant::kAntagonizer;
+  const bool antagonizer = antagonizer_rules(session.game->variant);
   const std::span<const Square> squares = planet_squares(cosmos, planet);
   std::int32_t industry = 0;
   std::int32_t research = 0;
@@ -423,7 +423,7 @@ std::uint16_t planet_pick_random_free_square(Session& session, const Planet& pla
   if (candidates.empty()) {
     return kNoSquare;
   }
-  if (session.game->variant != Variant::kAntagonizer) {
+  if (!antagonizer_rules(session.game->variant)) {
     return candidates[static_cast<std::size_t>(session.rng.rand()) % candidates.size()];
   }
   return pick_scored_square(session, planet, item, candidates);
@@ -566,7 +566,7 @@ void planet_daily_update(Session& session, Planet& planet) {
     if (planet.project_item != kNoItem && (item_of(tables, planet.project_item).flags & kItemContinuous) == 0) {
       // Hostile: +1 production for a weak AI planet (not in the Antagonizer,
       // ANTAG 0x352e0).
-      if (session.game->variant != Variant::kAntagonizer && planet.owner != session.player_race &&
+      if (!antagonizer_rules(session.game->variant) && planet.owner != session.player_race &&
           cosmos.atmosphere == Atmosphere::kHostile && static_cast<std::uint16_t>(planet.industry) < 4) {
         planet.progress = wrap_u16(planet.progress + 1);
       }
@@ -843,7 +843,7 @@ std::uint32_t planet_fire_weapon(Session& session, Planet& planet, bool apply) {
         // (1280 in the Antagonizer, ANTAG 0x3676c).
         Vec3 d = sub(ship->position, planet.position);
         const double pulled = length(d) + -3200.0;
-        const float minimum = session.game->variant == Variant::kAntagonizer ? 1280.0f : 64.0f;
+        const float minimum = antagonizer_rules(session.game->variant) ? 1280.0f : 64.0f;
         const float distance = pulled < minimum ? minimum : f32(pulled);
         set_length(d, distance);
         ship->position = {f32(static_cast<double>(planet.position[0]) + d[0]),
@@ -872,7 +872,7 @@ void planet_bombard(Session& session, Planet& planet, std::int32_t damage, RaceI
   const std::span<Square> squares = planet_squares(cosmos, planet);
   std::vector<std::uint16_t> occupied;
   std::uint16_t shield = kNoSquare;
-  const bool antagonizer = session.game->variant == Variant::kAntagonizer;
+  const bool antagonizer = antagonizer_rules(session.game->variant);
   for (std::uint16_t i = planet.surface_squares; i < planet.square_count; ++i) {
     if (squares[i].item != kNoItem) {
       occupied.push_back(i);

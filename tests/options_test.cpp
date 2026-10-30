@@ -53,15 +53,17 @@ int options_y() {
   return (pane.y0 + pane.y1) / 2;
 }
 
-// The options screen's buttons: choice `c` of row `row` (two choices), and
-// OK and Cancel (`options_wnd.cpp`: rows from y 72 every 60, the choices'
-// columns 258..422 and 445..609, OK and Cancel at y 424).
-constexpr int choice_x(int c) { return c == 0 ? 340 : 527; }
+enum Row : int { kVariant, kDisplay, kScaling, kMusic, kSound };
+// The options screen's buttons: choice `c` of row `row`, and OK and Cancel
+// (`options_wnd.cpp`: rows from y 72 every 60; the choices' columns
+// 258..422 and 445..609, those of the three variants 258..360, 383..485 and
+// 508..610; OK and Cancel at y 424).
+constexpr int choice_x0(int c, int row) { return row == kVariant ? 258 + 125 * c : c == 0 ? 258 : 445; }
+constexpr int choice_x(int c, int row) { return row == kVariant ? 309 + 125 * c : c == 0 ? 340 : 527; }
 constexpr int row_y(int row) { return 72 + 60 * row + 14; }
 constexpr int kOkX = 340;
 constexpr int kCancelX = 527;
 constexpr int kButtonsY = 437;
-enum Row : int { kVariant, kDisplay, kScaling, kMusic, kSound };
 // The volume sliders of rows Music and Sound Effects (258..610, a level
 // from 0 at x 264 to 100 at x 604): the x of `level`, a multiple of 5.
 constexpr int slider_x(int level) { return 264 + level * 34 / 10; }
@@ -190,18 +192,23 @@ TEST_CASE("the options screen: the selected choices stand out from the others, h
   install(rig, OptionsContext{.options = &options, .file = {}, .display = nullptr});
   rig.click(318, options_y());
   REQUIRE(rig.wm.current_screen() == kScreenOptions);
-  // A background pixel of choice `c` of row `row` (the columns from x 258
-  // and 445, the rows 28 high from y 72), off its caption.
-  const auto background = [&](int c, int row) { return rig.wm.screen().at(c == 0 ? 261 : 448, 72 + 60 * row + 3); };
+  // A background pixel of choice `c` of row `row` (the rows 28 high from
+  // y 72), off its caption.
+  const auto background = [&](int c, int row) { return rig.wm.screen().at(choice_x0(c, row) + 3, 72 + 60 * row + 3); };
   // Standard (the default variant) selected, Antagonizer not.
   CHECK(background(0, kVariant) == kSelectedColor);
   CHECK(background(1, kVariant) == GWindow::kBackColor);
-  rig.move(choice_x(0), row_y(kVariant));
+  rig.move(choice_x(0, kVariant), row_y(kVariant));
   CHECK(background(0, kVariant) == kSelectedHotColor);
   test::write_shot(rig, "options_screen_selected_hot");
-  rig.move(choice_x(1), row_y(kVariant));
+  rig.move(choice_x(1, kVariant), row_y(kVariant));
   CHECK(background(0, kVariant) == kSelectedColor);
   CHECK(background(1, kVariant) == GWindow::kHotBackColor);
+  // The third variant, peCustom.
+  rig.click(choice_x(2, kVariant), row_y(kVariant));
+  CHECK(rig.game.new_game_variant() == game::Variant::kPeCustom);
+  CHECK(background(2, kVariant) == kSelectedHotColor);
+  CHECK(background(0, kVariant) == GWindow::kBackColor);
 
   // In the game's palette, far from the unselected colours (the toggles'
   // "on" colours 0x50 / 0xca were within 80 of 0xf2), dark enough for the
@@ -272,10 +279,10 @@ TEST_CASE("the options screen: a pick applies at once, Cancel reverts, OK and Es
 
   rig.click(318, options_y());
   REQUIRE(rig.wm.current_screen() == kScreenOptions);
-  rig.move(choice_x(1), row_y(kVariant));
+  rig.move(choice_x(1, kVariant), row_y(kVariant));
   test::write_shot(rig, "options_screen");
   for (const Row row : {kVariant, kDisplay, kScaling}) {
-    rig.click(choice_x(1), row_y(row));
+    rig.click(choice_x(1, row), row_y(row));
   }
   // In force at once.
   CHECK(rig.game.new_game_variant() == game::Variant::kAntagonizer);
@@ -293,7 +300,7 @@ TEST_CASE("the options screen: a pick applies at once, Cancel reverts, OK and Es
 
   // Opened again: the picks were reverted. Esc (as Back) keeps and saves.
   rig.click(318, options_y());
-  rig.click(choice_x(1), row_y(kVariant));
+  rig.click(choice_x(1, kVariant), row_y(kVariant));
   rig.key(SDLK_ESCAPE);
   CHECK(rig.wm.current_screen() == 0);
   CHECK(rig.game.new_game_variant() == game::Variant::kAntagonizer);
@@ -301,7 +308,7 @@ TEST_CASE("the options screen: a pick applies at once, Cancel reverts, OK and Es
 
   rig.click(318, options_y());
   for (const Row row : {kVariant, kDisplay, kScaling}) {
-    rig.click(choice_x(1), row_y(row));
+    rig.click(choice_x(1, row), row_y(row));
   }
   rig.click(kOkX, kButtonsY);
   CHECK(rig.wm.current_screen() == 0);
@@ -377,7 +384,7 @@ TEST_CASE("Alt+Enter saves the fullscreen setting at once, also on the options s
   // reverts the pick and keeps the window's state.
   rig.click(318, options_y());
   REQUIRE(rig.wm.current_screen() == kScreenOptions);
-  rig.click(choice_x(1), row_y(kVariant));
+  rig.click(choice_x(1, kVariant), row_y(kVariant));
   CHECK(display_choice(1) == kSelectedColor);
   alt_enter();
   CHECK(load_options(file) == RemakeOptions{.fullscreen = false});
@@ -386,7 +393,7 @@ TEST_CASE("Alt+Enter saves the fullscreen setting at once, also on the options s
   CHECK(display_choice(0) == kSelectedColor);
   CHECK(display_choice(1) == GWindow::kBackColor);
   // Another pick puts the shown rows in force: the window stays as toggled.
-  rig.click(choice_x(1), row_y(kScaling));
+  rig.click(choice_x(1, kScaling), row_y(kScaling));
   CHECK_FALSE(display.fullscreen());
   rig.click(kCancelX, kButtonsY);
   CHECK(rig.wm.current_screen() == 0);
@@ -398,7 +405,7 @@ TEST_CASE("Alt+Enter saves the fullscreen setting at once, also on the options s
 
   // OK keeps the picks with the toggled state.
   rig.click(318, options_y());
-  rig.click(choice_x(1), row_y(kVariant));
+  rig.click(choice_x(1, kVariant), row_y(kVariant));
   alt_enter();
   rig.pass();
   rig.click(kOkX, kButtonsY);
@@ -583,7 +590,7 @@ TEST_CASE("the options screen's help: Shift and a click", "[screens][content]") 
   CHECK(help.topic() == "oa_options");
   rig.click(318, options_y());
   REQUIRE(rig.wm.current_screen() == kScreenOptions);
-  help_click(choice_x(0), row_y(kScaling));
+  help_click(choice_x(0, kScaling), row_y(kScaling));
   CHECK(help.topic() == "oa_scaling");
   help_click(slider_x(50), row_y(kSound));
   CHECK(help.topic() == "oa_sound");

@@ -33,7 +33,7 @@ class AntagonizerAi final : public StrategicAi {
 const StrategicAi& strategic_ai(Variant variant) {
   static const StandardAi standard;
   static const AntagonizerAi antagonizer;
-  return variant == Variant::kAntagonizer ? static_cast<const StrategicAi&>(antagonizer) : standard;
+  return antagonizer_rules(variant) ? static_cast<const StrategicAi&>(antagonizer) : standard;
 }
 
 }  // namespace oa::game

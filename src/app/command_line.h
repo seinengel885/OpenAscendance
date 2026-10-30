@@ -2,7 +2,7 @@
 // SilentHeritage's:
 //
 //   open_ascendance [--data <install dir> | --setup] [--sharp | --smooth]
-//                   [--fullscreen | --window] [--variant standard|antagonizer]
+//                   [--fullscreen | --window] [--variant standard|antagonizer|pecustom]
 //                   [--keys <k1,k2,...>] [--screenshot <file.bmp> [--frames N]
 //                   [--save-dir <dir>]] [--seed N] [--trace <file.bin>]
 //
@@ -56,7 +56,7 @@ namespace oa {
 // The usage line's options, after the program's name.
 inline constexpr std::string_view kUsageOptions =
     "[--data <install dir> | --setup] [--sharp | --smooth] [--fullscreen | --window] "
-    "[--variant standard|antagonizer] [--keys <k1,k2,...>] [--screenshot <file.bmp> [--frames N] "
+    "[--variant standard|antagonizer|pecustom] [--keys <k1,k2,...>] [--screenshot <file.bmp> [--frames N] "
     "[--save-dir <dir>]] [--seed N] [--trace <file.bin>]";
 
 struct CommandLine {

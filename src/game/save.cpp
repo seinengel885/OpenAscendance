@@ -573,10 +573,19 @@ SaveImage parse_save(std::span<const std::uint8_t> data, std::optional<RawAddres
       in.fail("unknown data after the window state");
     }
     const std::uint32_t variant = in.u32();
-    if (variant != static_cast<std::uint32_t>(Variant::kAntagonizer)) {
+    if (variant != static_cast<std::uint32_t>(Variant::kAntagonizer) &&
+        variant != static_cast<std::uint32_t>(Variant::kPeCustom)) {
       in.fail(std::format("unknown game variant {}", variant));
     }
     image.variant = static_cast<Variant>(variant);
+    if (image.variant == Variant::kPeCustom) {
+      image.pe_custom_version = in.u32();
+      if (image.pe_custom_version == 0 || image.pe_custom_version > kPeCustomSaveVersion) {
+        in.fail(std::format("peCustom save version {} (this build loads up to {}): saved by a newer build?",
+                            image.pe_custom_version, kPeCustomSaveVersion));
+      }
+      // Data appended by later versions is read here, by version.
+    }
     if (!in.at_end()) {
       in.fail("data after the variant trailer");
     }
@@ -648,6 +657,9 @@ std::vector<std::uint8_t> serialize_save(const SaveImage& image) {
     out.insert(out.end(), kVariantTag.begin(), kVariantTag.end());
     w.u32(static_cast<std::uint32_t>(image.variant));
   }
+  if (image.variant == Variant::kPeCustom) {
+    w.u32(kPeCustomSaveVersion);
+  }
   return std::move(out);
 }
 
@@ -655,9 +667,9 @@ SaveImage save_game(const Session& session) {
   const Game& game = *session.game;
   const Cosmos& cosmos = game.cosmos;
   SaveImage image;
-  image.cosmos_address = session.cosmos_address != 0             ? session.cosmos_address
-                         : game.variant == Variant::kAntagonizer ? kAntagCosmosAddress
-                                                                 : kPatchCosmosAddress;
+  image.cosmos_address = session.cosmos_address != 0       ? session.cosmos_address
+                         : antagonizer_rules(game.variant) ? kAntagCosmosAddress
+                                                           : kPatchCosmosAddress;
   // The header: the game's summary over the stale stack bytes.
   image.header = session.stale_header;
   image.header.day = cosmos.day;
@@ -713,6 +725,9 @@ SaveImage save_game(const Session& session) {
   image.backdrops = first(cosmos.backdrops, cosmos.backdrop_count);
   image.window_state = session.window_state;
   image.variant = game.variant;
+  if (game.variant == Variant::kPeCustom) {
+    image.pe_custom_version = kPeCustomSaveVersion;
+  }
   return image;
 }
 

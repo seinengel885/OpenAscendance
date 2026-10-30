@@ -6,7 +6,7 @@
 //
 // `options.cfg` is text, one `key=value` per line (`#` starts a comment):
 //
-//     variant=standard        # or antagonizer: the variant of new games
+//     variant=standard        # or antagonizer, pecustom: the variant of new games
 //     fullscreen=1            # or 0: a window
 //     scaling=smooth          # or sharp
 //     music_volume=100        # 0..100, percent of the original's volume

@@ -93,8 +93,8 @@ Vec3 add(const Vec3& a, const Vec3& b) {
 // 0.75` (never true); the Antagonizer `dist < range * 0.75` (`range` with
 // the Accutron bonus).
 bool carbonizer_too_close(const Session& session, float distance, float range) {
-  const double limit = session.game->variant == Variant::kAntagonizer ? static_cast<double>(range) * 0.75
-                                                                      : static_cast<double>(distance) * 0.75;
+  const double limit = antagonizer_rules(session.game->variant) ? static_cast<double>(range) * 0.75
+                                                                : static_cast<double>(distance) * 0.75;
   return static_cast<double>(distance) < limit;
 }
 

@@ -104,7 +104,7 @@ void ship_init(Session& session, Ship& ship, std::uint8_t hull) {
     slot.uses_left = 0;
     slot.toggled = 0;
   }
-  if (session.game->variant == Variant::kAntagonizer) {
+  if (antagonizer_rules(session.game->variant)) {
     // ANTAG 0x48eac also clears the location kind.
     ship.location_kind = ShipLocation::kNone;
   }
@@ -552,7 +552,7 @@ std::int32_t ship_ai_select_weapon(Session& session, Ship& ship, std::uint16_t t
     ship.target_kind = kTargetShip;
   }
   ship.target = target;
-  const bool antagonizer = session.game->variant == Variant::kAntagonizer;
+  const bool antagonizer = antagonizer_rules(session.game->variant);
   const ShipIndex self = ship_index(session.game->cosmos, ship);
   for (std::int32_t i = 0; i < ship.slot_count; ++i) {
     const std::int8_t g = ship.slots[static_cast<std::size_t>(i)].gizmo;
