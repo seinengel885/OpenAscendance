@@ -19,13 +19,17 @@ using namespace battle_detail;
 namespace {
 
 // ANTAG 0x96960 / 0x9696c: the standard evasive list without the Recaller
-// (36), the target kinds not shifted (original bug kept: the Brunswik
-// Dissipator gets the Recaller's "untargeted" kind, Molecular Tie Down the
-// Dissipator's, the final 0 the Tie Down's).
+// (36), the target kinds not shifted (original bug, fixed in peCustom by
+// `kPeCustomEvasiveTargets`: the Brunswik Dissipator gets the Recaller's
+// "untargeted" kind, Molecular Tie Down the Dissipator's, the final 0 the
+// Tie Down's).
 constexpr std::array<std::int8_t, 10> kEvasiveGizmos = {69, 63, 50, 46, 45, 38, 37, 35, 33, 0};
 constexpr std::array<std::uint8_t, 10> kEvasiveTargets = {kTargetNone, kTargetNone, kTargetShip, kTargetNone,
                                                           kTargetShip, kTargetNone, kTargetShip, kTargetNone,
                                                           kTargetShip, kTargetShip};
+constexpr std::array<std::uint8_t, 10> kPeCustomEvasiveTargets = {kTargetNone, kTargetNone, kTargetShip, kTargetNone,
+                                                                  kTargetShip, kTargetNone, kTargetShip, kTargetShip,
+                                                                  kTargetShip, kTargetShip};
 
 constexpr std::int8_t kGizmoPhaseBomb = 0x46;
 constexpr std::int8_t kGizmoCarbonizer = 0x2f;
@@ -392,7 +396,8 @@ std::int32_t planet_ai_orbital_weapon_reach(const Session& session, const Planet
 }
 
 bool antag_ship_ai_use_evasive_gizmo(Session& session, Ship& ship, Ship& threat) {
-  return use_evasive_gizmo(session, ship, threat, kEvasiveGizmos, kEvasiveTargets);
+  return use_evasive_gizmo(session, ship, threat, kEvasiveGizmos,
+                           session.game->variant == Variant::kPeCustom ? kPeCustomEvasiveTargets : kEvasiveTargets);
 }
 
 }  // namespace oa::game

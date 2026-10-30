@@ -279,11 +279,11 @@ void BatModeWnd::build_scene() {
   }
   // The scene radius starts from the last item built (the last planet, or
   // the star's first 12 bytes read as floats when it has none: a bug of the
-  // original).
+  // original; in peCustom the star, at the centre).
   Vec3 last{};
   if (star.planet_count > 0) {
     last = c.planets[static_cast<std::size_t>(star.planets[static_cast<std::size_t>(star.planet_count - 1)])].position;
-  } else {
+  } else if (s->game->variant != game::Variant::kPeCustom) {
     last = {std::bit_cast<float>(star.type),
             std::bit_cast<float>(static_cast<std::uint32_t>(static_cast<std::uint16_t>(star.index)) |
                                  (static_cast<std::uint32_t>(static_cast<std::uint16_t>(star.cluster)) << 16)),
@@ -685,16 +685,18 @@ void BatModeWnd::draw_list(const std::vector<int>& list) {
       } else if (item.shapes != nullptr) {
         if (item.kind == ItemKind::kBeam) {
           // Three lines to the item joined; the offsets use the x distance
-          // twice (a bug of the original).
+          // twice (a bug of the original, fixed in peCustom: the y distance
+          // in the sum and the x offset).
           const Item& to = items_[static_cast<std::size_t>(item.object)];
           const int dx = std::abs(item.x - to.x);
-          const int sum = dx + dx;
+          const int dy = s->game->variant == game::Variant::kPeCustom ? std::abs(item.y - to.y) : dx;
+          const int sum = dx + dy;
           int ox = 0;
           int oy = 0;
           if (sum != 0) {
             const double q = d(2.5F) / sum;
             oy = game::chop(dx * q + 0.5);
-            ox = game::chop(q * dx + 0.5);
+            ox = game::chop(q * dy + 0.5);
           }
           vfx_line_draw(screen, pane_, item.x + ox, item.y + oy, to.x + ox, to.y + oy, kBeamColor);
           vfx_line_draw(screen, pane_, item.x - ox, item.y - oy, to.x - ox, to.y - oy, kBeamColor);

@@ -563,6 +563,17 @@ void planet_daily_update(Session& session, Planet& planet) {
     }
     const PlanetIndex index = planet_index(cosmos, planet);
     bool completed = false;
+    // Alien Hospitality: every 10 days the races' attitude toward the player
+    // rises by a tenth of the industry + 1. Only in peCustom: the original
+    // tests it among the non-continuous projects, but it is continuous, so
+    // it never acts (original bug).
+    if (session.game->variant == Variant::kPeCustom && planet.project_item == kItemAlienHospitality &&
+        cosmos.day % 10 == 0) {
+      for (std::int32_t r = 0; r < cosmos.race_count; ++r) {
+        std::int16_t& attitude = cosmos.races[static_cast<std::size_t>(r)].attitude[session.player_race];
+        attitude = wrap_i16(attitude + planet.industry / 10 + 1);
+      }
+    }
     if (planet.project_item != kNoItem && (item_of(tables, planet.project_item).flags & kItemContinuous) == 0) {
       // Hostile: +1 production for a weak AI planet (not in the Antagonizer,
       // ANTAG 0x352e0).
@@ -573,15 +584,7 @@ void planet_daily_update(Session& session, Planet& planet) {
       planet.progress = wrap_u16(planet.progress + planet.industry);
       const std::uint16_t cost =
           wrap_u16(planet_project_cost(session, planet, planet.project_square, planet.project_item));
-      if (planet.progress < cost) {
-        // Alien Hospitality: dead code, the item is continuous (original bug).
-        if (planet.project_item == kItemAlienHospitality && cosmos.day % 10 == 0) {
-          for (std::int32_t r = 0; r < cosmos.race_count; ++r) {
-            std::int16_t& attitude = cosmos.races[static_cast<std::size_t>(r)].attitude[session.player_race];
-            attitude = wrap_i16(attitude + planet.industry / 10 + 1);
-          }
-        }
-      } else {
+      if (planet.progress >= cost) {
         const std::uint8_t item = planet.project_item;
         if (planet.owner == session.player_race && item == kItemLaboratory &&
             session.game->research.project[session.player_race] == -1 &&
@@ -689,9 +692,12 @@ std::uint32_t planet_project_cost(const Session& session, const Planet& planet, 
     } else {
       cost = item_of(*session.tables, item).cost;
     }
-    // Never true: the item was re-read from the square, where Automation is
-    // never written (original bug: automating costs the building's cost).
-    if (item == kItemAutomation && square == planet.project_square) {
+    // Automating costs three times the building. Never true but in peCustom:
+    // the item was re-read from the square, where Automation is never
+    // written (original bug: automating costs the building's cost).
+    const std::uint8_t project =
+        session.game->variant == Variant::kPeCustom && square != kNoSquare ? planet.project_item : item;
+    if (project == kItemAutomation && square == planet.project_square) {
       cost *= 3;
     }
   }

@@ -94,6 +94,13 @@ void cosmos_end_day(Session& session);
 // `cosmos_next_contested_star`, then `cosmos_end_day`.
 void cosmos_next_turn(Session& session);
 
+// Returns whether a ship of a race other than `race` and not allied to it
+// is on `lane` (the ship scan of `Cosmos_flood_controlled_lanes` 0x1f704 and
+// ANTAG `Cosmos_flood_frontier_lanes` 0x1fdf0). Original bug, fixed in
+// peCustom: the scan stops after `ship_count` used slots, so the ship in the
+// last used slot is missed.
+bool lane_blocked(const Session& session, LaneIndex lane, const Race& race);
+
 // Ranks the races by ship count + colonies (`Cosmos_rank_races` 0x2078c).
 void cosmos_rank_races(Session& session);
 

@@ -59,6 +59,22 @@ bool absent(const Session& session, const Planet& planet, std::uint8_t item) {
   return planet_find_item(session.game->cosmos, planet, item) == kNoSquare;
 }
 
+bool pe_custom(const Session& session) { return session.game->variant == Variant::kPeCustom; }
+
+// Whether `square`, returned by `planet_auto_place_item`, is a placement.
+// Original bug (as PATCH), fixed in peCustom: compared with 0, so "no
+// square" (0xffff) counts as placed, square 0 as failed.
+bool placed(const Session& session, std::uint16_t square) {
+  return pe_custom(session) ? square != kNoSquare : square != 0;
+}
+
+// Whether `item` is on the planet. Original bug, fixed in peCustom: the
+// square found is compared with 0, true for "no square" (0xffff).
+bool present(const Session& session, const Planet& planet, std::uint8_t item) {
+  const std::uint16_t square = planet_find_item(session.game->cosmos, planet, item);
+  return pe_custom(session) ? square != kNoSquare : square != 0;
+}
+
 bool is_home(const Race& race, const Planet& planet) { return planet.star == race.home; }
 
 // Tells whether a square next to surface square `square` is built (the
@@ -471,22 +487,20 @@ bool antag_race_ai_planet_specials(Session& session, Race& race, Planet& planet)
     } else if (planet_can_place_item(session, planet, kSurfaceShield, kNoSquare)) {
       item = kSurfaceShield;
     }
-    // Original bug kept (as PATCH): "no square" (0xffff) counts as placed,
-    // square 0 as failed.
-    if (item != kNoItem && planet_auto_place_item(session, planet, item, 0) != 0) {
+    if (item != kNoItem && placed(session, planet_auto_place_item(session, planet, item, 0))) {
       return true;
     }
   }
   if (planet.owner % 2 != 0 && industry > 20 && session.rng.rand() % 100 < 4 &&
       planet_can_place_item(session, planet, kSurfaceCloaker, kNoSquare) && absent(session, planet, kSurfaceCloaker) &&
-      planet_auto_place_item(session, planet, kSurfaceCloaker, 0) != 0) {
+      placed(session, planet_auto_place_item(session, planet, kSurfaceCloaker, 0))) {
     return true;
   }
   for (const std::uint8_t item : kSpecials) {
     if ((item != kLushGrowthBomb || (planet.flags & 1) == 0) &&
         planet_can_place_item(session, planet, item, kNoSquare) &&
         (antag_race_research_complete(session, race) || item != kItemInternet) && absent(session, planet, item) &&
-        planet_auto_place_item(session, planet, item, 0) != 0) {
+        placed(session, planet_auto_place_item(session, planet, item, 0))) {
       return true;
     }
   }
@@ -548,8 +562,9 @@ std::int32_t antag_race_ai_planet_focus(Session& session, Race& race, const Plan
   if (planet_find_item(cosmos, planet, kItemHyperpowerPlant) != kNoSquare) {
     r += i >> 1;
   }
-  // Original bug kept (as PATCH): the Internet test compares with 0xfff.
-  if (planet_find_item(cosmos, planet, kItemInternet) != 0xfff) {
+  // Original bug (as PATCH), fixed in peCustom: the Internet test compares
+  // with 0xfff, so it always holds.
+  if (planet_find_item(cosmos, planet, kItemInternet) != (pe_custom(session) ? kNoSquare : 0xfff)) {
     i += r >> 1;
   }
   if ((r < i || free.industry < 1) && free.research > 0) {
@@ -623,8 +638,9 @@ bool antag_race_ai_rebuild_planet_square(Session& session, Race& race, Planet& p
     }
   }
   if (!complete && research < 25) {
-    // Original bug kept: the research weight is written to the industry's.
-    w_industry = research == 0 ? 25.0f : static_cast<float>(25 / research);
+    // Original bug, fixed in peCustom: the research weight is written to the
+    // industry's.
+    (pe_custom(session) ? w_research : w_industry) = research == 0 ? 25.0f : static_cast<float>(25 / research);
     if (need == 0) {
       need = 1;
     }
@@ -986,20 +1002,20 @@ std::int32_t planet_ai_target_value(const Session& session, const Planet& planet
         }
       }
       if (absent(session, planet, kOrbitalCloaker)) {
-        // Original bug kept (0x3663b): the orbital loop counts from
-        // `surface_squares` but its pointer restarts at square 0, so it
+        // Original bug (0x3663b), fixed in peCustom: the orbital loop counts
+        // from `surface_squares` but its pointer restarts at square 0, so it
         // sums the first `square_count - surface_squares` surface squares.
+        const std::uint16_t shift = pe_custom(session) ? 0 : planet.surface_squares;
         for (std::uint16_t i = planet.surface_squares; i < planet.square_count; ++i) {
-          costs += square_cost(session, squares[i - planet.surface_squares].item);
+          costs += square_cost(session, squares[i - shift].item);
         }
       }
       std::int32_t worth = u16(planet.industry) + u16(planet.prosperity) + u16(planet.research) + planet.population +
                            room(planet) / 2 + costs;
-      // Original bug kept: "present" is tested as `!= 0`, true for 0xffff.
-      if (planet_find_item(cosmos, planet, kItemShipyard) != 0) {
+      if (present(session, planet, kItemShipyard)) {
         worth += 50;
       }
-      if (planet_find_item(cosmos, planet, kOrbitalDocks) != 0) {
+      if (present(session, planet, kOrbitalDocks)) {
         worth += 50;
       }
       value = (value + worth / 10) * 2;
@@ -1021,10 +1037,10 @@ std::int32_t planet_ai_own_value(const Session& session, const Planet& planet) {
   for (std::uint16_t i = 0; i < planet.square_count; ++i) {
     value += square_cost(session, squares[i].item);
   }
-  if (planet_find_item(cosmos, planet, kItemShipyard) != 0) {
+  if (present(session, planet, kItemShipyard)) {
     value += 50;
   }
-  if (planet_find_item(cosmos, planet, kOrbitalDocks) != 0) {
+  if (present(session, planet, kOrbitalDocks)) {
     value += 50;
   }
   return value < 0 ? 0 : value;

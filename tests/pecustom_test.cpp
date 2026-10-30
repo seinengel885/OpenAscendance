@@ -1,5 +1,5 @@
-// The peCustom variant (`game/variant.h`): for now the Antagonizer's game
-// under its own name, and its saves (`game/save.h`), which must keep loading
+// The peCustom variant (`game/variant.h`): the Antagonizer's game with
+// fixes of its own, and its saves (`game/save.h`), which must keep loading
 // in later builds. `pecustom_v1.sav` in the folder named by OA_PECUSTOM_SAVES
 // is a save of the first peCustom save format (version 1), kept as written
 // then; it holds text of the game files, so it is not part of this
@@ -55,21 +55,15 @@ std::optional<std::vector<std::uint8_t>> first_save() {
   return std::vector<std::uint8_t>(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
 }
 
-TEST_CASE("a peCustom game plays as an Antagonizer game", "[game][content][pecustom]") {
+TEST_CASE("a peCustom game plays on, the same every time", "[game][content][pecustom]") {
   OA_REQUIRE_TABLES(t);
-  Session antag(*t);
-  Session pe(*t);
-  play(antag, Variant::kAntagonizer, 60);
-  play(pe, Variant::kPeCustom, 60);
-  REQUIRE(pe.game->cosmos.day == antag.game->cosmos.day);
-  // The same save but for the trailer: 8 bytes (tag, variant) for the
-  // Antagonizer, 12 (tag, variant, version) for peCustom.
-  std::vector<std::uint8_t> a = serialize_save(save_game(antag));
-  std::vector<std::uint8_t> p = serialize_save(save_game(pe));
-  REQUIRE(p.size() == a.size() + 4);
-  a.resize(a.size() - 8);
-  p.resize(p.size() - 12);
-  CHECK(first_difference(p, a) == -1);
+  Session first(*t);
+  Session second(*t);
+  play(first, Variant::kPeCustom, 60);
+  play(second, Variant::kPeCustom, 60);
+  CHECK(first.game->cosmos.day == 60);
+  CHECK(first.game->variant == Variant::kPeCustom);
+  CHECK(first_difference(serialize_save(save_game(first)), serialize_save(save_game(second))) == -1);
 }
 
 TEST_CASE("a peCustom game saves and loads as peCustom", "[game][content][pecustom]") {

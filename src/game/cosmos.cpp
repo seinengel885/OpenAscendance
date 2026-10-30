@@ -206,6 +206,25 @@ void cosmos_free_ship(Session& session, Ship& ship) {
   --session.game->cosmos.ship_count;
 }
 
+bool lane_blocked(const Session& session, LaneIndex lane, const Race& race) {
+  const Cosmos& cosmos = session.game->cosmos;
+  const bool every_slot = session.game->variant == Variant::kPeCustom;
+  std::int16_t used = 0;
+  for (std::size_t i = 0; i < kMaxShips && (every_slot || used < cosmos.ship_count); ++i) {
+    const Ship& ship = cosmos.ships[i];
+    if (ship.owner == -1) {
+      continue;
+    }
+    ++used;
+    const auto owner = static_cast<std::size_t>(ship.owner);
+    if (ship.location_kind == ShipLocation::kLane && ship.location == lane && ship.owner != race.index &&
+        race.relation[owner] != kAlliance) {
+      return every_slot || used < cosmos.ship_count;
+    }
+  }
+  return !every_slot && used < cosmos.ship_count;
+}
+
 void cosmos_flood_controlled_lanes(Session& session, Star& star) {
   Cosmos& cosmos = session.game->cosmos;
   const Race& player = cosmos.races[session.player_race];
@@ -227,22 +246,7 @@ void cosmos_flood_controlled_lanes(Session& session, Star& star) {
     if ((far.explored_mask & me) == 0 || (~allies & (far.owner_mask | far.ships_mask) & 0x7f & ~me) != 0) {
       continue;
     }
-    // Original bug kept: the scan stops after `ship_count` used slots, so a
-    // blocking ship in the last used slot still passes the test below.
-    std::int16_t used = 0;
-    for (std::size_t i = 0; i < kMaxShips && used < cosmos.ship_count; ++i) {
-      const Ship& ship = cosmos.ships[i];
-      if (ship.owner == -1) {
-        continue;
-      }
-      ++used;
-      const auto owner = static_cast<std::uint32_t>(ship.owner);
-      if (ship.location_kind == ShipLocation::kLane && ship.location == l && owner != session.player_race &&
-          player.relation[owner] != kAlliance) {
-        break;
-      }
-    }
-    if (used >= cosmos.ship_count) {
+    if (!lane_blocked(session, l, player)) {
       lane.visited = 1;
       ++cosmos.controlled_lanes;
       cosmos_flood_controlled_lanes(session, far);

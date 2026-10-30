@@ -5,6 +5,7 @@
 
 #include "core/fixed_width.h"
 #include "game/antag_planet.h"
+#include "game/cosmos.h"
 #include "game/float_math.h"
 #include "game/planet.h"
 #include "game/race.h"
@@ -220,21 +221,7 @@ void cosmos_flood_frontier_lanes(Session& session, const Star& star, RaceIndex r
       out = wrap_u8(out + 1);
       continue;
     }
-    // The ship scan stops after `ship_count` used slots: a hostile ship in
-    // the last used slot is missed (as in `Cosmos_flood_controlled_lanes`).
-    std::int16_t used = 0;
-    for (std::size_t i = 0; i < kMaxShips && used < cosmos.ship_count; ++i) {
-      const Ship& ship = cosmos.ships[i];
-      if (ship.owner == -1) {
-        continue;
-      }
-      ++used;
-      if (ship.location_kind == ShipLocation::kLane && ship.location == l && ship.owner != race &&
-          self.relation[static_cast<std::size_t>(ship.owner)] != kAlliance) {
-        break;
-      }
-    }
-    if (used < cosmos.ship_count) {
+    if (lane_blocked(session, l, self)) {
       out = wrap_u8(out + 1);
     } else {
       lane.visited = race;
@@ -347,10 +334,12 @@ PlanetIndex antag_race_ai_choose_colony_site(const Session& session, const Race&
 }
 
 // `Ship_obsolescence` ANTAG 0x4a1cc: the mean level deficit of the parts
-// against the race's best. Original bug kept: the category is read from the
-// gizmo whose id is the slot number, not from the installed gizmo.
+// against the race's best. Original bug, fixed in peCustom: the category is
+// read from the gizmo whose id is the slot number, not from the installed
+// gizmo.
 std::int32_t ship_obsolescence(const Session& session, const Ship& ship, RaceIndex race) {
   const auto& gizmos = session.tables->gizmos;
+  const bool pe_custom = session.game->variant == Variant::kPeCustom;
   // The level of a best gizmo; none (-1) reads the bytes before the table,
   // taken as 0.
   const auto level_of = [&](std::int8_t id) { return id < 0 ? 0 : gizmos.at(static_cast<std::uint8_t>(id)).level; };
@@ -368,7 +357,8 @@ std::int32_t ship_obsolescence(const Session& session, const Ship& ship, RaceInd
       continue;
     }
     std::int32_t best = -1;
-    switch (gizmos.at(static_cast<std::size_t>(i)).category) {
+    switch (gizmos.at(pe_custom ? static_cast<std::size_t>(static_cast<std::uint8_t>(g)) : static_cast<std::size_t>(i))
+                .category) {
       case kCategoryWeapon:
         best = level_of(weapon);
         break;
@@ -862,8 +852,10 @@ void race_ai_plan_production(Session& session, Race& race, const std::vector<Shi
       // `Star_hop_count` 0x1da04: no decay below 25 hops (kept).
       const std::int32_t hops = cosmos.hops[ut][us];
       const float weight = static_cast<float>(1 / (hops / 25 + 1));
-      // Original bug kept: the branch tests the own star's masks, not t's.
-      if (war & own.owner_mask) {
+      // Original bug, fixed in peCustom: the branch tests the own star's
+      // masks, not t's.
+      const Star& tested = session.game->variant == Variant::kPeCustom ? cosmos.stars[ut] : own;
+      if (war & tested.owner_mask) {
         const std::int32_t v = chop(static_cast<double>(w.colonise[ut]) * weight);
         if (w.invasion_ships[ut] < 1) {
           w.invasion_demand[us] += v;
@@ -873,7 +865,7 @@ void race_ai_plan_production(Session& session, Race& race, const std::vector<Shi
         if (w.war_ships[ut] < 1) {
           w.war_demand[us] += v;
         }
-      } else if (war & own.ships_mask) {
+      } else if (war & tested.ships_mask) {
         const std::int32_t v =
             chop(static_cast<double>(wrap_i32(static_cast<std::int64_t>(w.defence[ut]) + w.colonise[ut])) * weight);
         if (w.war_ships[ut] < 1) {

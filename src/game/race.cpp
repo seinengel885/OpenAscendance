@@ -332,10 +332,13 @@ bool race_use_special_ability(Session& session, Race& race, bool use) {
       }
       break;
     }
-    case kUngooma:
-      // Every ship on a lane goes back to the star it left. Original bug: the
-      // loop stops at slot `ship_count` (the number of used slots).
-      for (std::int16_t i = 0; i < cosmos.ship_count; ++i) {
+    case kUngooma: {
+      // Every ship on a lane goes back to the star it left. Original bug,
+      // fixed in peCustom: the loop stops at slot `ship_count` (the number of
+      // used slots).
+      const std::int32_t slots =
+          session.game->variant == Variant::kPeCustom ? static_cast<std::int32_t>(kMaxShips) : cosmos.ship_count;
+      for (std::int32_t i = 0; i < slots; ++i) {
         Ship& ship = cosmos.ships[static_cast<std::size_t>(i)];
         if (ship.owner != -1 && ship.location_kind == ShipLocation::kLane) {
           const Lane& lane = cosmos.lanes.at(static_cast<std::size_t>(ship.location));
@@ -344,6 +347,7 @@ bool race_use_special_ability(Session& session, Race& race, bool use) {
         }
       }
       break;
+    }
     case kDubtaks:
       // Every item known by two races or more becomes known (not unseen).
       for (std::uint16_t item = 0; item < research.count; ++item) {
