@@ -443,7 +443,7 @@ int run_game(const GameOptions& options, const Install& install) {
     SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "dummy");
     SDL_SetHint(SDL_HINT_AUDIO_DRIVER, "dummy");
   }
-  const GameFiles files(install);
+  const GameFiles files(install, options.settings.language);
   try {
     run(options, files);
   } catch (const ScreenshotTaken&) {

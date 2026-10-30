@@ -27,4 +27,16 @@ struct Font {
 // malformed.
 Font parse_font(std::span<const std::uint8_t> data, std::string_view context = "font");
 
+// The cp437 codes of the German letters, which the original's fonts (128
+// characters) lack.
+inline constexpr std::uint8_t kCodeAUmlaut = 0x8e, kCodeOUmlaut = 0x99, kCodeUUmlaut = 0x9a;
+inline constexpr std::uint8_t kCodeAUmlautSmall = 0x84, kCodeOUmlautSmall = 0x94, kCodeUUmlautSmall = 0x81;
+inline constexpr std::uint8_t kCodeSharpS = 0xe1;
+
+// Adds the German letters to `font` (the remake's own glyphs, for the
+// translations): the vowels with two dots above (a capital squeezed when the
+// font has no room above it), `ß` drawn for the UI fonts' heights and `ss`
+// for others. A font without the ASCII letters is left alone.
+void add_german_letters(Font& font);
+
 }  // namespace oa

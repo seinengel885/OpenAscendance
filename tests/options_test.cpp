@@ -243,8 +243,10 @@ TEST_CASE("options.cfg: the settings' text round-trips; bad lines are ignored", 
                           .fullscreen = false,
                           .scaling = Scaling::kSharp,
                           .music_volume = 0,
-                          .sfx_volume = 35};
-  CHECK(format_options(set) == "variant=antagonizer\nfullscreen=0\nscaling=sharp\nmusic_volume=0\nsfx_volume=35\n");
+                          .sfx_volume = 35,
+                          .language = Language::kGerman};
+  CHECK(format_options(set) ==
+        "variant=antagonizer\nfullscreen=0\nscaling=sharp\nmusic_volume=0\nsfx_volume=35\nlanguage=de\n");
   CHECK(parse_options(format_options(set)) == set);
   CHECK(parse_options(format_options(defaults)) == defaults);
   CHECK(parse_options("# comment\r\n variant = antagonizer # Antagonizer\r\nwide=1\nfullscreen=yes\nscaling\n") ==
@@ -597,7 +599,7 @@ TEST_CASE("the options screen's help: Shift and a click", "[screens][content]") 
   CHECK(rig.sound.sfx_level() == 60);
   help_click(100, row_y(kVariant));
   CHECK(help.topic() == "oa_variant");
-  help_click(100, 400);
+  help_click(100, 412);
   CHECK(help.topic() == "oa_screen");
   CHECK(rig.wm.current_screen() == kScreenOptions);
 }

@@ -6,6 +6,7 @@
 namespace oa {
 
 GameFont::GameFont(Font font, std::uint8_t background) : font_(std::move(font)), background_(background) {
+  add_german_letters(font_);
   for (std::size_t i = 0; i < translate_.size(); ++i) {
     translate_[i] = static_cast<std::uint8_t>(i);
   }

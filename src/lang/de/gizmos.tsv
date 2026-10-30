@@ -1,0 +1,77 @@
+# The ship gizmos: number, English as the game reads it (`^` a space), German.
+G01	Mass Barrage Gun	Massensperrfeuer-Kanone
+G02	Fourier Missiles	Fourier-Raketen
+G03	Quantum Singularity Launcher	Quantensingularitätswerfer
+G04	Molecular Disassociator	Molekular-Dissoziator
+G05	Electromagnetic Pulser	Elektromagnetischer Pulser
+G06	Plasmatron	Plasmatron
+G07	Ueberlaser	Überlaser
+G08	Fergnatz Lens	Fergnatz-Linse
+G09	Hypersphere Driver	Hypersphären-Treiber
+G10	Nanomanipulator	Nanomanipulator
+G11	Ion Wrap	Ionenhülle
+G12	Concussion Shield	Erschütterungsschild
+G13	Wave Scatterer	Wellenstreuer
+G14	Deactotron	Deaktotron
+G15	Hyperwave Nullifier	Hyperwellen-Nullifikator
+G16	Nanoshell	Nanoschale
+G17	Tonklin Motor	Tonklin-Motor
+G18	Ion Banger	Ionenknaller
+G19	Graviton Projector	Gravitonprojektor
+G20	Inertia Negator	Trägheitsnegator
+G21	Nanowave Space Bender	Nanowellen-Raumkrümmer
+G22	Tonklin Frequency Analyzer	Tonklin-Frequenzanalysator
+G23	Subspace Phase Array	Subraum-Phasenarray
+G24	Aural Cloud Constructor	Aurawolken-Konstruktor
+G25	Hyperwave Tympanum	Hyperwellen-Trommelfell
+G26	Murgatroyd's Knower	Murgatroyds Wisser
+G27	Nanowave Decoupling Net	Nanowellen-Entkopplungsnetz
+G28	Proton Shaver	Protonenhobel
+G29	Subatomic Scoop	Subatomare Schaufel
+G30	Quark Express	Quark-Express
+G31	Van Creeg Hypersplicer	Van-Creeg-Hyperspleißer
+G32	Nanotwirler	Nanowirbler
+G33	Lane Blocker	Straßensperre
+G34	Molecular Tie Down	Molekularfessel
+G35	Intellect Scrambler	Intelligenzverwirrer
+G36	Brunswik Dissipator	Brunswik-Dissipator
+G37	Recaller	Rückrufer
+G38	Disarmer	Entwaffner
+G39	Smart Bomb	Intelligente Bombe
+G40	Gravity Distorter	Schwerkraftverzerrer
+G41	Fleet Disperser	Flottenzerstreuer
+G42	X Ray Megaglasses	Röntgen-Megabrille
+G43	Cloaker	Tarnvorrichtung
+G44	Star Lane Drive	Sternstraßen-Antrieb
+G45	Star Lane Hyperdrive	Sternstraßen-Hyperantrieb
+G46	Positron Bouncer	Positronen-Abpraller
+G47	Gravimetric Catapult	Gravimetrisches Katapult
+G48	Myrmidonic Carbonizer	Myrmidon-Karbonisierer
+G49	Containment Device	Eindämmungsvorrichtung
+G50	Shield Blaster	Schildbrecher
+G51	Backfirer	Rückzünder
+G52	Lane Destabilizer	Straßen-Destabilisator
+G53	Tractor Beam	Traktorstrahl
+G54	Cannibalizer	Kannibalisierer
+G55	Moving Part Exploiter	Bewegungsteil-Ausnutzer
+G56	Hyperswapper	Hypertauscher
+G57	Gravimetric Condensor	Gravimetrischer Kondensor
+G58	Accutron	Accutron
+G59	Remote Repair Facility	Fernreparaturanlage
+G60	Sacrificial Orb	Opferkugel
+G61	Lane Magnetron	Straßen-Magnetron
+G62	Disintegrator	Desintegrator
+G63	Lane Endoscope	Straßen-Endoskop
+G64	Toroidal Blaster	Toroidaler Blaster
+G65	Gizmogrifier	Gizmogrifier
+G66	Replenisher	Auffüller
+G67	Specialty Blaster	Spezialblaster
+G68	Gyro-Inductor	Gyro-Induktor
+G69	Plasma Coupler	Plasmakoppler
+G70	Invulnerablizer	Unverwundbarmacher
+G71	Phase Bomb	Phasenbombe
+G72	Colonizer	Kolonisator
+G73	Self Destructotron	Selbstzerstörotron
+G74	Invasion Module	Invasionsmodul
+G75	Mass Condensor	Massenkondensor
+G76	Hyperfuel	Hypertreibstoff

@@ -127,7 +127,8 @@ std::vector<std::uint8_t> CobDirectory::read(const CobMember& member) const {
   return data;
 }
 
-GameFiles::GameFiles(Install install) : install_(std::move(install)), directory_(install_) {}
+GameFiles::GameFiles(Install install, Language language)
+    : install_(std::move(install)), directory_(install_), translation_(language) {}
 
 std::optional<std::vector<std::uint8_t>> GameFiles::try_load(std::string_view dos_path) const {
   if (const CobMember* m = directory_.find(dos_path)) {

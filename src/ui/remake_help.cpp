@@ -119,6 +119,20 @@ button
 title OK
 msg 0
 
+help oa_language
+text
+Language
+endtext
+pos 0 15
+flags TJ_HC
+text
+The language of the game's texts, from the next start of the program. Saves load in either language.
+endtext
+pos 5 50
+button
+title OK
+msg 0
+
 help oa_ok
 text
 OK
@@ -126,7 +140,7 @@ endtext
 pos 0 15
 flags TJ_HC
 text
-Keeps these settings and goes back to the opening menu. A new game variant applies to the next new game.)" OA_KEY_HINT("Enter and Esc do the same.") R"(
+Keeps these settings and goes back to the opening menu. A new game variant applies to the next new game, a new language from the next start.)" OA_KEY_HINT("Enter and Esc do the same.") R"(
 endtext
 pos 5 50
 button

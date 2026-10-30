@@ -199,7 +199,8 @@ class WinMgr final : public WindowStateIo {
   const ShapeTable& shared_shapes(int index);
 
   // `static_string` (0x1cea8): string `index` of `static.txt` (loaded at
-  // the first use). Throws `std::out_of_range` past the table.
+  // the first use), in the files' language. Throws `std::out_of_range` past
+  // the table.
   const std::string& static_string(int index);
 
   // Whether the game runs (`0x865f4`; message 2 and Alt+X clear it).

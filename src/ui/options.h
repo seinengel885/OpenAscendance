@@ -11,6 +11,7 @@
 //     scaling=smooth          # or sharp
 //     music_volume=100        # 0..100, percent of the original's volume
 //     sfx_volume=60           # 0..100, likewise for the sound effects
+//     language=en             # or de: the texts' language, from the next start
 //
 // Unknown keys and bad values are ignored with a warning, so that a file of
 // a later version stays readable.
@@ -20,6 +21,7 @@
 #include <string>
 #include <string_view>
 
+#include "core/language.h"
 #include "game/variant.h"
 #include "platform/display.h"
 
@@ -39,6 +41,8 @@ struct RemakeOptions {
   // The levels of `SoundSystem::set_music_level` / `set_sfx_level`.
   int music_volume = kDefaultMusicVolume;
   int sfx_volume = kDefaultSfxVolume;
+  // The texts' language (`GameFiles`), read at the program's start.
+  Language language = Language::kEnglish;
 
   bool operator==(const RemakeOptions&) const = default;
 };

@@ -11,6 +11,7 @@
 #include "audio/mixer.h"
 #include "audio/sound_system.h"
 #include "core/error.h"
+#include "core/language.h"
 #include "platform/input.h"
 #include "ui/remake_help.h"
 
@@ -293,12 +294,16 @@ struct Setting {
 };
 
 // The rows, in order (their indices are `OptionsWnd`'s).
-enum SettingRow : std::size_t { kRowVariant, kRowDisplay, kRowScaling, kRowMusic, kRowSound };
+enum SettingRow : std::size_t { kRowVariant, kRowDisplay, kRowScaling, kRowMusic, kRowSound, kRowLanguage };
 
 std::vector<Setting> settings() {
   std::vector<std::string_view> variants;
   for (const game::VariantInfo& v : game::kVariants) {
     variants.push_back(v.label);
+  }
+  std::vector<std::string_view> languages;
+  for (const LanguageInfo& l : kLanguages) {
+    languages.push_back(l.label);
   }
   return {
       {"Game Variant", "For the next new game", "oa_variant", std::move(variants)},
@@ -306,6 +311,7 @@ std::vector<Setting> settings() {
       {"Scaling", "", "oa_scaling", {"Smooth", "Sharp"}},
       {"Music", "", "oa_music", {}},
       {"Sound Effects", "", "oa_sound", {}},
+      {"Language", "From the next start", "oa_language", std::move(languages)},
   };
 }
 
@@ -489,6 +495,11 @@ class OptionsWnd final : public GWindow {
     const Scaling scaling = context_.display != nullptr ? context_.display->scaling() : o.scaling;
     select(kRowDisplay, fullscreen ? 1 : 0);
     select(kRowScaling, scaling == Scaling::kSharp ? 1 : 0);
+    for (std::size_t i = 0; i < kLanguages.size(); ++i) {
+      if (kLanguages[i].language == o.language) {
+        select(kRowLanguage, static_cast<int>(i));
+      }
+    }
     saved_options_ = o;
     saved_display_ = DisplayState{.variant = variant, .fullscreen = fullscreen, .scaling = scaling};
     const SoundSystem& sound = wm_.services().sound;
@@ -555,6 +566,7 @@ class OptionsWnd final : public GWindow {
     o.variant = game::kVariants.at(static_cast<std::size_t>(selected_[kRowVariant])).variant;
     o.fullscreen = selected_[kRowDisplay] == 1;
     o.scaling = selected_[kRowScaling] == 1 ? Scaling::kSharp : Scaling::kSmooth;
+    o.language = kLanguages.at(static_cast<std::size_t>(selected_[kRowLanguage])).language;
     apply(DisplayState{.variant = o.variant, .fullscreen = o.fullscreen, .scaling = o.scaling});
   }
 

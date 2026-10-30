@@ -95,6 +95,12 @@ RemakeOptions parse_options(std::string_view text) {
       } else {
         known = false;
       }
+    } else if (key == "language") {
+      if (const std::optional<Language> v = parse_language(value)) {
+        options.language = *v;
+      } else {
+        known = false;
+      }
     } else {
       known = false;
     }
@@ -106,9 +112,10 @@ RemakeOptions parse_options(std::string_view text) {
 }
 
 std::string format_options(const RemakeOptions& options) {
-  return std::format("variant={}\nfullscreen={}\nscaling={}\nmusic_volume={}\nsfx_volume={}\n",
+  return std::format("variant={}\nfullscreen={}\nscaling={}\nmusic_volume={}\nsfx_volume={}\nlanguage={}\n",
                      game::variant_info(options.variant).key, options.fullscreen ? 1 : 0,
-                     options.scaling == Scaling::kSharp ? "sharp" : "smooth", options.music_volume, options.sfx_volume);
+                     options.scaling == Scaling::kSharp ? "sharp" : "smooth", options.music_volume, options.sfx_volume,
+                     language_info(options.language).key);
 }
 
 RemakeOptions load_options(const std::filesystem::path& path) {

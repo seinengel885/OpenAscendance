@@ -53,6 +53,14 @@ std::string caret_name(const std::string& token, std::size_t size, std::string_v
 
 }  // namespace
 
+void set_research_name(ResearchItem& item, std::string_view name) {
+  if (name.size() >= item.name.size()) {
+    throw DataError(std::format("research item name '{}' longer than {} characters", name, item.name.size() - 1));
+  }
+  item.name.fill('\0');
+  std::memcpy(item.name.data(), name.data(), name.size());
+}
+
 PlanItemTable parse_planitems(std::span<const std::uint8_t> data) {
   constexpr std::string_view kContext = "planitem.txt";
   // The comment is read with fgets(buf, 0xc3).
@@ -156,8 +164,7 @@ ResearchTree parse_restree(std::span<const std::uint8_t> data) {
   // The cost multiplier of item i > 10 is 2i - 20.
   for (int i = 0; i < tree.count; ++i) {
     ResearchItem& item = tree.items[static_cast<std::size_t>(i)];
-    const std::string name = caret_name(in.word(), item.name.size(), kContext);
-    std::memcpy(item.name.data(), name.data(), name.size());
+    set_research_name(item, caret_name(in.word(), item.name.size(), kContext));
     item.category = wrap_u8(in.integer());
     std::int32_t cost = in.integer();
     if (i > 10) {
@@ -254,8 +261,17 @@ DipValues parse_dip_values(std::span<const std::uint8_t> data) {
 GameTables load_game_tables(const GameFiles& files) {
   GameTables t;
   t.planitems = parse_planitems(files.load("planitem.txt"));
+  for (PlanItem& item : t.planitems.items) {
+    item.name = files.text("planitem.txt", item.name);
+  }
   t.gizmos = parse_gizmos(files.load("gizmos.txt"));
+  for (Gizmo& g : t.gizmos) {
+    g.name = files.text("gizmos.txt", g.name);
+  }
   t.research = parse_restree(files.load("restree.txt"));
+  for (ResearchItem& item : t.research.items) {
+    set_research_name(item, files.text("restree.txt", name_view(item.name)));
+  }
   t.star_names = parse_star_names(files.load("names.txt"));
   for (std::size_t s = 0; s < t.dip.size(); ++s) {
     t.dip[s] = parse_dip_values(files.load(std::format("RACE{:02}.DIP", s)));
@@ -265,7 +281,7 @@ GameTables load_game_tables(const GameFiles& files) {
     throw DataError("static.txt: no hull names");
   }
   for (std::size_t h = 0; h < kHullCount; ++h) {
-    t.hull_names[h] = strings[kHullNameString + h];
+    t.hull_names[h] = files.text("static.txt", strings[kHullNameString + h]);
   }
   t.logo_gif = files.load("data\\logo.gif");
   return t;

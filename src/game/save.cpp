@@ -748,6 +748,11 @@ void load_game(Session& session, const SaveImage& image) {
   // Research_serialize reads the tree once through Research_load first.
   game.research = image.research;
   session.research_tree_loaded = true;
+  // The names shown are the tables', in the language played: a save keeps
+  // those of the language it was written in.
+  for (std::size_t i = 0; i < game.research.items.size(); ++i) {
+    game.research.items[i].name = session.tables->research.items[i].name;
+  }
 
   cosmos.star_count = static_cast<std::int16_t>(image.stars.size());
   for (std::size_t i = 0; i < image.stars.size(); ++i) {

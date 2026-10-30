@@ -40,7 +40,8 @@ inline constexpr int kDefault = -1;
 class GameFont {
  public:
   // `font_init` (0x2aa1c): an identity translate table, the full screen pane
-  // and background `background` (0xff = none).
+  // and background `background` (0xff = none). The remake adds the German
+  // letters (`add_german_letters`).
   explicit GameFont(Font font, std::uint8_t background = 0xff);
 
   const Font& font() const { return font_; }

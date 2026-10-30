@@ -148,6 +148,9 @@ struct GameTables {
   std::vector<std::uint8_t> logo_gif;
 };
 
+// Sets the name of `item` to `name`; throws `DataError` when it does not fit.
+void set_research_name(ResearchItem& item, std::string_view name);
+
 // The parsers take the whole file; each throws `DataError` on a malformed
 // or truncated file.
 
@@ -165,7 +168,7 @@ std::array<StarName, kStarNameCount> parse_star_names(std::span<const std::uint8
 DipValues parse_dip_values(std::span<const std::uint8_t> data);
 
 // Reads every table from the install (`RACE00.DIP`..`RACE20.DIP` by species,
-// the hull names from `static.txt`).
+// the hull names from `static.txt`), the names in the files' language.
 GameTables load_game_tables(const GameFiles& files);
 
 }  // namespace oa::game

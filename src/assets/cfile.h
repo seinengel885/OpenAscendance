@@ -11,7 +11,9 @@
 #include <string_view>
 #include <vector>
 
+#include "assets/translation.h"
 #include "core/install.h"
+#include "core/language.h"
 
 namespace oa {
 
@@ -63,8 +65,9 @@ class CobDirectory {
 // first, else the loose file of the install (archive members win).
 class GameFiles {
  public:
-  // Throws `DataError` when the COB directory cannot be read.
-  explicit GameFiles(Install install);
+  // Throws `DataError` when the COB directory cannot be read. The texts are
+  // in `language` (`text`).
+  explicit GameFiles(Install install, Language language = Language::kEnglish);
 
   const Install& install() const { return install_; }
   const CobDirectory& directory() const { return directory_; }
@@ -75,9 +78,14 @@ class GameFiles {
   // Returns the whole file `dos_path`; throws `DataError` if it is missing.
   std::vector<std::uint8_t> load(std::string_view dos_path) const;
 
+  // Returns `text` of data file `file` (`restree.txt`) in the language of the
+  // files (`Translation::text`).
+  std::string text(std::string_view file, std::string_view text) const { return translation_.text(file, text); }
+
  private:
   Install install_;
   CobDirectory directory_;
+  Translation translation_;
 };
 
 }  // namespace oa

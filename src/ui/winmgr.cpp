@@ -575,6 +575,9 @@ void WinMgr::draw_colored(const Pane& pane, const Shape& shape, int x, int y, in
 const std::string& WinMgr::static_string(int index) {
   if (static_strings_.empty()) {
     static_strings_ = parse_static_strings(services_.files.load("static.txt"));
+    for (std::string& s : static_strings_) {
+      s = services_.files.text("static.txt", s);
+    }
   }
   return static_strings_.at(static_cast<std::size_t>(index));
 }
