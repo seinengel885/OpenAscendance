@@ -7,14 +7,14 @@ G05	Electromagnetic Pulser	Elektromagnetischer Pulser
 G06	Plasmatron	Plasmatron
 G07	Ueberlaser	Überlaser
 G08	Fergnatz Lens	Fergnatz-Linse
-G09	Hypersphere Driver	Hypersphären-Treiber
+G09	Hypersphere Driver	Hypersphären-Werfer
 G10	Nanomanipulator	Nanomanipulator
 G11	Ion Wrap	Ionenhülle
 G12	Concussion Shield	Erschütterungsschild
 G13	Wave Scatterer	Wellenstreuer
 G14	Deactotron	Deaktotron
-G15	Hyperwave Nullifier	Hyperwellen-Nullifikator
-G16	Nanoshell	Nanoschale
+G15	Hyperwave Nullifier	Hyperwellen-Neutralisator
+G16	Nanoshell	Nanohülle
 G17	Tonklin Motor	Tonklin-Motor
 G18	Ion Banger	Ionenknaller
 G19	Graviton Projector	Gravitonprojektor
@@ -22,16 +22,16 @@ G20	Inertia Negator	Trägheitsnegator
 G21	Nanowave Space Bender	Nanowellen-Raumkrümmer
 G22	Tonklin Frequency Analyzer	Tonklin-Frequenzanalysator
 G23	Subspace Phase Array	Subraum-Phasenarray
-G24	Aural Cloud Constructor	Aurawolken-Konstruktor
+G24	Aural Cloud Constructor	Aureale-Wolken-Projektor
 G25	Hyperwave Tympanum	Hyperwellen-Trommelfell
 G26	Murgatroyd's Knower	Murgatroyds Wisser
 G27	Nanowave Decoupling Net	Nanowellen-Entkopplungsnetz
-G28	Proton Shaver	Protonenhobel
+G28	Proton Shaver	Protonen-Schaber
 G29	Subatomic Scoop	Subatomare Schaufel
 G30	Quark Express	Quark-Express
 G31	Van Creeg Hypersplicer	Van-Creeg-Hyperspleißer
 G32	Nanotwirler	Nanowirbler
-G33	Lane Blocker	Straßensperre
+G33	Lane Blocker	Sternstraßensperre
 G34	Molecular Tie Down	Molekularfessel
 G35	Intellect Scrambler	Intelligenzverwirrer
 G36	Brunswik Dissipator	Brunswik-Dissipator
@@ -50,7 +50,7 @@ G48	Myrmidonic Carbonizer	Myrmidon-Karbonisierer
 G49	Containment Device	Eindämmungsvorrichtung
 G50	Shield Blaster	Schildbrecher
 G51	Backfirer	Rückzünder
-G52	Lane Destabilizer	Straßen-Destabilisator
+G52	Lane Destabilizer	Sternstraßen-Destabilisator
 G53	Tractor Beam	Traktorstrahl
 G54	Cannibalizer	Kannibalisierer
 G55	Moving Part Exploiter	Bewegungsteil-Ausnutzer
@@ -68,10 +68,10 @@ G66	Replenisher	Auffüller
 G67	Specialty Blaster	Spezialblaster
 G68	Gyro-Inductor	Gyro-Induktor
 G69	Plasma Coupler	Plasmakoppler
-G70	Invulnerablizer	Unverwundbarmacher
+G70	Invulnerablizer	Unverwundbarkeits-Generator
 G71	Phase Bomb	Phasenbombe
 G72	Colonizer	Kolonisator
-G73	Self Destructotron	Selbstzerstörotron
+G73	Self Destructotron	Selbstzerstörungs-Modul
 G74	Invasion Module	Invasionsmodul
 G75	Mass Condensor	Massenkondensor
 G76	Hyperfuel	Hypertreibstoff

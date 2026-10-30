@@ -1,12 +1,12 @@
 # The planet items: number, English as the game reads it (`^` a space), German.
 P01	Factory	Fabrik
-P02	Agriplot	Agrarfeld
+P02	Agriplot	Agrarparzelle
 P03	Laboratory	Labor
 P04	Habitat	Habitat
 P05	Metroplex	Metroplex
 P06	Colony Base	Koloniebasis
-P07	Industrial Megafacility	Industrie-Megaanlage
-P08	Artificial Hydroponifer	Künstlicher Hydroponifer
+P07	Industrial Megafacility	Industrielle Mega-Fabrik
+P08	Artificial Hydroponifer	Künstlicher Hydroponiker
 P09	Research Campus	Forschungscampus
 P10	Logic Factory	Logikfabrik
 P11	Engineering Retreat	Ingenieurs-Refugium
@@ -28,13 +28,13 @@ P26	Orbital Cloaker	Orbitaltarnung
 P27	Orbital Shield	Orbitalschild
 P28	Orbital Mega Shield	Orbital-Megaschild
 P29	Orbital Missile Base	Orbitale Raketenbasis
-P30	Short Range Orbital Whopper	Kurzstrecken-Wummser
-P31	Long Range Orbital Whopper	Langstrecken-Wummser
+P30	Short Range Orbital Whopper	Kurzstrecken-Orbitalwumme
+P31	Long Range Orbital Whopper	Langstrecken-Orbitalwumme
 P32	Alien Hospitality	Alien-Gastfreundschaft
-P33	Interstellar Trucking	Interstellare Spedition
+P33	Interstellar Trucking	Interstellarer Frachtverkehr
 P34	Endless Party	Endlose Party
 P35	Scientist Takeover	Forscherputsch
 P36	Automation	Automatisierung
 P37	Terraforming	Terraforming
-P38	Lush Growth Bomb	Wucherbombe
+P38	Lush Growth Bomb	Biosphären-Wachstumsbombe
 P39	Xeno Archeological Dig	Xenoarchäologie-Grabung
