@@ -218,14 +218,9 @@ PlanShape PlanWnd::square_shape(std::uint16_t square) const {
 bool PlanWnd::handle_event(int type, int a, int b) {
   switch (type) {
     case kEventActivate: {
-      // The remake greys the panels that do nothing on another species'
-      // planet (all but PLPOP's planet dialog).
-      const game::Session* s = session();
-      const game::Planet* p = planet();
-      const bool foreign = s != nullptr && p != nullptr && p->owner != s->player_race;
+      grey_panels();
       for (const char* name : {"PLRES", "PLIND", "PLPRO", "PLPOP", "PLBUILD"}) {
         if (GWindow* w = wm_.find_window(name)) {
-          w->set_greyed(foreign && std::string_view(name) != "PLPOP");
           w->handle_event(kEventActivate, a, b);
         }
       }
@@ -286,6 +281,7 @@ bool PlanWnd::handle_event(int type, int a, int b) {
       switch (a) {
         case 10:
           dialog().handle_event(kEventDeactivate, 0, 0);
+          grey_panels();
           hover(in.x, in.y);
           return false;
         case 11:
@@ -400,6 +396,17 @@ void PlanWnd::left_click() {
   selection_ = kNoSelection;
 }
 
+void PlanWnd::grey_panels() {
+  const game::Session* s = session();
+  const game::Planet* p = planet();
+  const bool foreign = s != nullptr && p != nullptr && p->owner != s->player_race;
+  for (const char* name : {"PLRES", "PLIND", "PLPRO", "PLBUILD"}) {
+    if (GWindow* w = wm_.find_window(name)) {
+      w->set_greyed(foreign);
+    }
+  }
+}
+
 void PlanWnd::colonize() {
   game::Session& s = *session();
   game::Planet& p = *planet();
@@ -421,6 +428,7 @@ void PlanWnd::colonize() {
   topic.elements[1].frame = p.type * 5 + p.size;
   topic.elements[2].text = c_format(topic.elements[2].text, name_of(p.name).c_str());
   wm_.post_message(kMessageHelp, 0, kHelpTopic);
+  grey_panels();
   selection_ = kNoSelection;
 }
 

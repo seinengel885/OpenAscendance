@@ -124,6 +124,10 @@ class PlanWnd final : public GWindow {
   // The mouse move (event 8): the hovered square, then the redraw.
   void hover(int x, int y);
   void left_click();
+  // The remake greys the panels that do nothing on another species' planet
+  // (all but PLPOP's planet dialog): on entering the screen and after the
+  // planet may have changed hands (a colony founded, an invasion).
+  void grey_panels();
   // The Colony Base placement of the selected item 5 on `square_`.
   void colonize();
   void open_dialog(int mode);
