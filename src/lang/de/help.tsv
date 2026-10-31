@@ -1,0 +1,248 @@
+# Entries of help.txt: number, English as help_txt.cpp builds a TEXT element (a space after each line, @ a line break), German. BUTTON TITLE words (^ kept) are entries too. Numbers HE..
+HE001	This help is under construction. 	Diese Hilfe ist noch im Aufbau.
+HE002	OK	OK
+HE003	Introduction 	Intro
+HE004	Press this button to view the introduction to Ascendancy. 	Mit diesem Knopf siehst du das Intro von Ascendancy.
+HE005	Tutorial 	Tutorial
+HE006	This button will take you to the Tutorial Screen, where you can choose an interactive tutorial to learn about playing Ascendancy. 	Dieser Knopf führt zur Tutorial-Seite, auf der du ein interaktives Tutorial wählen kannst, um das Spielen von Ascendancy zu lernen.
+HE007	New Game 	Neues Spiel
+HE008	Press this button to start a new game of Ascendancy. 	Mit diesem Knopf startest du ein neues Spiel Ascendancy.
+HE009	Return to Current Game 	Zurück zum aktuellen Spiel
+HE010	Pressing this button will resume the most recent game you have played or are playing. 	Dieser Knopf setzt das zuletzt gespielte oder laufende Spiel fort.
+HE011	Load Game 	Spiel laden
+HE012	Press this button to enter the Load Game Screen, where you can load previously saved games. 	Dieser Knopf führt zur Seite zum Laden, auf der du früher gespeicherte Spiele laden kannst.
+HE013	Save Game 	Spiel speichern
+HE014	Press this button to enter the Save Game Screen, where you can save the current game. 	Dieser Knopf führt zur Seite zum Speichern, auf der du das aktuelle Spiel speichern kannst.
+HE015	Exit to DOS 	Spiel beenden
+HE016	Press this button to exit Ascendancy.  When you play Ascendancy again later, you can resume your game with the Return to Current Game button. 	Mit diesem Knopf beendest du Ascendancy.  Spielst du später wieder, kannst du dein Spiel mit "Zurück zum aktuellen Spiel" fortsetzen.
+HE017	Species 	Spezies
+HE018	This button will access the Species menu, where you can contact other species or access the Intelligence Screen. 	Dieser Knopf öffnet das Spezies-Menü, in dem du andere Spezies kontaktieren oder die Geheimdienst-Seite aufrufen kannst.
+HE019	Galactic Display 	Galaxieansicht
+HE020	This is the galaxy map.  Ships and colonies will be indicated for the stars and star lanes you have discovered.  The controls at the lower right of the screen control what is displayed. \n\nStars that you have discovered are indicated by four dots of your color, or a colony indicator if you have colonies there.  You can click on them to enter the system. 	Das ist die Galaxiekarte.  Für die Sterne und Sternstraßen, die du entdeckt hast, zeigt sie Schiffe und Kolonien.  Die Knöpfe unten rechts steuern, was angezeigt wird.\n\nEntdeckte Sterne sind durch vier Punkte in deiner Farbe markiert, bei Kolonien durch eine Kolonieanzeige.  Ein Klick darauf öffnet das System.
+HE021	Display Control 	Anzeigesteuerung
+HE022	This button will let you manipulate the Galactic Display.  Use the right mouse button if you want to zoom or rotate continuously. 	Mit diesem Knopf bewegst du die Galaxieansicht.  Mit der rechten Maustaste zoomst oder drehst du fortlaufend.
+HE023	Re-Center 	Zentrieren
+HE024	This button re-centers the Galactic Display. 	Dieser Knopf zentriert die Galaxieansicht neu.
+HE025	Star Lane Toggle 	Sternstraßen-Schalter
+HE026	This button toggles the display of star lanes--the links traveled by ships from one star to another.  Even with this button on, you can only see star lanes you have discovered. 	Dieser Knopf schaltet die Anzeige der Sternstraßen ein oder aus - der Verbindungen, auf denen Schiffe von Stern zu Stern reisen.  Auch bei eingeschaltetem Knopf siehst du nur die Sternstraßen, die du entdeckt hast.
+HE027	Empire Toggle 	Reich-Schalter
+HE028	This button toggles the way in which star lanes you have discovered are displayed. \n\nWhen off, star lanes are displayed in neutral colors.  When on, areas of the map explored by you and unchallenged by other species are colored with your color. 	Dieser Knopf schaltet um, wie die entdeckten Sternstraßen dargestellt werden.\n\nAus: Sternstraßen erscheinen in neutralen Farben.  Ein: Gebiete, die du erkundet hast und die keine andere Spezies bestreitet, erscheinen in deiner Farbe.
+HE029	Ship Toggle 	Schiffs-Schalter
+HE030	This button toggles the display of ship indicators.  When on, the Galactic Display will show any ships in star lanes or stars you have discovered. 	Dieser Knopf schaltet die Schiffsanzeige ein oder aus.  Eingeschaltet zeigt die Galaxieansicht alle Schiffe auf Sternstraßen und bei Sternen, die du entdeckt hast.
+HE031	Star Information Toggle 	Sterninfo-Schalter
+HE032	This button toggles the display of home world flags, colony indicators, and star-knowledge indicators for the stars you have visited or received information on from another species. \n\nFour dots surrounding the star indicate a star you have discovered but have not colonized.  A circle of your color indicates a star in which you have colonies. 	Dieser Knopf schaltet die Anzeige von Heimatwelt-Flaggen, Kolonieanzeigen und Sterninfos für Sterne ein oder aus, die du besucht hast oder zu denen du von einer anderen Spezies Informationen erhalten hast.\n\nVier Punkte um einen Stern zeigen einen entdeckten, aber nicht kolonisierten Stern.  Ein Kreis in deiner Farbe zeigt einen Stern mit deinen Kolonien.
+HE033	Home world flags mark the location of a species' home world--the location from which they started this game. 	Heimatwelt-Flaggen markieren die Heimatwelt einer Spezies - den Ort, an dem sie dieses Spiel begonnen hat.
+HE034	Species Filter 	Spezies-Filter
+HE035	This group of colored buttons is used to filter Galactic Display information by species. \n\nOnly information pertaining to the species whose colors are outlined will be displayed. 	Diese Gruppe farbiger Knöpfe filtert die Anzeige der Galaxieansicht nach Spezies.\n\nNur Informationen zu den Spezies mit umrandeter Farbe werden angezeigt.
+HE036	Research 	Forschung
+HE037	The Research button takes you to the Research Screen, where you can learn about your technological progress as well as choose new avenues of scientific exploration. 	Der Forschungsknopf führt zur Forschungsseite, auf der du deinen technischen Fortschritt siehst und neue Wege der Wissenschaft wählen kannst.
+HE038	Ships 	Schiffe
+HE039	The Ships button takes you to the Ship Status Screen, where a list of all of your ships and their locations is displayed. 	Der Schiffsknopf führt zur Schiffsübersicht, die alle deine Schiffe und ihre Standorte auflistet.
+HE040	Planets 	Planeten
+HE041	The Planets button takes you to the Planet Status Screen, where a list of all of your colonies and their current projects is displayed. 	Der Planetenknopf führt zur Planetenübersicht, die alle deine Kolonien und ihre aktuellen Projekte auflistet.
+HE042	Special Ability 	Spezialfähigkeit
+HE043	Press the Special Ability button when you want to learn about or use your species' special power. 	Drücke den Knopf Spezialfähigkeit, wenn du die besondere Kraft deiner Spezies kennenlernen oder einsetzen willst.
+HE044	Advance One Day 	Einen Tag vorrücken
+HE045	This button will advance time by one day. \n\nThis will allow your colonies to make progress on their projects, ships to make progress in their travels, and scientists to make headway in their research. 	Dieser Knopf rückt die Zeit um einen Tag vor.\n\nDabei kommen deine Kolonien mit ihren Projekten, die Schiffe auf ihren Reisen und die Wissenschaftler in ihrer Forschung voran.
+HE046	Advance Time Continually 	Zeit fortlaufend vorrücken
+HE047	This button is used to advance time continually until an event requiring your attention occurs. \n\nWhen such an event occurs, time advancement will automatically stop, and you will be notified of the event. 	Mit diesem Knopf läuft die Zeit weiter, bis ein Ereignis eintritt, das deine Aufmerksamkeit braucht.\n\nTritt es ein, hält die Zeit automatisch an, und du wirst benachrichtigt.
+HE048	Time Elapsed in Days 	Vergangene Tage
+HE049	This area of the screen displays the number of game days that have elapsed since the start of the game. 	Dieser Bereich zeigt die Zahl der Spieltage seit Spielbeginn.
+HE050	New Game Display 	Anzeige des neuen Spiels
+HE051	This area of the screen displays your current choices for the new game. 	Dieser Bereich zeigt deine aktuellen Einstellungen für das neue Spiel.
+HE052	Star Density 	Sterndichte
+HE053	This button cycles through the five galaxy sizes. 	Dieser Knopf schaltet durch die fünf Galaxiegrößen.
+HE054	This button cycles through the number of species, from three to seven. 	Dieser Knopf schaltet durch die Zahl der Spezies von drei bis sieben.
+HE055	Atmosphere 	Atmosphäre
+HE056	This button cycles through the three galactic atmospheres: peaceful, neutral, and hostile. 	Dieser Knopf schaltet durch die drei galaktischen Atmosphären: friedlich, neutral und feindselig.
+HE057	Player Color 	Spielerfarbe
+HE058	This area allows you to select a color for your species for the new game.  Click on the color you wish to use. 	Hier wählst du eine Farbe für deine Spezies im neuen Spiel.  Klicke auf die gewünschte Farbe.
+HE059	Begin New Game 	Neues Spiel beginnen
+HE060	Clicking on this button will begin the new game using your current selections. 	Ein Klick auf diesen Knopf beginnt das neue Spiel mit deinen aktuellen Einstellungen.
+HE061	Player Species 	Spielerspezies
+HE062	Select from the list below which species you would like to play. 	Wähle aus der Liste unten, welche Spezies du spielen willst.
+HE063	Player Species Selection 	Wahl der Spielerspezies
+HE064	Select a species you wish to play from this list.  Each species has a unique special ability which may affect your playing style. 	Wähle in dieser Liste die Spezies, die du spielen willst.  Jede Spezies hat eine eigene Spezialfähigkeit, die deine Spielweise beeinflussen kann.
+HE065	Load Game Screen 	Ladeseite
+HE066	The Load Game Screen allows you to load previously saved games. Clicking on a non-empty entry will load the saved game and take you to the Galactic Display. 	Auf der Ladeseite lädst du früher gespeicherte Spiele.  Ein Klick auf einen belegten Eintrag lädt das Spiel und führt dich zur Galaxieansicht.
+HE067	Save Game Screen 	Speicherseite
+HE068	The Save Game Screen allows you to load previously saved games. Clicking on an entry will save the current game in that slot, and take you to the Galactic Display. 	Auf der Speicherseite speicherst du das aktuelle Spiel.  Ein Klick auf einen Eintrag speichert das Spiel in diesem Platz und führt dich zur Galaxieansicht.
+HE069	Tutorial Screen 	Tutorial-Seite
+HE070	This is the Tutorial Screen.  To begin a tutorial, click on its entry. 	Das ist die Tutorial-Seite.  Um ein Tutorial zu starten, klicke auf seinen Eintrag.
+HE071	This button puts you in contact with the species indicated.  You cannot contact species which are Unknown or Extinct. 	Dieser Knopf stellt den Kontakt zur gezeigten Spezies her.  Unbekannte oder ausgestorbene Spezies kannst du nicht kontaktieren.
+HE072	Intelligence 	Geheimdienst
+HE073	This button activates the Intelligence Screen where you can view the status of all species you have discovered. 	Dieser Knopf öffnet die Geheimdienstseite, auf der du den Stand aller entdeckten Spezies siehst.
+HE074	Ship Design Screen 	Schiffsentwurf
+HE075	The Ship Design Screen is used to design ships for construction at planetary Shipyards. \n\nThe number of ships you can maintain at any time is proportional to the number of star systems you control.  A species controls a system by having the only colonies there. 	Auf der Seite Schiffsentwurf entwirfst du Schiffe, die in den Werften deiner Planeten gebaut werden.\n\nWie viele Schiffe du gleichzeitig unterhalten kannst, hängt von der Zahl der Sternsysteme ab, die du kontrollierst.  Eine Spezies kontrolliert ein System, wenn nur sie dort Kolonien hat.
+HE076	Weapons 	Waffen
+HE077	Use this button to display the conventional weapons that may be added to your ship. \n\nWeapons differ in their range, strength, number of uses in battle, and amount of power they require to operate. 	Mit diesem Knopf zeigst du die herkömmlichen Waffen, die du an deinem Schiff anbringen kannst.\n\nWaffen unterscheiden sich in Reichweite, Stärke, Einsätzen pro Kampf und Energiebedarf.
+HE078	Hull Size 	Rumpfgröße
+HE079	Use this button to select a different hull size for the ship you are designing. \n\nLarger hulls provide more space and are more durable in combat, but take longer to build. 	Mit diesem Knopf wählst du eine andere Rumpfgröße für dein Schiff.\n\nGrößere Rümpfe bieten mehr Platz und halten im Kampf mehr aus, brauchen aber länger im Bau.
+HE080	Shields 	Schilde
+HE081	Use this button to display the conventional shields that may be added to your ship. \n\nShields protect your hull from damage during battle. 	Mit diesem Knopf zeigst du die herkömmlichen Schilde, die du an deinem Schiff anbringen kannst.\n\nSchilde schützen deinen Rumpf im Kampf vor Schaden.
+HE082	Engines 	Antriebe
+HE083	Use this button to display the engines that may be added to your ship. \n\nEngines determine the speed of your ship when moving within a system. 	Mit diesem Knopf zeigst du die Antriebe, die du an deinem Schiff anbringen kannst.\n\nAntriebe bestimmen die Geschwindigkeit deines Schiffs innerhalb eines Systems.
+HE084	Scanners 	Scanner
+HE085	Use this button to display the scanners that can be added to your ship. \n\nScanners allow you to view the status of other ships.  They vary in range and strength. 	Mit diesem Knopf zeigst du die Scanner, die du an deinem Schiff anbringen kannst.\n\nMit Scannern siehst du den Zustand anderer Schiffe.  Sie unterscheiden sich in Reichweite und Stärke.
+HE086	Generators 	Generatoren
+HE087	Use this button to display the power generators that may be added to your ship. \n\nMost ship components require power to operate, and generators provide this power.  The amount of power a ship has determines how many actions it can perform in one day. 	Mit diesem Knopf zeigst du die Energiegeneratoren, die du an deinem Schiff anbringen kannst.\n\nDie meisten Schiffsbauteile brauchen Energie zum Arbeiten, und Generatoren liefern sie.  Wie viel Energie ein Schiff hat, bestimmt, wie viele Aktionen es pro Tag ausführen kann.
+HE088	Special Components 	Spezialbauteile
+HE089	Use this button to display the special components that may be added to your ship. 	Mit diesem Knopf zeigst du die Spezialbauteile, die du an deinem Schiff anbringen kannst.
+HE090	Planet Status Screen 	Planetenübersicht
+HE091	This screen displays general information about each of your colonies. \n\nYou can click on a star to go to that star system, or click on a planet to go to its planetary display. 	Diese Seite zeigt allgemeine Informationen zu jeder deiner Kolonien.\n\nMit einem Klick auf einen Stern gelangst du in dieses Sternsystem, mit einem Klick auf einen Planeten zu seiner Planetenansicht.
+HE092	Negotiation Screen 	Verhandlungsseite
+HE093	This screen allows negotiation with another species. 	Auf dieser Seite verhandelst du mit einer anderen Spezies.
+HE094	Communication Display 	Kommunikationsanzeige
+HE095	The species you are negotiating with will communicate to you in this area of the screen. 	In diesem Bereich spricht die Spezies, mit der du verhandelst, zu dir.
+HE096	These are your options for communication. \n\nFor options that refer to star systems, use the Galactic Display to choose a system. \n\nFor options that refer to a third party, use the Third Party Display to the left of your options to choose a species. 	Das sind deine Möglichkeiten zur Kommunikation.\n\nBei Möglichkeiten, die sich auf Sternsysteme beziehen, wählst du ein System in der Galaxieansicht.\n\nBei Möglichkeiten, die sich auf einen Dritten beziehen, wählst du links neben deinen Möglichkeiten in der Anzeige Dritter eine Spezies.
+HE097	Allies are able to request help from each other for battles occurring in star systems. \n\nThis miniature version of the Galactic Display allows you to select the system you wish to refer to. 	Verbündete können einander bei Kämpfen in Sternsystemen um Hilfe bitten.\n\nMit dieser verkleinerten Galaxieansicht wählst du das System, auf das du dich beziehst.
+HE098	Third Party Display 	Anzeige Dritter
+HE099	This area is used to display the species that both you and the species you are speaking with know about. \n\nClicking on one of these species will add options referring to this species to the list.  Most of these options are available only to allies. 	Dieser Bereich zeigt die Spezies, die sowohl du als auch deine Gesprächspartner kennen.\n\nEin Klick auf eine dieser Spezies fügt der Liste Möglichkeiten hinzu, die sich auf sie beziehen.  Die meisten davon stehen nur Verbündeten offen.
+HE100	Intelligence Screen 	Geheimdienstseite
+HE101	The Intelligence Screen displays information about each species you know about including yourself.  For each category, symbols represent relative magnitude rather than specific sizes. \n\nThe species flags on the right side of each entry indicate the diplomatic relations between the species. 	Die Geheimdienstseite zeigt Informationen zu jeder Spezies, die du kennst - dich selbst eingeschlossen.  In jeder Kategorie stehen Symbole für die relative Größe, nicht für genaue Werte.\n\nDie Spezies-Flaggen rechts in jedem Eintrag zeigen die diplomatischen Beziehungen zwischen den Spezies.
+HE102	System Display 	Systemansicht
+HE103	The System Display is used to view and manipulate the contents of star systems.  The controls at the lower right can be used to manipulate this display. \n\nA ship can be used by selecting it and then choosing the appropriate device to use.  Some devices require that you then choose a target. 	Die Systemansicht zeigt den Inhalt von Sternsystemen und lässt ihn verändern.  Die Knöpfe unten rechts steuern diese Ansicht.\n\nEin Schiff setzt du ein, indem du es wählst und dann das passende Gerät.  Manche Geräte verlangen danach ein Ziel.
+HE104	You can move a selected ship by clicking on a desired destination.  If necessary, you can set the destination altitude with another click. \n\nYou can view a selected planet by clicking it again. 	Ein gewähltes Schiff bewegst du per Klick auf das Ziel.  Bei Bedarf legst du die Zielhöhe mit einem weiteren Klick fest.\n\nEinen gewählten Planeten betrachtest du, indem du ihn noch einmal anklickst.
+HE105	Grid Toggle 	Gitter-Schalter
+HE106	The button toggles the display of grid lines in the System Display. 	Dieser Knopf schaltet die Gitterlinien der Systemansicht ein oder aus.
+HE107	This button will let you manipulate the System Display.  Use the right mouse button if you want to zoom or rotate continuously. 	Mit diesem Knopf bewegst du die Systemansicht.  Mit der rechten Maustaste zoomst oder drehst du fortlaufend.
+HE108	This button re-centers the System Display. 	Dieser Knopf zentriert die Systemansicht neu.
+HE109	Elevation Toggle 	Höhen-Schalter
+HE110	This button is used to toggle the display of elevation lines in the System Display. 	Dieser Knopf schaltet die Höhenlinien der Systemansicht ein oder aus.
+HE111	Abandon Item 	Objekt aufgeben
+HE112	This button is used to abandon the currently selected ship or colony. 	Mit diesem Knopf gibst du das gewählte Schiff oder die gewählte Kolonie auf.
+HE113	Player Items 	Eigene Objekte
+HE114	This button causes the list below to be filled with the objects you own in this system. 	Dieser Knopf füllt die Liste darunter mit den Objekten, die dir in diesem System gehören.
+HE115	Other Items 	Fremde Objekte
+HE116	This button causes the list below to be filled with the objects you do not own in this system. 	Dieser Knopf füllt die Liste darunter mit den Objekten, die dir in diesem System nicht gehören.
+HE117	Pass 	Passen
+HE118	Use this button when you wish to make no move this round.  Other species in the system will have a chance to act when you press Pass. 	Benutze diesen Knopf, wenn du in dieser Runde nichts tun willst.  Wenn du passt, sind die anderen Spezies im System am Zug.
+HE119	Repeat Move 	Zug wiederholen
+HE120	If you have just ordered a ship to move to a location, pressing this button will cause it to continue its movement. 	Hast du gerade ein Schiff an einen Ort geschickt, setzt dieser Knopf seine Bewegung fort.
+HE121	Auto 	Auto
+HE122	The Auto button operates in two ways. \n\nIf there are enemy ships in the system, the Auto button can be used to instruct your ships to attack automatically until out of power. \n\nIf no enemy ships exist in the system, the Auto button works as a continuous Repeat Move command, causing your ships which have navigation orders to proceed to their destinations. 	Der Knopf Auto wirkt auf zwei Arten.\n\nSind feindliche Schiffe im System, lässt er deine Schiffe automatisch angreifen, bis ihre Energie aufgebraucht ist.\n\nSind keine feindlichen Schiffe im System, wirkt er als fortlaufender Befehl Zug wiederholen: Deine Schiffe mit Navigationsbefehlen fliegen zu ihren Zielen.
+HE123	Press this button to fill the list with weapons that can be used to attack enemy ships or planets in this system. \n\nWeapons that appear grayed are depleted and cannot be used until the following day.  To use a weapon on an object, click on it and then click on the object it should be used on. 	Dieser Knopf füllt die Liste mit Waffen, die gegen feindliche Schiffe oder Planeten in diesem System eingesetzt werden können.\n\nAusgegraute Waffen sind erschöpft und erst am nächsten Tag wieder einsetzbar.  Um eine Waffe einzusetzen, klicke sie an und dann das Objekt, auf das sie wirken soll.
+HE124	The line pointing at the target you have selected will be white if you are in range, or dark if you are out of range. 	Die Linie zum gewählten Ziel ist weiß, wenn es in Reichweite ist, und dunkel, wenn nicht.
+HE125	Press this button to fill the list with defensive shields that can be activated to help protect your ship from damage. \n\nShields can be toggled on or off by clicking on them.  Active shields are indicated by an outline. \n\nShields consume power proportional to their strength. 	Dieser Knopf füllt die Liste mit Abwehrschilden, die du zum Schutz deines Schiffs vor Schaden aktivieren kannst.\n\nMit einem Klick schaltest du einen Schild ein oder aus.  Aktive Schilde sind umrandet.\n\nSchilde verbrauchen Energie im Verhältnis zu ihrer Stärke.
+HE126	Press this button to fill the list with usable special components. \n\nSome special components require a target.  Others are activated by a single click.  Help-click on the component to learn how it is used. 	Dieser Knopf füllt die Liste mit einsetzbaren Spezialbauteilen.\n\nManche Spezialbauteile brauchen ein Ziel, andere werden mit einem Klick aktiviert.  Mit einem Hilfeklick auf das Bauteil erfährst du, wie es benutzt wird.
+HE127	Additional Components 	Zusatzbauteile
+HE128	Press this button to fill the list with the passive items on your ship-- items you do not use directly but whose use is implicit. 	Dieser Knopf füllt die Liste mit den passiven Teilen deines Schiffs - Teilen, die du nicht direkt einsetzt, deren Wirkung sich von selbst versteht.
+HE129	Planet Display 	Planetenansicht
+HE130	This is the planet display.  You can see the square layout of various planets, as well as the surface and orbital structures on colonized planets. \n\nYou can get information on squares and structures by clicking on them.  You can start a new project by clicking on a surface or orbital square and selecting "Build", or by clicking on the project button in the upper right of the screen. 	Das ist die Planetenansicht.  Du siehst die Felder verschiedener Planeten sowie die Oberflächen- und Orbitalbauten kolonisierter Planeten.\n\nMit einem Klick auf Felder und Bauten erhältst du Informationen dazu.  Ein neues Projekt startest du, indem du auf ein Oberflächen- oder Orbitalfeld klickst und "Bauen" wählst, oder mit dem Projektknopf oben rechts.
+HE131	Research Display 	Forschungsanzeige
+HE132	This button shows you information about the research contribution, if any, of a colony.  Clicking on it will give you additional information. \n\nResearch allows you to make new technological discoveries. The larger the total research contribution of all your planets, the more quickly you will make discoveries. 	Dieser Knopf zeigt, was eine Kolonie zur Forschung beiträgt, falls sie das tut.  Ein Klick darauf liefert weitere Informationen.\n\nForschung bringt neue technische Entdeckungen.  Je größer der gesamte Forschungsbeitrag deiner Planeten, desto schneller entdeckst du Neues.
+HE133	Industry Display 	Industrieanzeige
+HE134	This button gives you information about the industrial output of your colonized planets, as well as the status of their current projects.  Clicking on it will give you additional information. \n\nIndustry allows your colonies to build new ships and structures.  The larger a colony's industry output, the faster it can complete these projects. 	Dieser Knopf zeigt die Industrieleistung deiner kolonisierten Planeten und den Stand ihrer aktuellen Projekte.  Ein Klick darauf liefert weitere Informationen.\n\nIndustrie lässt deine Kolonien neue Schiffe und Bauten errichten.  Je größer die Industrieleistung einer Kolonie, desto schneller schließt sie diese Projekte ab.
+HE135	Prosperity Display 	Wohlstandsanzeige
+HE136	This button gives you information about the prosperity of your planet.  Clicking on it will give you additional information. \n\nProsperity allows your colonies' populations to grow.  The greater a colony's prosperity, the faster its population will grow. 	Dieser Knopf zeigt den Wohlstand deines Planeten.  Ein Klick darauf liefert weitere Informationen.\n\nWohlstand lässt die Bevölkerung deiner Kolonien wachsen.  Je größer der Wohlstand einer Kolonie, desto schneller wächst ihre Bevölkerung.
+HE137	Population Display 	Bevölkerungsanzeige
+HE138	This button displays the population of your colony.  Working figures represent population that has been put to work building and operating structures.  Standing figures represent population available for work.  Empty circles represent room for the population to grow. \n\nClicking on this button displays general information about a planet. 	Dieser Knopf zeigt die Bevölkerung deiner Kolonie.  Arbeitende Figuren sind Bevölkerung, die zum Bau und Betrieb von Bauten eingesetzt ist.  Stehende Figuren sind verfügbare Arbeitskräfte.  Leere Kreise stehen für Platz zum Wachsen.\n\nEin Klick auf diesen Knopf zeigt allgemeine Informationen zu einem Planeten.
+HE139	Project Display 	Projektanzeige
+HE140	This button displays information about a colony's current project, if any.  Clicking on it will allow you to select a new project, which then in most cases must be placed on an empty surface or orbital square. \n\nYou can also start a new project by clicking on a surface or orbital square directly. 	Dieser Knopf zeigt Informationen zum aktuellen Projekt einer Kolonie, falls es eines gibt.  Ein Klick darauf lässt dich ein neues Projekt wählen, das meist auf einem freien Oberflächen- oder Orbitalfeld platziert werden muss.\n\nEin neues Projekt startest du auch direkt mit einem Klick auf ein Oberflächen- oder Orbitalfeld.
+HE141	Ship Status Screen 	Schiffsübersicht
+HE142	This screen displays information about your ships.  You can left-click on a ship's entry to go to its current location, or right-click to bring up a display of its contents. 	Diese Seite zeigt Informationen zu deinen Schiffen.  Mit einem Linksklick auf den Eintrag eines Schiffs gehst du zu seinem aktuellen Standort, mit einem Rechtsklick siehst du seinen Inhalt.
+HE143	This screen shows you the research tree, representing the technological progress of your species. \n\nDisks containing pictures represent technologies you have discovered, and empty disks represent technologies you can choose to study. \n\nYou can click on an empty disk to make it your current topic of study. 	Diese Seite zeigt den Forschungsbaum, der den technischen Fortschritt deiner Spezies darstellt.\n\nScheiben mit Bildern sind entdeckte Technologien, leere Scheiben Technologien, die du erforschen kannst.\n\nMit einem Klick auf eine leere Scheibe machst du sie zu deinem aktuellen Forschungsthema.
+HE144	This button will let you manipulate the Research Display.  Use the right mouse button if you want to move or rotate continuously. 	Mit diesem Knopf bewegst du die Forschungsansicht.  Mit der rechten Maustaste bewegst oder drehst du fortlaufend.
+HE145	Minions Special Ability 	Spezialfähigkeit der Minione
+HE146	The Minions are masters of invasion. Your planetary invasions will always succeed. 	Die Minione sind Meister der Invasion.  Deine Planeteninvasionen gelingen immer.
+HE147	Snovemdomas Special Ability 	Spezialfähigkeit der Snovemdomas
+HE148	The Snovemdomas are mighty and tough. Your ships all have double-strength hulls. 	Die Snovemdomas sind mächtig und zäh.  Alle deine Schiffe haben doppelt so starke Rümpfe.
+HE149	Orfa Special Ability 	Spezialfähigkeit der Orfa
+HE150	The Orfa are unfazed by hostile environments. You can build on black planet squares. 	Die Orfa lassen sich von feindlichen Umgebungen nicht beirren.  Du kannst auf schwarzen Planetenfeldern bauen.
+HE151	Kambuchka Special Ability 	Spezialfähigkeit der Kambuchka
+HE152	The Kambuchka can sense life forms from far away.  You can see all alien home stars. 	Die Kambuchka spüren Lebewesen aus weiter Ferne.  Du siehst alle fremden Heimatsterne.
+HE153	Hanshaks Special Ability 	Spezialfähigkeit der Hanshaks
+HE154	The Hanshaks are telepathic communicators.  You can talk to all other races from the start of the game. 	Die Hanshaks kommunizieren telepathisch.  Du kannst von Spielbeginn an mit allen anderen Völkern sprechen.
+HE155	Fludentri Special Ability 	Spezialfähigkeit der Fludentri
+HE156	The Fludentri are resilient.  You can repair all damage to your ships. 	Die Fludentri sind widerstandsfähig.  Du kannst alle Schäden an deinen Schiffen reparieren.
+HE157	It will take %d day%s to amass the energy needed to use your ability. 	Es dauert %d Tag%s, bis genug Energie für deine Fähigkeit gesammelt ist.
+HE158	Use^Ability	Fähigkeit^nutzen
+HE159	Cancel	Abbrechen
+HE160	Done.  You have repaired all your ships. 	Erledigt.  Du hast alle deine Schiffe repariert.
+HE161	Baliflids Special Ability 	Spezialfähigkeit der Balifliden
+HE162	The Baliflids are disarming diplomats.  You can force all aliens to make peace with you. 	Die Balifliden sind entwaffnende Diplomaten.  Du kannst alle Fremden zum Frieden mit dir zwingen.
+HE163	Done.  All your enemies will now make peace with you. 	Erledigt.  Alle deine Feinde schließen jetzt Frieden mit dir.
+HE164	Swaparamans Special Ability 	Spezialfähigkeit der Swaparamane
+HE165	The Swaparamans produce extra power. You can double the power of all your ships. 	Die Swaparamane erzeugen zusätzliche Kraft.  Du kannst die Energie aller deiner Schiffe verdoppeln.
+HE166	Done.  All your ships will have twice their normal power for the rest of this turn. 	Erledigt.  Alle deine Schiffe haben für den Rest dieses Zuges doppelt so viel Energie wie sonst.
+HE167	Frutmaka Special Ability 	Spezialfähigkeit der Frutmaka
+HE168	The Frutmaka are able to repel.  You can warp alien ships out of your colonies' stars. 	Die Frutmaka können abstoßen.  Du kannst fremde Schiffe aus den Sternen deiner Kolonien wegwarpen.
+HE169	Done.  You have warped all alien ships from your colonies' stars. 	Erledigt.  Du hast alle fremden Schiffe aus den Sternen deiner Kolonien weggewarpt.
+HE170	Shevar Special Ability 	Spezialfähigkeit der Shevar
+HE171	The Shevar are power-sappers.  You can wipe out the power of all alien ships in systems you occupy. 	Die Shevar saugen Energie.  Du löschst die Energie aller fremden Schiffe in deinen Systemen.
+HE172	Done.  You have drained the power from alien ships in the systems you occupy. 	Erledigt.  Du hast den fremden Schiffen in deinen besetzten Systemen die Energie entzogen.
+HE173	Govorom Special Ability 	Spezialfähigkeit der Govorom
+HE174	The Govorom are nature-goddesses.  You can turn your least populated colony into a rich world. 	Die Govorom sind Naturgöttinnen.  Du machst deine bevölkerungsärmste Kolonie zur reichen Welt.
+HE175	Done.  You have enriched your colony. 	Erledigt.  Du hast deine Kolonie bereichert.
+HE176	Ungooma Special Ability 	Spezialfähigkeit der Ungooma
+HE177	The Ungooma are mischievous.  You can bump all ships in star lanes backward to their stars of origin. 	Die Ungooma sind Schelme.  Du stößt alle Schiffe in Sternstraßen zurück zu ihren Ausgangssternen.
+HE178	Done.  You have bumped everyone's ships backward out of any star lanes they were in. 	Erledigt.  Du hast die Schiffe aller aus den Sternstraßen, in denen sie waren, rückwärts hinausgestoßen.
+HE179	Dubtaks Special Ability 	Spezialfähigkeit der Dubtaken
+HE180	The Dubtaks are unsportsmanlike scientists.  You can steal any technology known by at least two other races. 	Die Dubtaken sind unfaire Forscher.  Du stiehlst jede Technologie, die mindestens zwei Völker kennen.
+HE181	Done.  You have stolen all technologies known by at least two other races. 	Erledigt.  Du hast alle Technologien gestohlen, die mindestens zwei andere Völker kennen.
+HE182	Capelons Special Ability 	Spezialfähigkeit der Capelonen
+HE183	The Capelons are self-preserving.  You can make all your colonies invincible for one day. 	Die Capelonen sorgen gut für sich selbst.  Du kannst alle deine Kolonien einen Tag lang unbesiegbar machen.
+HE184	Done.  Your colonies are now invincible. 	Erledigt.  Deine Kolonien sind jetzt unbesiegbar.
+HE185	Mebes Special Ability 	Spezialfähigkeit der Mebes
+HE186	The Mebes are good at populating.  You can increase the maximum population of all your colonies. 	Die Mebes sind gut im Besiedeln.  Du kannst die Höchstbevölkerung all deiner Kolonien erhöhen.
+HE187	Done.  You have increased the maximum populations of all your colonies. 	Erledigt.  Du hast die Höchstbevölkerung all deiner Kolonien erhöht.
+HE188	Oculons Special Ability 	Spezialfähigkeit der Oculonen
+HE189	The Oculons are ancient astronomers.  You can see all star lanes. 	Die Oculonen sind uralte Astronomen.  Du siehst alle Sternstraßen.
+HE190	Arbryls Special Ability 	Spezialfähigkeit der Arbryle
+HE191	The Arbryls can disrupt the flow of space.  You can block all star lanes entering your colonized systems. 	Die Arbryle stören den Fluss des Raums.  Du sperrst alle Sternstraßen zu deinen besiedelten Systemen.
+HE192	Done.  You have blocked all the star lanes around your colonies. 	Erledigt.  Du hast alle Sternstraßen um deine Kolonien blockiert.
+HE193	Marmosians Special Ability 	Spezialfähigkeit der Marmosianer
+HE194	The Marmosians can create hatred.  You can cause alien species to strongly dislike any species at war with you. 	Die Marmosianer erzeugen Hass.  Fremde Spezies hassen jeden, der mit dir im Krieg liegt.
+HE195	Done.  All alien species now strongly dislike everyone who was at war with you. 	Erledigt.  Alle fremden Spezies verabscheuen jetzt jeden, der mit dir im Krieg lag.
+HE196	Chronomyst Special Ability 	Spezialfähigkeit der Chronomisten
+HE197	The Chronomyst can change the rate of time passage.  You can move quickly through star lanes. 	Die Chronomisten können den Lauf der Zeit verändern.  Du kannst schnell durch Sternstraßen reisen.
+HE198	Chamachies Special Ability 	Spezialfähigkeit der Chamachies
+HE199	The Chamachies are brilliant scientists.  You can immediately achieve any discovery you are pursuing. 	Die Chamachies sind brillante Wissenschaftler.  Du kannst jede Entdeckung, an der du forschst, sofort machen.
+HE200	Done.  Your research will be complete in one day. 	Erledigt.  Deine Forschung ist in einem Tag abgeschlossen.
+HE201	Nimbuloids Special Ability 	Spezialfähigkeit der Nimbuloiden
+HE202	The Nimbuloids are extremely productive.  You can boost the progress on all your colonies' projects. 	Die Nimbuloiden sind extrem produktiv.  Du beschleunigst alle Projekte deiner Kolonien.
+HE203	Done.  You have boosted the progress on all your colonies' projects. 	Erledigt.  Du hast den Fortschritt bei allen Projekten deiner Kolonien beschleunigt.
+HE204	%s Science Report: Our researchers have discovered %s. 	Wissenschaftsbericht der %s: Unsere Forscher haben %s entdeckt.
+HE205	Go^to^Research	Zur^Forschung
+HE206	%s Science Report: Excavation and analysis of ruins on %s has led to the discovery of %s! 	Wissenschaftsbericht der %s: Ausgrabung und Analyse der Ruinen auf %s haben zur Entdeckung von %s geführt!
+HE207	Construction of %s is complete on %s. \n\n%s has %d free population for additional projects. 	Der Bau von %s ist auf %s abgeschlossen.\n\n%s hat %d freie Bevölkerung für weitere Projekte.
+HE208	Go^to^Planet	Zum^Planeten
+HE209	The %s would like to speak with you. 	Die %s möchten mit dir sprechen.
+HE210	%s: We've arrived in the %s system.  Awaiting orders. 	%s: Wir sind im System %s angekommen.  Warten auf Befehle.
+HE211	Go^to^System	Zum^System
+HE212	%s: We've entered the %s system and we're receiving a transmission from an unknown species. 	%s: Wir sind in das System %s eingetreten und empfangen eine Übertragung einer unbekannten Spezies.
+HE213	Respond	Antworten
+HE214	%s: Entered %s system.  Hostile ships (%s) have been detected. 	%s: System %s betreten.  Feindliche Schiffe (%s) entdeckt.
+HE215	%s: We've arrived at %s.  The %s have hostile colonies here. 	%s: Wir sind bei %s angekommen.  Die %s haben hier feindliche Kolonien.
+HE216	%s: We've arrived at %s and found other species at war.  They do not seem to be hostile toward us. 	%s: Wir sind bei %s angekommen und haben andere Spezies im Krieg vorgefunden.  Sie scheinen uns gegenüber nicht feindlich zu sein.
+HE217	An unidentified ship has entered the %s system which we occupy.  They seem to be contacting us. 	Ein unbekanntes Schiff ist in das von uns besetzte System %s eingedrungen.  Es scheint Kontakt zu uns aufzunehmen.
+HE218	A hostile ship belonging to the %s has just entered the %s system. 	Ein feindliches Schiff der %s ist soeben in das System %s eingedrungen.
+HE219	The %s have become extinct. 	Die %s sind ausgestorben.
+HE220	Loss of control of a system forces us to scrap our most recent ship. 	Der Verlust der Kontrolle über ein System zwingt uns, unser jüngstes Schiff zu verschrotten.
+HE221	A ship was lost in battle in the %s system. 	Im System %s ging ein Schiff im Kampf verloren.
+HE222	Our colony on %s was invaded by the %s. 	Unsere Kolonie auf %s wurde von den %s erobert.
+HE223	Colony %s has free population. 	Die Kolonie %s hat freie Bevölkerung.
+HE224	%s: We've entered orbit around %s.  Awaiting orders. 	%s: Wir sind in den Orbit um %s eingetreten.  Warten auf Befehle.
+HE225	Construction of ship "%s" is complete on %s. \n\n%s has %d free population for additional projects. 	Der Bau des Schiffs "%s" ist auf %s abgeschlossen.\n\n%s hat %d freie Bevölkerung für weitere Projekte.
+HE226	Refit of ship "%s" is complete on %s. \n\n%s has %d free population for additional projects. 	Die Umrüstung des Schiffs "%s" ist auf %s abgeschlossen.\n\n%s hat %d freie Bevölkerung für weitere Projekte.
+HE227	There are remaining moves in the %s System, which contains hostile ships.  Move to next day anyway? 	Im System %s, das feindliche Schiffe enthält, sind noch Züge übrig.  Trotzdem zum nächsten Tag?
+HE228	Next^Day	Nächster^Tag
+HE229	%s: We have discovered the %s System.  It contains %d planet%s and %d star lane%s.  We're awaiting further orders. 	%s: Wir haben das System %s entdeckt.  Es hat Planeten: %d%.0s und Sternstraßen: %d%.0s.  Wir warten auf weitere Befehle.
+HE230	%s Scientist Report: We now have all technology needed to build our first ship to explore other stars. This includes generators, engines, and star lane drives.  	Wissenschaftsbericht der %s: Wir haben jetzt alle Technologie, die wir brauchen, um unser erstes Schiff zur Erkundung anderer Sterne zu bauen. Dazu gehören Generatoren, Antriebe und Sternstraßen-Antriebe.
+HE231	Generators provide power for all components on a ship, engines provide movement within star systems, and star drives provide movement through star lanes. \n\nWith continued research we'll be able to improve these.  \n\nShips can be built by clicking on an empty orbital square on a planet that has a Shipyard. 	Generatoren liefern Energie für alle Bauteile eines Schiffs, Antriebe sorgen für Bewegung innerhalb von Sternsystemen und Sternstraßen-Antriebe für Bewegung durch Sternstraßen.\n\nMit weiterer Forschung können wir sie verbessern.\n\nSchiffe baust du, indem du auf ein freies Orbitalfeld eines Planeten mit Werft klickst.
+HE232	%s: We've detected an unknown transmission while traveling through a star lane of the %s system. 	%s: Auf einer Sternstraße im System %s haben wir eine unbekannte Übertragung entdeckt.
+HE233	Your species has amassed enough energy to use its special ability. 	Deine Spezies hat genug Energie gesammelt, um ihre Spezialfähigkeit einzusetzen.
+HE234	%s Scientist Report: A laboratory has been constructed and we are ready to begin researching new technologies. \n\nResearch topics are chosen in the Research screen. 	Wissenschaftsbericht der %s: Ein Labor ist gebaut, und wir können mit der Erforschung neuer Technologien beginnen.\n\nForschungsthemen wählst du auf der Forschungsseite.
+HE235	%s Battle Report: All enemy ships in the %s System have been neutralized. 	Schlachtbericht der %s: Alle feindlichen Schiffe im System %s sind ausgeschaltet.
+HE236	%s Colony Report: Our empire now contains %d colon%s.  The largest known empire belongs to the %s, who have %d. 	Kolonie-Bericht der %s: Unser Reich umfasst jetzt %d Kolonie(n)%.0s.  Das größte bekannte Reich gehört den %s mit %d.
+HE237	%s Colony Report: Our empire now contains %d colon%s.  It is the largest known empire in the galaxy.  	Kolonie-Bericht der %s: Unser Reich umfasst jetzt %d Kolonie(n)%.0s.  Es ist das größte bekannte Reich der Galaxis.
+HE238	We have captured %s, losing %d invader%s in the battle.  We now have %d colon%s in our empire. 	Wir haben %s erobert und dabei %d Invasor(en)%.0s im Kampf verloren.  Unser Reich umfasst jetzt %d Kolonie(n)%.0s.
+HE239	Our invasion of %s failed. We lost %d invader%s in the battle. 	Unsere Invasion von %s ist gescheitert.  Wir haben %d Invasor(en)%.0s im Kampf verloren.
+HE240	This is the opening screen from which major game options are available. 	Das ist die Startseite, von der aus die wichtigsten Spieloptionen erreichbar sind.
+HE241	Specific^Help	Genaue^Hilfe
+HE242	Do you wish to exit this tutorial? 	Möchtest du dieses Tutorial beenden?
+HE243	Yes	Ja
+HE244	No	Nein
+HE245	Are you sure you want to abandon your ship "%s"? 	Willst du dein Schiff "%s" wirklich aufgeben?
+HE246	Are you sure you want to abandon %s? 	Willst du %s wirklich aufgeben?
+HE247	Your species does not yet have ship building technology.  You will not be able to design ships until you do. 	Deine Spezies beherrscht noch keine Schiffbautechnik.  Du kannst erst Schiffe entwerfen, wenn sie sie beherrscht.
