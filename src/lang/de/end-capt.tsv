@@ -1,0 +1,13 @@
+# Entries of the ending file: number, English, German. Entry = the text of ENDDESC or CONGRAT (lines as parse_ending reads them, each with a line end, ^ and _ kept) or one RANKS line with its line end. Numbers EC..
+EC001	^^^^^You have cleverly managed to capture the home systems of all alien\nspecies, controlling their governments and achieving galactic domination.\n	^^^^^Du hast die Heimatsysteme aller fremden Spezies geschickt erobert, kontrollierst nun ihre Regierungen und beherrschst die Galaxis.\n
+EC002	Home Wrecker.\n	Heimwerker.\n
+EC003	Megalomaniac.\n	Größenwahnsinniger.\n
+EC004	Master Invader.\n	Meister-Invasor.\n
+EC005	Hypercosmic Saboteur.\n	Hyperkosmischer Saboteur.\n
+EC006	Lord of Subversion.\n	Fürst des Umsturzes.\n
+EC007	Interstellar Coup Master.\n	Interstellarer Putschmeister.\n
+EC008	Insurrection Champion.\n	Meister des Aufruhrs.\n
+EC009	Galactic Infiltrator.\n	Galaktischer Unterwanderer.\n
+EC010	Supreme Invader.\n	Oberster Invasor.\n
+EC011	Ascendant Invader.\n	Erhabener Invasor.\n
+EC012	^^^^^Many and varied will be the historians' accounts of your daring\nsubjugation of the galaxy.  Most will call you a farsighted leader and\na wily general, but others will denounce you as a traitor and a\nmegalomaniac.  One thing is certain, however.  You are now the master of all\nsentient species.  By controlling their home systems, you have control of\ntheir governments.  All people must now do your bidding.  Will your reign\nbe benevolent, or terrible?  The galaxy must wait and see.\n	^^^^^Vielfältig und zahlreich werden die Berichte der Historiker über deine kühne Unterwerfung der Galaxis sein.  Die meisten werden dich einen weitsichtigen Anführer und listigen Feldherrn nennen, andere einen Verräter und Größenwahnsinnigen.  Eines aber steht fest: Du bist jetzt Herr aller intelligenten Spezies.  Mit den Heimatsystemen kontrollierst du ihre Regierungen.  Alle Völker müssen nun tun, was du befiehlst.  Wird deine Herrschaft mild sein oder schrecklich?  Die Galaxis muss es abwarten.\n

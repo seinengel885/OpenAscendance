@@ -1,0 +1,13 @@
+# Entries of the ending file: number, English, German. Entry = the text of ENDDESC or CONGRAT (lines as parse_ending reads them, each with a line end, ^ and _ kept) or one RANKS line with its line end. Numbers ED..
+ED001	^^^^^Your ferocity has no limits.  You have destroyed the last vestiges of\nalien civilization, and now rule the entire galaxy.\n	^^^^^Deine Wildheit kennt keine Grenzen.  Du hast die letzten Spuren fremder Zivilisation vernichtet und regierst jetzt die ganze Galaxis.\n
+ED002	Unrighteous Neighbor.\n	Schlechter Nachbar.\n
+ED003	Xenophobe.\n	Xenophobiker.\n
+ED004	Galactic Villain.\n	Galaktischer Schurke.\n
+ED005	Interstellar Death-Dealer.\n	Interstellarer Todbringer.\n
+ED006	Supreme Killing Machine.\n	Oberste Tötungsmaschine.\n
+ED007	Techno-Annihilator.\n	Techno-Vernichter.\n
+ED008	Cosmic Devastator.\n	Kosmischer Verwüster.\n
+ED009	Lord High Executioner.\n	Oberster Scharfrichter.\n
+ED010	Overlord of Cosmic Night.\n	Oberherr der kosmischen Nacht.\n
+ED011	Ascendant Destroyer.\n	Erhabener Zerstörer.\n
+ED012	^^^^^You have shown yourself to be a brilliant ruler and a fierce,\ndesperate warrior.  All other sentient species have fallen prey to your mighty\nweapons of war.  Though you can now enjoy the remainder of your existence as\nthe uncontested master of the galaxy, you wonder whether the course you\nhave chosen is the best one.  Could your species have been enriched by\na peaceful coexistence with the aliens?  Perhaps.  Unfortunately, you will\nnever know.\n	^^^^^Du hast dich als brillanter Herrscher und erbitterter, verzweifelter Krieger erwiesen.  Alle anderen intelligenten Spezies sind deinen mächtigen Kriegswaffen zum Opfer gefallen.  Du kannst nun den Rest deines Daseins als unangefochtener Herr der Galaxis genießen, fragst dich aber, ob der gewählte Weg der beste war.  Hätte deine Spezies vom friedlichen Zusammenleben mit den Fremden profitiert?  Vielleicht.  Leider wirst du es nie erfahren.\n

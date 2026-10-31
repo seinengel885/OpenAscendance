@@ -1,0 +1,13 @@
+# Entries of the ending file: number, English, German. Entry = the text of ENDDESC or CONGRAT (lines as parse_ending reads them, each with a line end, ^ and _ kept) or one RANKS line with its line end. Numbers EX..
+EX001	_____The hostile forces of the universe have annihilated your species.\nMany mourn the passing of your people into the cosmic night.\n	^^^^^Feindliche Kräfte des Universums haben deine Spezies ausgelöscht.  Viele betrauern den Untergang deines Volkes.\n
+EX002	Interstellar Pushover.\n	Interstellarer Fußabtreter.\n
+EX003	Space History.\n	Kosmische Geschichte.\n
+EX004	Galactic Exile.\n	Galaktischer Verbannter.\n
+EX005	Cosmic Martyr.\n	Kosmischer Märtyrer.\n
+EX006	Cosmic Ultra-Martyr.\n	Kosmischer Ultra-Märtyrer.\n
+EX007	Lord of Self-Sacrifice.\n	Herr der Selbstaufopferung.\n
+EX008	Existential Transcender.\n	Existenzieller Transzendierer.\n
+EX009	Master of the Void.\n	Meister der Leere.\n
+EX010	Ultimate Scoremaster.\n	Ultimativer Punktemeister.\n
+EX011	Ascendant Hyper-Cheater.\n	Erhabener Hyper-Schummler.\n
+EX012	_____The people of your species have been driven from their planetary\nhomes, but it is unlikely that none remain.  There will always be\nforces of peace and harmony hiding within the universe, however\nweakened they may be.  The darkness that has fallen over this galaxy\ncannot last forever--it is the nature of things to go through cycles,\nand the tiny remnants of your species may one day flourish, prevail, and\nbring their hard-won wisdom to the cosmos.\n	^^^^^Das Volk deiner Spezies wurde aus seinen planetaren Heimstätten vertrieben, doch es ist unwahrscheinlich, dass keiner übrig ist.  Irgendwo im Universum verbergen sich immer Kräfte des Friedens und der Eintracht, wie geschwächt sie auch sein mögen.  Die Dunkelheit, die über diese Galaxis gefallen ist, kann nicht ewig dauern - es liegt in der Natur der Dinge, Zyklen zu durchlaufen, und die winzigen Reste deiner Spezies mögen eines Tages aufblühen, sich durchsetzen und ihre hart erkämpfte Weisheit in den Kosmos tragen.\n

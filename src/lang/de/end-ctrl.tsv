@@ -1,0 +1,13 @@
+# Entries of the ending file: number, English, German. Entry = the text of ENDDESC or CONGRAT (lines as parse_ending reads them, each with a line end, ^ and _ kept) or one RANKS line with its line end. Numbers EL..
+EL001	^^^^^Congratulations!  Your massive empire spans over two-thirds of the galaxy. \nYour dominion is assured.\n	^^^^^Glückwunsch!  Dein gewaltiges Reich umspannt mehr als zwei Drittel der Galaxis.  Deine Herrschaft ist gesichert.\n
+EL002	Ambitious Beginner.\n	Ehrgeiziger Anfänger.\n
+EL003	Imperialist.\n	Imperialist.\n
+EL004	Interstellar Warrior.\n	Interstellarer Krieger.\n
+EL005	Interstellar Subjugator.\n	Interstellarer Unterwerfer.\n
+EL006	Galactic Powermonger.\n	Galaktischer Machtbesessener.\n
+EL007	Hyper-Conqueror.\n	Hyper-Eroberer.\n
+EL008	Cosmic Dictator.\n	Kosmischer Diktator.\n
+EL009	Imperial Overlord.\n	Imperialer Oberherr.\n
+EL010	Galactic Emperor.\n	Galaktischer Kaiser.\n
+EL011	Ascendant Emperor.\n	Erhabener Kaiser.\n
+EL012	^^^^^After a long and weary struggle, your species has gained control of\nmore than two-thirds of the stars in the galaxy.  Though the other species may\ncontinue to bicker over the stars that remain, you are now the undisputed\ngalactic leader.  You should feel proud of your great accomplishment, but\nyou have little time for revelry--many difficult but rewarding tasks lie\nahead of you.  May your reign be long and fruitful!\n	^^^^^Nach langem, zermürbendem Ringen hat deine Spezies mehr als zwei Drittel der Sterne der Galaxis unter ihre Kontrolle gebracht.  Mögen die anderen Spezies um die übrigen Sterne weiterzanken: Du bist jetzt der unbestrittene Führer der Galaxis.  Du darfst stolz auf deine große Leistung sein, hast aber wenig Zeit zum Feiern - viele schwere, aber lohnende Aufgaben liegen vor dir.  Möge deine Herrschaft lang und fruchtbar sein!\n
