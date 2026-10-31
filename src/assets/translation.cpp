@@ -1,5 +1,6 @@
 #include "assets/translation.h"
 
+#include <cctype>
 #include <format>
 
 #include "core/error.h"
@@ -28,6 +29,15 @@ std::string line_breaks(std::string_view text) {
     } else {
       out += text[i];
     }
+  }
+  return out;
+}
+
+// The table name of data file `file`: its stem in lower case.
+std::string table_name(std::string_view file) {
+  std::string out(file.substr(0, file.rfind('.')));
+  for (char& c : out) {
+    c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
   }
   return out;
 }
@@ -101,8 +111,13 @@ Translation::Translation(Language language) {
   }
 }
 
+const Translation& Translation::none() {
+  static const Translation kNone(Language::kOriginal);
+  return kNone;
+}
+
 std::string Translation::text(std::string_view file, std::string_view text) const {
-  if (const auto table = tables_.find(file); table != tables_.end()) {
+  if (const auto table = tables_.find(table_name(file)); table != tables_.end()) {
     if (const auto it = table->second.find(text); it != table->second.end()) {
       return it->second;
     }

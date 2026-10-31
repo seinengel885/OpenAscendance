@@ -1,0 +1,44 @@
+# Sentences of RACE00.DIP: number, English, German. Entry = one sentence line as parse_dip_sentences keeps it (with its line end, written \n). The aliens address the player with Ihr/Euch. Numbers R00-..
+R00-001	%y species.  We are %m.\n	Spezies %y.  Wir sind %m.\n
+R00-002	We request immediate military aid.  %s system.\n	Wir fordern sofortige Militärhilfe.  System %s.\n
+R00-003	Peace state is over.  We are entering war state with %y.\n	Friedenszustand beendet.  Wir treten in den Kriegszustand gegen Euch ein.\n
+R00-004	We propose alliance with %y.\n	Wir schlagen Euch ein Bündnis vor.\n
+R00-005	We need star lane knowledge.  We request trade.\n	Wir benötigen Sternstraßenwissen.  Wir fordern Tausch.\n
+R00-006	We have visited too few stars.  We request star information trade.\n	Wir haben zu wenige Sterne besucht.  Wir fordern Tausch von Sterninformationen.\n
+R00-007	We require technology.  We request research trade.\n	Wir benötigen Technologie.  Wir fordern Forschungstausch.\n
+R00-008	We are inhibited by war between %y and %t.  We request peace offer to %t.\n	Der Krieg zwischen Euch und den %t hemmt uns.  Wir fordern ein Friedensangebot an die %t.\n
+R00-009	%y are no longer of value as allies.  We are terminating alliance.\n	Die %y haben als Verbündete keinen Wert mehr.  Wir beenden das Bündnis.\n
+R00-010	We request declaration of war by %y on %t.\n	Wir fordern, dass Ihr den %t den Krieg erklärt.\n
+R00-011	We request termination of alliance between %y and %t.\n	Wir fordern die Beendigung des Bündnisses zwischen Euch und den %t.\n
+R00-012	We request offer of alliance by %y to %t.\n	Wir fordern, dass Ihr den %t ein Bündnis anbietet.\n
+R00-013	We request assistance of %y in control of %s system.\n	Wir fordern Eure Unterstützung bei der Kontrolle des Systems %s.\n
+R00-014	War with %y has no value to us.  We request armistice.\n	Krieg gegen Euch hat für uns keinen Wert.  Wir fordern Waffenstillstand.\n
+R00-015	Awaiting transmission from %y.\n	Erwarte Übertragung von Euch.\n
+R00-016	We greet %y with intentions of peace.\n	Wir grüßen die %y in friedlicher Absicht.\n
+R00-017	We will send assistance to %y.\n	Wir senden Euch Unterstützung.\n
+R00-018	We reject assistance request.\n	Wir lehnen die Unterstützungsanfrage ab.\n
+R00-019	We acknowledge beginning of war state with %y.  Assimilation program begun.\n	Wir bestätigen den Beginn des Kriegszustands mit Euch.  Assimilationsprogramm gestartet.\n
+R00-020	We accept offer.  We are now allied with %y.\n	Wir nehmen das Angebot an.  Wir sind nun mit Euch verbündet.\n
+R00-021	Alliance with %y is of insufficient value.  We reject offer.\n	Ein Bündnis mit Euch hat zu geringen Wert.  Wir lehnen das Angebot ab.\n
+R00-022	We accept offer from %y.  We are initiating information transfer.\n	Wir nehmen Euer Angebot an.  Wir leiten die Informationsübertragung ein.\n
+R00-023	We anticipate insufficient benefit.  We reject offer from %y.\n	Wir erwarten zu geringen Nutzen.  Wir lehnen Euer Angebot ab.\n
+R00-024	We agree to trade with %y.\n	Wir stimmen dem Tausch mit Euch zu.\n
+R00-025	We are in need of technology.  We accept offer from %y.\n	Wir benötigen Technologie.  Wir nehmen Euer Angebot an.\n
+R00-026	%y demonstrate outdated technology.  We reject offer.\n	Die %y zeigen veraltete Technologie.  Wir lehnen das Angebot ab.\n
+R00-027	We agree to request from %y.  We will offer peace to %t.\n	Wir stimmen Eurer Bitte zu.  Wir bieten den %t Frieden an.\n
+R00-028	We must maintain war state with %t.  We reject offer.\n	Wir müssen den Kriegszustand mit den %t aufrechterhalten.  Wir lehnen ab.\n
+R00-029	We acknowledge termination of alliance with %y.\n	Wir bestätigen die Beendigung des Bündnisses mit Euch.\n
+R00-030	War state with %t is of value.  We accept request from %y.\n	Kriegszustand mit den %t hat Wert.  Wir nehmen Eure Bitte an.\n
+R00-031	War state with %t is overly detrimental to us.  We reject request from %y.\n	Kriegszustand mit den %t ist uns zu nachteilig.  Wir lehnen Eure Bitte ab.\n
+R00-032	Alliance with %t is of little value.  We accept request from %y.\n	Ein Bündnis mit den %t hat geringen Wert.  Wir nehmen Eure Bitte an.\n
+R00-033	Alliance with %t is of great value.  We reject request from %y.\n	Ein Bündnis mit den %t hat großen Wert.  Wir lehnen Eure Bitte ab.\n
+R00-034	Satisfaction of %y is valuable.  We accept request from %y.\n	Eure Zufriedenheit ist wertvoll.  Wir nehmen Eure Bitte an.\n
+R00-035	We do not require allies.  We reject request from %y.\n	Wir benötigen keine Verbündeten.  Wir lehnen Eure Bitte ab.\n
+R00-036	We will assist %y in %s.\n	Wir unterstützen Euch in %s.\n
+R00-037	We refuse to assist %y in %s.\n	Wir verweigern Euch die Unterstützung in %s.\n
+R00-038	Ships are unavailable to assist %y in %s.\n	Es sind keine Schiffe verfügbar, um Euch in %s zu unterstützen.\n
+R00-039	We have no enemies in %s.  We reject offer from %y.\n	Wir haben keine Feinde in %s.  Wir lehnen Euer Angebot ab.\n
+R00-040	We cannot provide additional assistance to %y in %s.\n	Wir können Euch in %s keine weitere Unterstützung geben.\n
+R00-041	We will provide %y with additional assistance in %s.\n	Wir geben Euch in %s zusätzliche Unterstützung.\n
+R00-042	We agree to enter peace state with %y.  \n	Wir stimmen dem Eintritt in den Friedenszustand mit Euch zu.\n
+R00-043	We reject peace offer from %y.\n	Wir lehnen Euer Friedensangebot ab.\n

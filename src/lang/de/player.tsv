@@ -1,0 +1,46 @@
+# Sentences of PLAYER.DIP (the player's options and answers): number, English, German. Entry = one sentence line as parse_dip_sentences keeps it (with its line end, written \n). The player addresses the aliens with Ihr/Euch. Numbers D..
+D001	The %m extend greetings to the %y.  May the stars shine true light upon your cause.\n	Die %m grüßen die %y.  Mögen die Sterne Eurer Sache wahres Licht schenken.\n
+D002	What luck!  Though we've just met, we could use some backup in the %s system.\n	Welch ein Glück!  Wir haben uns eben erst getroffen, aber im System %s könnten wir Verstärkung brauchen.\n
+D003	We declare war on you.  Prepare to die.\n	Wir erklären Euch den Krieg.  Macht Euch auf den Tod gefasst.\n
+D004	We propose an alliance between our peoples.\n	Wir schlagen ein Bündnis zwischen unseren Völkern vor.\n
+D005	We would like to exchange star lane knowledge.\n	Wir möchten Wissen über Sternstraßen austauschen.\n
+D006	Let's trade information about star systems.\n	Lasst uns Informationen über Sternsysteme tauschen.\n
+D007	Would you like to exchange research? \n	Wollt Ihr Forschung austauschen?\n
+D008	War is ugly.  Please offer peace to the %t.\n	Krieg ist hässlich.  Wie wäre es mit Frieden für die %t?\n
+D009	We've come to tell you our alliance is over.\n	Wir sind gekommen, um Euch zu sagen: Unser Bündnis ist vorbei.\n
+D010	The %t are bad for both of us.  Declare war on them.\n	Die %t schaden uns beiden.  Erklärt ihnen den Krieg.\n
+D011	Your alliance with the %t makes no sense.  Break it!\n	Euer Bündnis mit dem Volk der %t ergibt keinen Sinn.  Löst es auf!\n
+D012	The %t can help to promote our cause.  Offer an alliance to them.\n	Die %t können unserer Sache nützen.  Bietet ihnen ein Bündnis an.\n
+D013	We need to rid the %s system of enemy ships.  Can you help?\n	Wir müssen das System %s von feindlichen Schiffen befreien.  Könnt Ihr helfen?\n
+D014	We offer peace to bring an end to this needless bloodshed.\n	Wir bieten Frieden an, um dieses sinnlose Blutvergießen zu beenden.\n
+D015	Goodbye.  I trust we'll speak again.\n	Lebt wohl.  Ich vertraue darauf, dass wir wieder sprechen.\n
+D016	We look forward to many interesting encounters.\n	Wir freuen uns auf viele interessante Begegnungen.\n
+D017	That's asking a lot, but we'll have a look at your situation.\n	Das ist viel verlangt, aber wir sehen uns Eure Lage an.\n
+D018	We tend to stay away from combat unless necessary.\n	Wir meiden Kämpfe, wenn es nicht nötig ist.\n
+D019	That was most unwise.  You will regret your mindless aggression. \n	Das war sehr unklug.  Ihr werdet Eure sinnlose Aggression bereuen.\n
+D020	Yes!  Together we can bring harmony to the stars.\n	Ja!  Gemeinsam können wir den Sternen Harmonie bringen.\n
+D021	Presently that seems unwise.  Maybe later.\n	Im Moment scheint das unklug.  Vielleicht später.\n
+D022	Sounds good.  I'll send over my lane info immediately.\n	Einverstanden.  Ich schicke sofort meine Straßeninfos hinüber.\n
+D023	I'm hesistant to provide a map to my front door.\n	Ich zögere, Euch eine Karte zu meiner Haustür zu geben.\n
+D024	We agree to trade information about star systems.\n	Wir sind einverstanden, Informationen über Sternsysteme zu tauschen.\n
+D025	I think not.  Giving away star knowledge reveals your home world!\n	Ich denke nicht.  Wer Sternwissen weitergibt, verrät seine Heimatwelt!\n
+D026	Sure, let's trade.\n	Gern, lasst uns tauschen.\n
+D027	No, our research is too advanced for that to help much.\n	Nein, unsere Forschung ist zu fortgeschritten, als dass das viel nützen würde.\n
+D028	I guess you're right.  We'll offer peace immediately.\n	Ihr habt wohl recht.  Wir bieten sofort Frieden an.\n
+D029	I'm afraid we don't hold the same views.  The war continues.\n	Leider sehen wir das nicht gleich.  Der Krieg geht weiter.\n
+D030	And so the tension begins...\n	Und so beginnt die Anspannung ...\n
+D031	I'm with you.  We'll declare war immediately.\n	Ich bin dabei.  Wir erklären sofort den Krieg.\n
+D032	We prefer to keep our wars limited to strictly necessary ones.\n	Wir führen lieber nur unbedingt nötige Kriege.\n
+D033	The %t were once friends.  However, I agree...  It is broken.\n	Die %t waren einmal Freunde.  Doch ich stimme zu ...  Das Bündnis ist gelöst.\n
+D034	Not the %t.  No, they are a much needed ally.\n	Nicht die %t.  Nein, sie sind ein dringend nötiger Verbündeter.\n
+D035	Yes, I suppose the %t have been peaceful toward us.\n	Ja, die %t waren wohl friedlich zu uns.\n
+D036	Simply being at peace with the %t is enough at the moment.\n	Frieden mit dem Volk der %t genügt uns im Moment.\n
+D037	We will send available ships to %s immediately.  \n	Wir schicken sofort verfügbare Schiffe nach %s.\n
+D038	We don't want to explicity order ships to %s, but we'll assist if orders bring us that way.\n	Wir wollen Schiffe nicht ausdrücklich nach %s beordern, helfen aber, wenn unsere Befehle uns dorthin führen.\n
+D039	We don't have ships close enough to %s to do you any good.  Good luck...\n	Wir haben keine Schiffe nahe genug bei %s, um Euch zu nützen.  Viel Glück ...\n
+D040	The species we are currently at war with have no ships in %s.\n	Die Spezies, mit denen wir im Krieg sind, haben keine Schiffe in %s.\n
+D041	We'll help as best we can with ships currently in %s, but we have no more available ships nearby.\n	Wir helfen mit den Schiffen, die schon in %s sind, so gut wir können, haben aber keine weiteren in der Nähe.\n
+D042	Sure.  We already have ships in %s, but luckily we have additional ships nearby which can be sent.\n	Gern.  Wir haben schon Schiffe in %s, aber zum Glück weitere in der Nähe, die wir schicken können.\n
+D043	Agreed.  The war between us is no longer.\n	Einverstanden.  Der Krieg zwischen uns ist vorbei.\n
+D044	Peace is not a viable option given current circumstances.\n	Frieden ist unter den gegebenen Umständen keine Option.\n
+D045	What thoughts fill your mind?\n	Welche Gedanken bewegen Euren Geist?\n

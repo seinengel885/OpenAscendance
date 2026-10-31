@@ -1,0 +1,45 @@
+# Sentences of RACE01.DIP: number, English, German. Entry = one sentence line as parse_dip_sentences keeps it (with its line end, written \n). The aliens address the player with Ihr/Euch. Numbers R01-..
+R01-001	The %m greet the %y.  Respect our boundaries and we will have no problems.\n	Die %m grüßen die %y.  Achtet unsere Grenzen, dann gibt es keine Probleme.\n
+R01-002	We're having some fun in the %s system.  Want to join in?\n	Wir vergnügen uns ein wenig im System %s.  Wollt Ihr mitmachen?\n
+R01-003	You threaten our freedom.  Now we can see how the %y handle a war with the %m.\n	Ihr bedroht unsere Freiheit.  Nun sehen wir, wie die %y einen Krieg mit den %m bestehen.\n
+R01-004	The %y seem decent and brave.  Join forces with the %m and none will stand against us.\n	Die %y wirken anständig und tapfer.  Verbündet Euch mit den %m, und keiner wird gegen uns bestehen.\n
+R01-005	Let's see what the %y know about star lanes.  In return we'll share our lane map with you.\n	Mal sehen, was die %y über Sternstraßen wissen.  Dafür teilen wir unsere Straßenkarte mit Euch.\n
+R01-006	The %m want to know more about the stars.  We suggest an even trade of star system data.\n	Die %m wollen mehr über die Sterne wissen.  Wir schlagen einen gleichen Tausch von Sternsystem-Daten vor.\n
+R01-007	Tell us of your research and we'll tell you of ours.\n	Erzählt uns von Eurer Forschung, und wir erzählen Euch von unserer.\n
+R01-008	The %t are a decent people.  Offer peace to them.\n	Die %t sind ein anständiges Volk.  Bietet ihnen Frieden an.\n
+R01-009	We're not going to be allies with the likes of the %y.  Our alliance is over.\n	Mit Leuten wie den %y werden wir kein Bündnis halten.  Unser Bündnis ist vorbei.\n
+R01-010	The %t are liars and cowards.  Make war on them before they turn on you.\n	Die %t sind Lügner und Feiglinge.  Zieht gegen sie in den Krieg, bevor sie sich gegen Euch wenden.\n
+R01-011	How can you stand the %t?  Do yourselves a favor and break your alliance with those weaklings.\n	Wie könnt Ihr die %t ertragen?  Tut Euch selbst den Gefallen und löst das Bündnis mit diesen Schwächlingen.\n
+R01-012	The %t are steadfast and brave.  They would make worthy allies to the %y.\n	Die %t sind standhaft und tapfer.  Sie wären würdige Verbündete der %y.\n
+R01-013	We are beset in the %s system.  We could use your help.\n	Wir sind im System %s bedrängt.  Wir könnten Eure Hilfe brauchen.\n
+R01-014	Fighting among ourselves without cause only strengthens our enemies.  Let us have peace.\n	Wer ohne Grund untereinander kämpft, stärkt nur unsere Feinde.  Lasst uns Frieden schließen.\n
+R01-015	What is on your mind, %y?\n	Was habt Ihr auf dem Herzen, %y?\n
+R01-016	Hm.  Watch yourselves, %y.  You don't want to tangle with the %m.\n	Hm.  Gebt auf Euch acht, %y.  Mit den %m legt man sich nicht an.\n
+R01-017	Sounds like fun.  We'll help you.\n	Klingt nach Spaß.  Wir helfen Euch.\n
+R01-018	We're not convinced your cause is just.  We will not help you now.\n	Wir sind nicht überzeugt, dass Eure Sache gerecht ist.  Wir helfen Euch jetzt nicht.\n
+R01-019	Ah, good.\n	Ah, gut.\n
+R01-020	Yes, an alliance.  Let's see if our miserable enemies have the stomach for a real fight.\n	Ja, ein Bündnis.  Mal sehen, ob unsere elenden Feinde den Mumm für einen echten Kampf haben.\n
+R01-021	We can stand alone.\n	Wir stehen auch allein.\n
+R01-022	We will trade star lane information with you.\n	Wir tauschen Sternstraßenwissen mit Euch.\n
+R01-023	No.\n	Nein.\n
+R01-024	We will share our star map with you.\n	Wir teilen unsere Sternkarte mit Euch.\n
+R01-025	Not now.\n	Jetzt nicht.\n
+R01-026	Sure, let's trade.\n	Gern, lasst uns tauschen.\n
+R01-027	We're not interested in your research.\n	Eure Forschung interessiert uns nicht.\n
+R01-028	You have convinced us.  We will make peace with the %t.\n	Ihr habt uns überzeugt.  Wir schließen Frieden mit den %t.\n
+R01-029	We will not make peace with the like of the %t.\n	Mit Leuten wie den %t machen wir keinen Frieden.\n
+R01-030	We are no longer allies.  Be careful, now.\n	Wir sind keine Verbündeten mehr.  Nehmt Euch jetzt in Acht.\n
+R01-031	We have no tolerance for the %t.  We will gladly make war on them.\n	Für die %t haben wir keine Geduld.  Wir ziehen gern gegen sie in den Krieg.\n
+R01-032	The %t have done nothing to deserve our wrath.  We will not make war with them.\n	Die %t haben unseren Zorn nicht verdient.  Wir führen keinen Krieg gegen sie.\n
+R01-033	You have a point.  We will end our alliance with the %t.\n	Da ist etwas dran.  Wir beenden unser Bündnis mit den %t.\n
+R01-034	The %t are a noble people, and we will not abandon them.\n	Die %t sind ein edles Volk, und wir lassen sie nicht im Stich.\n
+R01-035	You are right.  The %t deserve our respect.\n	Ihr habt recht.  Die %t verdienen unseren Respekt.\n
+R01-036	The %t are inoffensive, but we are not willing to trust them further.\n	Die %t sind harmlos, aber wir wollen ihnen nicht weiter trauen.\n
+R01-037	Sounds like fun.  Our available ships are on their way to %s.\n	Klingt nach Spaß.  Unsere verfügbaren Schiffe sind auf dem Weg nach %s.\n
+R01-038	We are busy with our own affairs.  If our ships happen across %s, we'll help.\n	Wir haben mit unseren eigenen Angelegenheiten zu tun.  Kommen unsere Schiffe zufällig nach %s, helfen wir.\n
+R01-039	We have no ships close enough to %s.  Fight well, %y.\n	Wir haben keine Schiffe nahe genug bei %s.  Kämpft gut, %y.\n
+R01-040	We have no enemies at %s.\n	Wir haben keine Feinde bei %s.\n
+R01-041	Our ships at %s will fight at your side, but we have no other ships to spare.\n	Unsere Schiffe bei %s kämpfen an Eurer Seite, mehr können wir nicht entbehren.\n
+R01-042	Our ships at %s will fight at your side.  Others are on their way.\n	Unsere Schiffe bei %s kämpfen an Eurer Seite.  Weitere sind unterwegs.\n
+R01-043	War without a cause is empty.  We agree to peace.\n	Krieg ohne Grund ist leer.  Wir stimmen dem Frieden zu.\n
+R01-044	Not when our freedom is at stake.  This war will rage on.\n	Nicht, solange unsere Freiheit auf dem Spiel steht.  Dieser Krieg tobt weiter.\n

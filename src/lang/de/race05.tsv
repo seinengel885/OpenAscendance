@@ -1,0 +1,46 @@
+# Sentences of RACE05.DIP: number, English, German. Entry = one sentence line as parse_dip_sentences keeps it (with its line end, written \n). The aliens address the player with Ihr/Euch. Numbers R05-..
+R05-001	Hello, %y.  We are the %m.  Let's see what you're made of.\n	Hallo, %y.  Wir sind die %m.  Mal sehen, was in Euch steckt.\n
+R05-002	We're not in trouble or anything, but we wouldn't mind a little help in %s.\n	Wir sind nicht in Schwierigkeiten oder so, aber ein bisschen Hilfe in %s wäre nicht schlecht.\n
+R05-003	That's it.  The %m are going to war with you.\n	Jetzt reicht's.  Die %m ziehen gegen Euch in den Krieg.\n
+R05-004	You people seem pretty tough.  Let's be allies.\n	Ihr Leute seht ziemlich zäh aus.  Lasst uns Verbündete sein.\n
+R05-005	Do you want to trade star lane knowledge with us?\n	Wollt Ihr Sternstraßenwissen mit uns tauschen?\n
+R05-006	If you want, we could trade star knowledge.\n	Wenn Ihr wollt, könnten wir Sternwissen tauschen.\n
+R05-007	Our scientists are real smart.  Will you trade technologies with us?\n	Unsere Wissenschaftler sind richtig schlau.  Tauscht Ihr Technologien mit uns?\n
+R05-008	Quit fighting the %t, or we're going to get mad.\n	Hört auf, gegen die %t zu kämpfen, sonst werden wir sauer.\n
+R05-009	That's it.  No more alliance.\n	Das war's.  Kein Bündnis mehr.\n
+R05-010	Declare war on the %t.  Come on, it'll be fun!\n	Erklärt den %t den Krieg.  Los, das macht Spaß!\n
+R05-011	Break your alliance with the %t.  You don't need them.\n	Löst Euer Bündnis mit den %t.  Die braucht Ihr nicht.\n
+R05-012	Offer an alliance to the %t.  They can help us both out.\n	Bietet den %t ein Bündnis an.  Die können uns beiden aushelfen.\n
+R05-013	We could use a little backup in the %s system.\n	Ein bisschen Verstärkung im System %s könnten wir gebrauchen.\n
+R05-014	You guys sure are tough.  What do you say let's quit fighting?\n	Ihr Jungs seid ganz schön zäh.  Wie wär's, wenn wir mit dem Kämpfen aufhören?\n
+R05-015	Dum de dum...\n	Dumm di dumm ...\n
+R05-016	We bet we're stronger than you are.\n	Wir wetten, wir sind stärker als Ihr.\n
+R05-017	All right, we'll send some help your way.\n	Na gut, wir schicken Euch etwas Hilfe.\n
+R05-018	We'd love to do some fighting, but we can't spare the force right now.\n	Wir würden gern kämpfen, aber wir können die Truppen gerade nicht entbehren.\n
+R05-019	You %y have got to be crazy.\n	Ihr %y seid ja verrückt.\n
+R05-020	Sounds good.  Let's see who can blow up the most enemy ships.\n	Klingt gut.  Mal sehen, wer die meisten feindlichen Schiffe in die Luft jagt.\n
+R05-021	No.  We're not that bright, but we still don't trust you.\n	Nein.  Wir sind nicht besonders schlau, aber wir trauen Euch trotzdem nicht.\n
+R05-022	OK.  Here's a sample of our info.\n	Okay.  Hier ist eine Kostprobe unserer Infos.\n
+R05-023	No way!  That would lead you right to our home world!\n	Auf keinen Fall!  Dann findet Ihr direkt unsere Heimatwelt!\n
+R05-024	OK.  You people look like pretty good explorers.\n	Okay.  Ihr seht wie ziemlich gute Entdecker aus.\n
+R05-025	Why should we tell you where our home world is?\n	Warum sollten wir Euch sagen, wo unsere Heimatwelt ist?\n
+R05-026	OK.  Our researchers could use the help, to be honest.\n	Okay.  Unsere Forscher könnten ehrlich gesagt Hilfe brauchen.\n
+R05-027	Not yet.  It took us a long time to discover some of those things!\n	Noch nicht.  Wir haben lange gebraucht, manche dieser Dinge zu entdecken!\n
+R05-028	All right, if you say so.  The %t had better be trustworthy, though.\n	Na gut, wenn Ihr meint.  Aber die %t sollten besser vertrauenswürdig sein.\n
+R05-029	What kind of wimps do you think we are?\n	Für was für Schwächlinge haltet Ihr uns eigentlich?\n
+R05-030	Good riddance.  You %y are pretty snobby, you know that?\n	Gut, dass Ihr weg seid.  Ihr %y seid ganz schön hochnäsig, wisst Ihr das?\n
+R05-031	All right!  We're going to kick the %t all over the galaxy.\n	Na los!  Wir jagen die %t quer durch die Galaxis.\n
+R05-032	No way.  We %m are tough, but not that tough.\n	Auf keinen Fall.  Wir, die %m, sind zäh, aber so zäh auch wieder nicht.\n
+R05-033	OK.  The %t were starting to get on our nerves anyway.\n	Okay.  Die %t gingen uns sowieso schon auf die Nerven.\n
+R05-034	What do you mean?  The %t have been good allies.\n	Wie meint Ihr das?  Die %t waren gute Verbündete.\n
+R05-035	All right.  Maybe the %t can help us out somehow.\n	Na gut.  Vielleicht können die %t uns irgendwie aushelfen.\n
+R05-036	No way.  We're hoping they'll declare war on us so we can fight them.\n	Auf keinen Fall.  Wir hoffen, dass sie uns den Krieg erklären, damit wir sie bekämpfen können.\n
+R05-037	Sure thing.  Just wait and see what a good %m ship can do.\n	Klar doch.  Wartet ab, was ein gutes %m-Schiff so drauf hat.\n
+R05-038	We're spread a little too thin to help you right now.\n	Wir sind gerade ein bisschen zu dünn verteilt, um Euch zu helfen.\n
+R05-039	All our ships are too far away.  Sorry.\n	Alle unsere Schiffe sind zu weit weg.  Tut uns leid.\n
+R05-040	We don't have any enemies in %s, though it would be more fun if we did.\n	In %s haben wir keine Feinde, obwohl es mehr Spaß machen würde, wenn wir welche hätten.\n
+R05-041	Sorry, %y.  We don't have any more ships to spare.\n	Tut uns leid, %y.  Wir haben keine Schiffe mehr übrig.\n
+R05-042	You bet.  We %m love to make a good fight even better.\n	Aber sicher.  Wir, die %m, machen einen guten Kampf gern noch besser.\n
+R05-043	All right.  We'd sort of rather fight, but we'll agree to an armistice.\n	Na gut.  Wir würden lieber kämpfen, aber wir stimmen einem Waffenstillstand zu.\n
+R05-044	Fat chance, %y.  The %m have your number.\n	Von wegen, %y.  Die %m haben Euch durchschaut.\n
+R05-045	Know of any good battles nearby?\n	Kennt Ihr irgendwo in der Nähe einen guten Kampf?\n

@@ -1,0 +1,13 @@
+# Entries of the ending file: number, English, German. Entry = the text of ENDDESC or CONGRAT (lines as parse_ending reads them, each with a line end, ^ and _ kept) or one RANKS line with its line end. Numbers EU..
+EU001	^^^^^Your strong and benevolent leadership has culminated in galactic\nunification.  You are hailed by all species as ruler of the galaxy.\n	^^^^^Deine starke und wohlwollende Führung hat die Galaxis geeint.  Alle Spezies feiern dich als ihren Herrscher.\n
+EU002	Hyper-Explorer.\n	Hyper-Entdecker.\n
+EU003	Mover and Shaker.\n	Macher und Gestalter.\n
+EU004	Master of Diplomacy.\n	Meister der Diplomatie.\n
+EU005	Interstellar Victor.\n	Interstellarer Sieger.\n
+EU006	Galactic Unifier.\n	Galaktischer Einiger.\n
+EU007	Cosmic Harmonizer.\n	Kosmischer Harmonisierer.\n
+EU008	Lord of Tranquility.\n	Herr der Gelassenheit.\n
+EU009	High King of Serenity.\n	Hochkönig der Heiterkeit.\n
+EU010	Ascendant Overlord.\n	Erhabener Oberherr.\n
+EU011	Supreme Master of Ascendancy.\n	Höchster Meister der Ascendancy.\n
+EU012	^^^^^You deserve great praise indeed!  Your species has risen\nfrom one small planet to unify the entire galaxy.  All sentient species may\nnow work together in harmony, each using its strengths to bring further order\nand prosperity to the cosmos.  Without your strong leadership, the galaxy\nmight have remained a jumbled, discordant collection of endlessly bickering\nenemies.  But your patience and determination have finally been rewarded.\nAll hail you and your people!  You are true finders of Ascendancy.\n	^^^^^Du verdienst wahrlich großes Lob!  Deine Spezies ist von einem kleinen Planeten aufgestiegen und hat die ganze Galaxis geeint.  Alle intelligenten Spezies können nun in Eintracht zusammenarbeiten und mit ihren Stärken dem Kosmos noch mehr Ordnung und Wohlstand bringen.  Ohne deine starke Führung wäre die Galaxis wohl ein wirres, zerstrittenes Sammelsurium endlos zankender Feinde geblieben.  Doch deine Geduld und Entschlossenheit sind endlich belohnt worden.  Heil dir und deinem Volk!  Ihr seid die wahren Finder der Ascendancy.\n

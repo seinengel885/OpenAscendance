@@ -30,7 +30,8 @@ class HelpWnd : public GWindow {
 
   // `HelpWnd_open_topic` (0x2f3d0): loads `topic` of the help file `file`
   // (`HelpWnd_load_topic` 0x2f5d8: the buttons it names shown, the others
-  // deactivated) and places the window for the current screen. Throws
+  // deactivated) and places the window for the current screen. The texts
+  // and button titles are translated (`GameFiles::text` of `file`). Throws
   // `DataError` when the topic is missing.
   void open_topic(std::string_view file, std::string_view topic);
   // The same with the help file's content `data` (the remake's own help

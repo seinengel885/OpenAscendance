@@ -1,6 +1,7 @@
 // The remake's translations of the game's texts, built in from
-// `src/lang/<language>/<file>.tsv`: per data file of the original
-// (`restree.tsv` for `restree.txt`), one text per line,
+// `src/lang/<language>/<file>.tsv`: per data file of the original, named
+// by its stem in lower case (`restree.tsv` for `RESTREE.TXT`, `race00.tsv`
+// for `RACE00.DIP`), one text per line,
 //
 //     T01<TAB>Orbital Structures<TAB>Orbitale Strukturen
 //
@@ -24,18 +25,21 @@ class Translation {
  public:
   // Throws `DataError` when a built-in table of `language` is malformed.
   explicit Translation(Language language);
+  // No translation: every text stays as read (the original language).
+  static const Translation& none();
 
   // Returns the translation of `text` (cp437, as read from data file
-  // `file`, e.g. `restree.txt`), `text` itself when there is none.
+  // `file`, e.g. `restree.txt`, its case and extension ignored), `text`
+  // itself when there is none.
   std::string text(std::string_view file, std::string_view text) const;
 
  private:
-  // By file, then by English text: the cp437 translation.
+  // By file stem, then by English text: the cp437 translation.
   std::map<std::string, std::map<std::string, std::string, std::less<>>, std::less<>> tables_;
 };
 
 // A built-in table: the text of `src/lang/<language>/<file>.tsv`, `file`
-// the data file's name (`restree.txt`).
+// the data file's stem (`restree`).
 struct TranslationTable {
   std::string_view language;
   std::string_view file;

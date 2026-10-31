@@ -1,0 +1,46 @@
+# Sentences of RACE20.DIP: number, English, German. Entry = one sentence line as parse_dip_sentences keeps it (with its line end, written \n). The aliens address the player with Ihr/Euch. Numbers R20-..
+R20-001	The currents have brought us together.  %y, we %m greet you.\n	Die Strömungen haben uns zusammengeführt.  %y, wir, die %m, grüßen Euch.\n
+R20-002	We need your aid in %s system.\n	Wir brauchen Eure Hilfe im System %s.\n
+R20-003	We must defend ourselves.  Sadly, war between our species begins.\n	Wir müssen uns verteidigen.  Leider beginnt der Krieg zwischen unseren Spezies.\n
+R20-004	Your way is virtuous.  Let us ally.\n	Euer Weg ist tugendhaft.  Lasst uns uns verbünden.\n
+R20-005	Let us share star lane data.\n	Lasst uns Sternstraßendaten teilen.\n
+R20-006	Let us share star system data.\n	Lasst uns Sternsystemdaten teilen.\n
+R20-007	Let us share research.\n	Lasst uns Forschung teilen.\n
+R20-008	End your war with the %t.  Let your way follow the currents of peace.\n	Beendet Euren Krieg gegen die %t.  Lasst Euren Weg den Strömungen des Friedens folgen.\n
+R20-009	You follow a dark current.  Our species are no longer allies.\n	Ihr folgt einer dunklen Strömung.  Unsere Spezies sind nicht länger verbündet.\n
+R20-010	The way of the %t is hostile.  Make war on them, lest they destroy us all.\n	Der Weg der %t ist feindlich.  Führt Krieg gegen sie, damit sie uns nicht alle vernichten.\n
+R20-011	The %t follow a dark current.  Aid their purposes no longer.  \n	Die %t folgen einer dunklen Strömung.  Fördert ihre Absichten nicht länger.\n
+R20-012	Ally with the %t, for the sake of peace.\n	Verbündet Euch um des Friedens willen mit den %t.\n
+R20-013	The %s system is in danger.  Help us defend it.\n	Das System %s ist in Gefahr.  Helft uns, es zu verteidigen.\n
+R20-014	Our ways have followed the current of war too long.  Let us have peace.\n	Unsere Wege folgten zu lange der Strömung des Krieges.  Lasst uns Frieden haben.\n
+R20-015	The currents flow ever on.\n	Die Strömungen fließen immer weiter.\n
+R20-016	May the currents aid you on your way.\n	Mögen die Strömungen Euch auf Eurem Weg helfen.\n
+R20-017	We will attempt to aid you.\n	Wir versuchen, Euch zu helfen.\n
+R20-018	We cannot aid you.\n	Wir können Euch nicht helfen.\n
+R20-019	You have lost your way.  We will defend ourselves.\n	Ihr habt Euren Weg verloren.  Wir werden uns verteidigen.\n
+R20-020	The %m respect the %y.  We accept your offer.\n	Die %m achten die %y.  Wir nehmen Euer Angebot an.\n
+R20-021	We have inadequate knowledge of the %y.  We can not commit to alliance.\n	Wir wissen zu wenig über die %y.  Wir können uns nicht zu einem Bündnis verpflichten.\n
+R20-022	We agree to share star lane data.\n	Wir sind einverstanden, Sternstraßendaten zu teilen.\n
+R20-023	We refuse.  You could use our star lane data against us.\n	Wir lehnen ab.  Ihr könntet unsere Sternstraßendaten gegen uns nutzen.\n
+R20-024	We agree to share star system data.\n	Wir sind einverstanden, Sternsystemdaten zu teilen.\n
+R20-025	We refuse.  If your way is hostile, you could use our star data against us.\n	Wir lehnen ab.  Ist Euer Weg feindlich, könntet Ihr unsere Sterndaten gegen uns nutzen.\n
+R20-026	We agree to share research.\n	Wir sind einverstanden, Forschung zu teilen.\n
+R20-027	We refuse.  We have not a sufficient trust of the %y.\n	Wir lehnen ab.  Wir vertrauen den %y nicht genug.\n
+R20-028	We agree.  Your current corrects our way.\n	Wir sind einverstanden.  Eure Strömung berichtigt unseren Weg.\n
+R20-029	We refuse.  Your suggestion does not follow the current of wisdom.\n	Wir lehnen ab.  Euer Vorschlag folgt nicht der Strömung der Weisheit.\n
+R20-030	Our ways diverge.  Let peace remain.  \n	Unsere Wege trennen sich.  Der Friede bleibe.\n
+R20-031	The %t are hostile.  We will fight them.\n	Die %t sind feindlich.  Wir werden sie bekämpfen.\n
+R20-032	We will not.  The way of the %t is not clear to us.\n	Wir tun es nicht.  Der Weg der %t ist uns nicht klar.\n
+R20-033	The way of the %t is no longer clear.  We will break our alliance with them.\n	Der Weg der %t ist nicht mehr klar.  Wir lösen unser Bündnis mit ihnen.\n
+R20-034	The way of the %t is bright.  We refuse.\n	Der Weg der %t ist hell.  Wir lehnen ab.\n
+R20-035	The way of the %t is bright.  We accept your wisdom.\n	Der Weg der %t ist hell.  Wir folgen Eurer Weisheit.\n
+R20-036	The %t follow unknown currents.  We must refuse.\n	Die %t folgen unbekannten Strömungen.  Wir müssen ablehnen.\n
+R20-037	We will follow your current to %s system.\n	Wir folgen Eurer Strömung zum System %s.\n
+R20-038	If the currents bring us to %s system, we may then help you.\n	Bringen uns die Strömungen ins System %s, können wir Euch dann helfen.\n
+R20-039	We lack ships.  May the currents aid you.\n	Uns fehlen Schiffe.  Mögen die Strömungen Euch helfen.\n
+R20-040	We are at peace with all beings in the %s system.\n	Wir sind mit allen Wesen im System %s im Frieden.\n
+R20-041	We will help in %s system with the ships already there.\n	Wir helfen im System %s mit den Schiffen, die schon dort sind.\n
+R20-042	Other ships of the %m follow your current to %s system.\n	Weitere Schiffe der %m folgen Eurer Strömung ins System %s.\n
+R20-043	We agree to peace.\n	Wir stimmen dem Frieden zu.\n
+R20-044	We believe you still follow the dark currents.  We reject your offer.\n	Wir glauben, Ihr folgt noch den dunklen Strömungen.  Wir lehnen Euer Angebot ab.\n
+R20-045	The %m are ready to communicate.\n	Die %m sind zur Verständigung bereit.\n
