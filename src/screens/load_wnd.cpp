@@ -83,7 +83,8 @@ void LoadWnd::load_tutindex() {
     if (!name || !description) {
       throw DataError("tutindex.txt: short file");
     }
-    tutorials_.push_back(Tutorial{name->substr(0, name->find_first_of(" \t")), *description, i + 1});
+    tutorials_.push_back(
+        Tutorial{name->substr(0, name->find_first_of(" \t")), wm_.services().files.text("tutindex.txt", *description), i + 1});
     const int row = list_->add_item(tutorials_.back().name);
     list_->set_item_data(row, i);
   }

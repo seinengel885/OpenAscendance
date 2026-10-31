@@ -39,18 +39,20 @@ bool iequals_prefix(std::string_view line, std::string_view word) {
 bool iequals(std::string_view a, std::string_view b) { return a.size() == b.size() && iequals_prefix(a, b); }
 
 // Appends the lines up to `end` (compared on its length, case-insensitive),
-// each with its line end.
-void read_section(TextLineReader& r, std::string_view end, std::string& out) {
+// each with its line end, translated as one text.
+void read_section(TextLineReader& r, std::string_view end, std::string& out, const Translation& translation) {
+  std::string section;
   for (;;) {
     const std::optional<std::string> line = r.content_line();
     if (!line) {
       throw DataError(std::format("history.txt: no {}", end));
     }
     if (iequals_prefix(*line, end)) {
+      out += translation.text("history.txt", section);
       return;
     }
-    out += *line;
-    out += '\n';
+    section += *line;
+    section += '\n';
   }
 }
 
@@ -67,7 +69,7 @@ void convert(std::string& s) {
 }  // namespace
 
 SpeciesHistory parse_species_history(std::span<const std::uint8_t> data, int species, int atmosphere,
-                                     std::string_view name) {
+                                     std::string_view name, const Translation& translation) {
   TextLineReader r(data);
   for (;;) {
     const std::optional<std::string> line = r.content_line();
@@ -100,18 +102,18 @@ SpeciesHistory parse_species_history(std::span<const std::uint8_t> data, int spe
     }
     if (iequals(word, "POWER")) {
       h.title = std::format("{}: ", name);
-      read_section(r, "ENDPOWER", h.title);
+      read_section(r, "ENDPOWER", h.title, translation);
     } else if (iequals(word, "INTRO")) {
-      read_section(r, "ENDINTRO", h.intro);
+      read_section(r, "ENDINTRO", h.intro, translation);
       intro_seen = true;
     } else if (iequals(word, "PEACE") && intro_seen && atmosphere == 0) {
-      read_section(r, "ENDPEACE", h.intro);
+      read_section(r, "ENDPEACE", h.intro, translation);
     } else if (iequals(word, "NEUTRAL") && intro_seen && atmosphere == 1) {
-      read_section(r, "ENDNEUTRAL", h.intro);
+      read_section(r, "ENDNEUTRAL", h.intro, translation);
     } else if (iequals(word, "HOSTILE") && intro_seen && atmosphere == 2) {
-      read_section(r, "ENDHOSTILE", h.intro);
+      read_section(r, "ENDHOSTILE", h.intro, translation);
     } else if (iequals(word, "TEXT")) {
-      read_section(r, "ENDTEXT", h.text);
+      read_section(r, "ENDTEXT", h.text, translation);
     }
   }
   convert(h.intro);
@@ -134,8 +136,9 @@ void StartGameWnd::draw(int /*mode*/) {
   const GameSession& game = wm_.services().game;
   const int player = game.player_race();
   const int species = game.race_species(player);
-  const SpeciesHistory h = parse_species_history(wm_.services().files.load("history.txt"), species, game.atmosphere(),
-                                                 wm_.static_string(kStringSpeciesNames + species));
+  const GameFiles& files = wm_.services().files;
+  const SpeciesHistory h = parse_species_history(files.load("history.txt"), species, game.atmosphere(),
+                                                 wm_.static_string(kStringSpeciesNames + species), files.translation());
   Image8& screen = wm_.screen();
   // The large portrait of the player's race slot (gwshare 7 + race, the
   // species' LGRACEnn.SHP).

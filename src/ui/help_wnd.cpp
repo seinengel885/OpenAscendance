@@ -40,6 +40,12 @@ void HelpWnd::open_topic(std::string_view file, std::span<const std::uint8_t> da
   frame_ = 0;
   // CENTERPOS and BPOS use the rectangle of the previous placement.
   content_ = parse_help_topic(data, topic_, file_, (pane_.x1 - pane_.x0) / 2, (pane_.y1 - kButtonRow - pane_.y0) / 2);
+  const GameFiles& files = wm_.services().files;
+  for (HelpElement& e : content_.elements) {
+    if (e.kind == HelpElement::Kind::kText) {
+      e.text = files.text(file_, e.text);
+    }
+  }
   for (std::size_t i = 0; i < content_.buttons.size() && i < children_.size(); ++i) {
     const HelpButton& b = content_.buttons[i];
     GWindow* child = children_[i];
@@ -47,7 +53,7 @@ void HelpWnd::open_topic(std::string_view file, std::span<const std::uint8_t> da
       wm_.send_event(child->id(), kEventShow, 0, 0);
     }
     if (b.title) {
-      child->set_name(*b.title);
+      child->set_name(files.text(file_, *b.title));
     }
     if (b.message) {
       child->set_message(child->message(), *b.message, 0);
