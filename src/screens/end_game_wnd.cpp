@@ -119,7 +119,8 @@ int haze_level(std::int32_t n) {
 
 }  // namespace
 
-EndingText parse_ending(std::span<const std::uint8_t> data, int rank, std::string_view name) {
+EndingText parse_ending(std::span<const std::uint8_t> data, int rank, std::string_view name,
+                        const Translation& translation) {
   TextLineReader r(data);
   EndingText t;
   const auto next = [&]() -> std::string {
@@ -131,10 +132,12 @@ EndingText parse_ending(std::span<const std::uint8_t> data, int rank, std::strin
     return *line + '\n';
   };
   const auto section = [&](std::string& out) {
+    std::string text;
     for (std::string line = next(); line.size() < 7 || !iequals(std::string_view(line).substr(0, 7), "ENDTEXT");
          line = next()) {
-      out += line;
+      text += line;
     }
+    out += translation.text(name, text);
   };
   for (;;) {
     const std::string word = first_word(next());
@@ -149,7 +152,7 @@ EndingText parse_ending(std::span<const std::uint8_t> data, int rank, std::strin
       for (int i = 0; i < rank; ++i) {
         next();
       }
-      t.rank = next();
+      t.rank = translation.text(name, next());
     }
   }
   convert(t.description);
@@ -189,7 +192,8 @@ void EndGameWnd::draw(int /*mode*/) {
   }
   const int rank = rank_of(cosmos.score);
   const std::string_view file = kEndingFiles[cosmos.ending - 1u];
-  const EndingText text = parse_ending(wm_.services().files.load(file), rank, file);
+  const GameFiles& files = wm_.services().files;
+  const EndingText text = parse_ending(files.load(file), rank, file, files.translation());
   Image8& screen = wm_.screen();
   const std::uint8_t player = session->player_race;
   const game::Race& me = cosmos.races[player];

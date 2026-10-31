@@ -9,6 +9,7 @@
 #include <span>
 #include <string>
 
+#include "assets/translation.h"
 #include "ui/winmgr.h"
 
 namespace oa {
@@ -25,10 +26,11 @@ struct SpeciesHistory {
 // section joined with their line ends, the paragraph of `atmosphere` (0
 // PEACE, 1 NEUTRAL, 2 HOSTILE) appended to the introduction; in the
 // introduction and the text a line end or `_` becomes a space and `@` a
-// line break. `name` starts the title. Throws `DataError` when the species
-// is missing.
+// line break. `name` starts the title. Each section is translated as read
+// (its lines with their line ends, `translation` of `history.txt`). Throws
+// `DataError` when the species is missing.
 SpeciesHistory parse_species_history(std::span<const std::uint8_t> data, int species, int atmosphere,
-                                     std::string_view name);
+                                     std::string_view name, const Translation& translation = Translation::none());
 
 class StartGameWnd final : public GWindow {
  public:

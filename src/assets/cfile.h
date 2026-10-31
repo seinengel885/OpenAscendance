@@ -81,6 +81,7 @@ class GameFiles {
   // Returns `text` of data file `file` (`restree.txt`) in the language of the
   // files (`Translation::text`).
   std::string text(std::string_view file, std::string_view text) const { return translation_.text(file, text); }
+  const Translation& translation() const { return translation_; }
 
  private:
   Install install_;

@@ -24,7 +24,8 @@ Flic::Flic(UiServices& services, std::string_view file)
   font_->pane() = {script_.title_x0, script_.title_y0, script_.title_x1, script_.title_y1};
   font_palette_ = services.files.load(script_.palette_file);
   // `font_center_offset`: centred in the title box (inclusive coordinates).
-  for (const std::string& text : script_.subtitles) {
+  for (const std::string& subtitle : script_.subtitles) {
+    const std::string text = services.files.text(kScriptFile, subtitle);
     const int width = font_->string_width(text);
     if (width > script_.title_x1 - script_.title_x0) {
       throw DataError(std::format("{}: subtitle '{}' wider than its box", kScriptFile, text));

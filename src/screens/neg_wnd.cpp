@@ -39,16 +39,28 @@ constexpr int kClickSound = 0;
 
 int race_text_color(int color) { return color * 4 + 0x13; }
 
+// The sentences of the `.dip` file `file`, translated one by one.
+game::DipSentences load_sentences(const GameFiles& files, const std::string& file) {
+  game::DipSentences out = game::parse_dip_sentences(files.load(file));
+  for (std::string& s : out.actions) {
+    s = files.text(file, s);
+  }
+  for (std::string& s : out.responses) {
+    s = files.text(file, s);
+  }
+  return out;
+}
+
 }  // namespace
 
 void NegWnd::load_dialogue(int species) {
   const GameFiles& files = wm_.services().files;
   auto& alien = alien_sentences_.at(static_cast<std::size_t>(species));
   if (!alien) {
-    alien = game::parse_dip_sentences(files.load(std::format("RACE{:02}.DIP", species)));
+    alien = load_sentences(files, std::format("RACE{:02}.DIP", species));
   }
   if (!player_sentences_) {
-    player_sentences_ = game::parse_dip_sentences(files.load("PLAYER.DIP"));
+    player_sentences_ = load_sentences(files, "PLAYER.DIP");
   }
 }
 

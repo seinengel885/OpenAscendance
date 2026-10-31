@@ -8,7 +8,7 @@ foreach(table IN LISTS OA_LANG_TABLES)
   get_filename_component(language "${dir}" NAME)
   get_filename_component(file "${table}" NAME_WE)
   file(READ "${table}" text)
-  string(APPEND OA_LANG_ENTRIES "    {\"${language}\", \"${file}.txt\", R\"oa_tsv(${text})oa_tsv\"},\n")
+  string(APPEND OA_LANG_ENTRIES "    {\"${language}\", \"${file}\", R\"oa_tsv(${text})oa_tsv\"},\n")
 endforeach()
 # Written whole rather than configured: the texts may hold `@`.
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/lang_tables.cpp.new"
