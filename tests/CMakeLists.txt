@@ -8,6 +8,8 @@ add_executable(oa_tests
   assets_test.cpp
   # The text tables.
   tables_test.cpp
+  # The translations' tables against the texts of the original's files.
+  translation_test.cpp
   # Blitters, fonts and palette fades.
   gfx_test.cpp
   # The mixer and the sound system.

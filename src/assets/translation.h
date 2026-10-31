@@ -33,9 +33,13 @@ class Translation {
   // itself when there is none.
   std::string text(std::string_view file, std::string_view text) const;
 
+  // By English text: the cp437 translation.
+  using Table = std::map<std::string, std::string, std::less<>>;
+  // The tables by file stem (`restree`), for the checks of the tests.
+  const std::map<std::string, Table, std::less<>>& tables() const { return tables_; }
+
  private:
-  // By file stem, then by English text: the cp437 translation.
-  std::map<std::string, std::map<std::string, std::string, std::less<>>, std::less<>> tables_;
+  std::map<std::string, Table, std::less<>> tables_;
 };
 
 // A built-in table: the text of `src/lang/<language>/<file>.tsv`, `file`
