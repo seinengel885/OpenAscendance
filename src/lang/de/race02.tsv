@@ -1,0 +1,46 @@
+# Sentences of RACE02.DIP: number, English, German. Entry = one sentence line as parse_dip_sentences keeps it (with its line end, written \n). The aliens address the player with Ihr/Euch. Numbers R02-..
+R02-001	Greetings to the %y from the %m.  May your species not be destroyed.\n	Grüße der %m an die %y.  Möge Eure Spezies nicht vernichtet werden.\n
+R02-002	Things just aren't working out for us in %s.  We are in desperate need of help.\n	Bei uns läuft es im System %s einfach nicht.  Wir brauchen dringend Hilfe.\n
+R02-003	We're declaring war on you.  Probably turn out to be our worst decision ever.\n	Wir erklären Euch den Krieg.  Wird wohl unsere schlechteste Entscheidung aller Zeiten.\n
+R02-004	If you would be our allies, maybe the future wouldn't look so bleak.\n	Wären wir verbündet, sähe die Zukunft vielleicht nicht so düster aus.\n
+R02-005	We'd like to trade star lane knowledge, though we don't expect it to do anyone much good.\n	Wir würden gern Sternstraßenwissen tauschen, auch wenn es wohl niemandem viel nützt.\n
+R02-006	The stars we've visited have gotten dull and depressing.  Will you trade star knowledge with us?\n	Die Sterne, die wir besucht haben, sind öde und deprimierend geworden.  Tauscht Ihr Sternwissen mit uns?\n
+R02-007	Our researchers have all gone on strike.  Will you trade technology with us?\n	Unsere Forscher sind alle in den Streik getreten.  Tauscht Ihr Technologie mit uns?\n
+R02-008	We think you should offer the %t peace.  You probably disagree, though.\n	Wir finden, Ihr solltet den %t Frieden anbieten.  Ihr seht das wohl anders.\n
+R02-009	We're breaking off our alliance.  Nothing personal.\n	Wir lösen unser Bündnis auf.  Nichts Persönliches.\n
+R02-010	We'd like you to declare war on the %t.  Their existence depresses us.\n	Wir hätten gern, dass Ihr den %t den Krieg erklärt.  Ihre Existenz deprimiert uns.\n
+R02-011	We'd feel a little less hopeless if you would break your alliance with the %t.\n	Wir fühlten uns etwas weniger hoffnungslos, würdet Ihr Euer Bündnis mit den %t lösen.\n
+R02-012	You should offer the %t an alliance.  They're much less depressing than we are.\n	Ihr solltet den %t ein Bündnis anbieten.  Sie sind viel weniger deprimierend als wir.\n
+R02-013	We'll never be able to secure the %s system alone.  Can you help?\n	Wir schaffen es allein nie, das System %s zu sichern.  Könnt Ihr helfen?\n
+R02-014	This war is utterly senseless and depressing.  Let's end it.\n	Dieser Krieg ist völlig sinnlos und deprimierend.  Lasst ihn uns beenden.\n
+R02-015	Is there anything else?  We certainly hope not.\n	Gibt es noch etwas?  Hoffentlich nicht.\n
+R02-016	We hope our species will prosper in harmony.  Unlikely, though.\n	Wir hoffen, unsere Spezies gedeiht in Eintracht.  Unwahrscheinlich, aber egal.\n
+R02-017	We probably won't be of any use, but we'll give it a try anyway.\n	Wir werden wohl nichts nützen, versuchen es aber trotzdem.\n
+R02-018	We'd better not.  We tend to be very unlucky.\n	Lieber nicht.  Wir haben meistens großes Pech.\n
+R02-019	We figured it would probably come to this.\n	Wir dachten uns schon, dass es darauf hinausläuft.\n
+R02-020	We accept.  You'll probably get sick of us before long, though.\n	Wir nehmen an.  Ihr werdet uns aber wohl bald leid sein.\n
+R02-021	No, not now.  It seems too good to be true.\n	Nein, jetzt nicht.  Das klingt zu schön, um wahr zu sein.\n
+R02-022	We'll show you what little we know.\n	Wir zeigen Euch das bisschen, das wir wissen.\n
+R02-023	No, thanks.  We don't think it would do us any good.\n	Nein, danke.  Wir glauben nicht, dass es uns etwas bringt.\n
+R02-024	All right.  Don't expect a lot, though.\n	Na gut.  Erwartet aber nicht viel.\n
+R02-025	We'd better not.  You'd probably just use the information against us.\n	Lieber nicht.  Ihr würdet die Informationen wohl nur gegen uns verwenden.\n
+R02-026	Sure.  We need all the technology we can get.\n	Gern.  Wir brauchen jede Technologie, die wir kriegen können.\n
+R02-027	We'd rather not.  It wouldn't be worth the effort.\n	Lieber nicht.  Die Mühe lohnt sich nicht.\n
+R02-028	We'll offer them peace, though they're sure to turn around and stab us in the back.\n	Wir bieten ihnen Frieden an, obwohl sie uns sicher in den Rücken fallen.\n
+R02-029	No.  The only thing more depressing than fighting the %t is not fighting them.\n	Nein.  Das Einzige, was noch deprimierender ist, als gegen die %t zu kämpfen, ist, nicht gegen sie zu kämpfen.\n
+R02-030	We knew you'd get sick of us.\n	Wir wussten, dass Ihr uns leid werdet.\n
+R02-031	We agree.  It'll be fun to see how long they take to wipe us out.\n	Einverstanden.  Es wird lustig zu sehen, wie lange sie brauchen, uns auszulöschen.\n
+R02-032	No way.  Things look bleak enough as it is.\n	Auf keinen Fall.  Es sieht schon düster genug aus.\n
+R02-033	You're right.  We ought to cut our losses.\n	Ihr habt recht.  Wir sollten unsere Verluste begrenzen.\n
+R02-034	Not on your life.  We need every friend we can get.\n	Auf keinen Fall.  Wir brauchen jeden Freund, den wir kriegen können.\n
+R02-035	We'll try, though they'll undoubtedly reject.\n	Wir versuchen es, auch wenn sie sicher ablehnen.\n
+R02-036	We don't want to.  They'd just reject our offer anyway.\n	Wir wollen nicht.  Sie lehnen unser Angebot ohnehin ab.\n
+R02-037	We'll send what we can, but don't expect much.\n	Wir schicken, was wir können, aber erwartet nicht viel.\n
+R02-038	We don't have any ships to spare, as usual.  Sorry.\n	Wir haben wie üblich keine Schiffe übrig.  Tut uns leid.\n
+R02-039	All our ships are too far away to help.  Typical luck.\n	Alle unsere Schiffe sind zu weit weg, um zu helfen.  Typisches Pech.\n
+R02-040	We don't have any enemies in %s.  Not that we'd do you much good anyway.\n	Wir haben in %s keine Feinde.  Nicht dass wir Euch viel nützen würden.\n
+R02-041	Sorry, but we don't have any more ships to spare.\n	Tut uns leid, aber wir haben keine weiteren Schiffe übrig.\n
+R02-042	We'll send some additional help.  It'll probably just get blown up on the way, though.\n	Wir schicken noch etwas Hilfe.  Die wird auf dem Weg wohl nur in die Luft fliegen.\n
+R02-043	We accept.  Now we'll need to find something else to be depressed about.\n	Wir nehmen an.  Jetzt müssen wir uns etwas anderes zum Deprimiertsein suchen.\n
+R02-044	We probably should accept, but it just doesn't seem like a good idea right now.\n	Wir sollten wohl zustimmen, aber im Moment scheint es keine gute Idee.\n
+R02-045	Uh oh.  What's wrong now?\n	Oje.  Was ist jetzt wieder los?\n

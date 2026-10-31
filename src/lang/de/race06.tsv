@@ -1,0 +1,46 @@
+# Sentences of RACE06.DIP: number, English, German. Entry = one sentence line as parse_dip_sentences keeps it (with its line end, written \n). The aliens address the player with Ihr/Euch. Numbers R06-..
+R06-001	Hello, %y!  We %m are very happy to meet you.\n	Hallo, %y!  Wir, die %m, freuen uns sehr, Euch kennenzulernen.\n
+R06-002	We would like you to help our needy ships in the %s system.\n	Wir hätten gern, dass Ihr unseren Schiffen in Not im System %s helft.\n
+R06-003	I'm afraid we have to declare war on you.  Sorry.\n	Wir müssen Euch leider den Krieg erklären.  Tut uns leid.\n
+R06-004	You've been very good friends, %y.  Let's be allies!\n	Ihr wart sehr gute Freunde, %y.  Lasst uns Verbündete sein!\n
+R06-005	Would you like to trade star lane knowledge with us?\n	Möchtet Ihr Sternstraßenwissen mit uns tauschen?\n
+R06-006	Let's swap star knowledge!\n	Lasst uns Sternwissen tauschen!\n
+R06-007	How about let's trade technologies with each other?\n	Wie wär's, wenn wir Technologien untereinander tauschen?\n
+R06-008	The %t are really nice guys.  Please offer them peace.\n	Die %t sind wirklich nette Kerle.  Bietet ihnen bitte Frieden an.\n
+R06-009	This alliance just isn't working out, so we're breaking it.\n	Dieses Bündnis klappt einfach nicht, darum lösen wir es auf.\n
+R06-010	For our sake, please declare war on the %t.  They've been really mean to us.\n	Uns zuliebe: Erklärt den %t bitte den Krieg.  Sie waren richtig gemein zu uns.\n
+R06-011	You really shouldn't be allied with the %t.  They're not very nice at all.\n	Ihr solltet wirklich nicht mit den %t verbündet sein.  Die sind gar nicht nett.\n
+R06-012	Make an alliance with the %t.  Then we can all be friends together!\n	Schließt ein Bündnis mit den %t.  Dann können wir alle zusammen Freunde sein!\n
+R06-013	Could you please help us take control of the %s system?\n	Könntet Ihr uns bitte helfen, die Kontrolle über das System %s zu übernehmen?\n
+R06-014	Let's make peace, OK?\n	Lasst uns Frieden schließen, ja?\n
+R06-015	Anything else, %y?\n	Noch etwas, %y?\n
+R06-016	I hope we're going to be really good friends.\n	Ich hoffe, wir werden richtig gute Freunde.\n
+R06-017	Sure!  We'll help out.\n	Klar!  Wir helfen.\n
+R06-018	We want to help, but your situation looks way too dangerous.\n	Wir wollen helfen, aber Eure Lage sieht viel zu gefährlich aus.\n
+R06-019	What did you have to go and do that for?\n	Warum habt Ihr das tun müssen?\n
+R06-020	Wonderful!  We hoped you would ask.\n	Wunderbar!  Wir hatten gehofft, dass Ihr fragt.\n
+R06-021	It'd be better if we were just friends.  An alliance would be too binding.\n	Es wäre besser, wenn wir einfach Freunde blieben.  Ein Bündnis wäre zu bindend.\n
+R06-022	Sure thing.  We're transmitting our data.\n	Klar doch.  Wir übertragen unsere Daten.\n
+R06-023	I don't think that would really help much.\n	Ich glaube nicht, dass das wirklich viel helfen würde.\n
+R06-024	OK.  Let's trade.\n	Okay.  Lasst uns tauschen.\n
+R06-025	Sorry, but we're too worried about other people finding our home world.\n	Tut uns leid, aber wir haben zu viel Angst, dass andere unsere Heimatwelt finden.\n
+R06-026	Great!  We could sure use some good technology.\n	Prima!  Gute Technologie können wir bestimmt brauchen.\n
+R06-027	No, not right now.  Our researchers are plenty busy.\n	Nein, nicht jetzt.  Unsere Forscher haben viel zu tun.\n
+R06-028	Sure.  We'll offer peace to the %t.\n	Klar.  Wir bieten den %t Frieden an.\n
+R06-029	Sorry, but the %t have bullied us too much.\n	Tut uns leid, aber die %t haben uns zu sehr gequält.\n
+R06-030	That's a shame.  We hope you'll reconsider.\n	Das ist schade.  Wir hoffen, Ihr überlegt es Euch noch einmal.\n
+R06-031	We don't like wars, but we'll do it to help the %y.\n	Wir mögen keine Kriege, aber wir tun es, um den %y zu helfen.\n
+R06-032	We'd like to oblige you, but war would be too difficult right now.\n	Wir würden Euch gern den Gefallen tun, aber ein Krieg wäre im Moment zu schwierig.\n
+R06-033	Yes, you're probably right.  We'll break the alliance.\n	Ja, Ihr habt wohl recht.  Wir lösen das Bündnis.\n
+R06-034	The %t have been very good friends.  Why would we break our alliance?\n	Die %t waren sehr gute Freunde.  Warum sollten wir unser Bündnis lösen?\n
+R06-035	OK.  The %t seem friendly enough.\n	Okay.  Die %t wirken freundlich genug.\n
+R06-036	The %t are not really nice enough to be our allies.\n	Die %t sind nicht wirklich nett genug, um unsere Verbündeten zu sein.\n
+R06-037	Sure!  We'll send you all the ships we can spare.\n	Klar!  Wir schicken Euch alle Schiffe, die wir entbehren können.\n
+R06-038	Sorry, but we can't really help you right now.\n	Tut uns leid, aber wir können Euch im Moment wirklich nicht helfen.\n
+R06-039	You caught us at a bad time:  all our ships are far away from %s.\n	Ihr habt uns zu einem schlechten Zeitpunkt erwischt: Alle unsere Schiffe sind weit weg von %s.\n
+R06-040	But we don't have any enemies in %s!\n	Aber wir haben in %s gar keine Feinde!\n
+R06-041	We're giving you all the help we can.\n	Wir geben Euch alle Hilfe, die wir können.\n
+R06-042	Sure!  We'll happily send more ships to help our friends the %y.\n	Klar!  Wir schicken gern weitere Schiffe, um unseren Freunden, den %y, zu helfen.\n
+R06-043	Thank goodness!  This war was becoming a real burden.\n	Gott sei Dank!  Dieser Krieg wurde zur echten Last.\n
+R06-044	You %y are too mean for that.  The war must go on.\n	Ihr %y seid dafür zu gemein.  Der Krieg muss weitergehen.\n
+R06-045	What's new, %y?\n	Was gibt's Neues, %y?\n

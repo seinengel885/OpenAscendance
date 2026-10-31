@@ -1,0 +1,46 @@
+# Sentences of RACE10.DIP: number, English, German. Entry = one sentence line as parse_dip_sentences keeps it (with its line end, written \n). The aliens address the player with Ihr/Euch. Numbers R10-..
+R10-001	Hail, fair %y.  We are the %m.\n	Heil Euch, edle %y.  Wir sind die %m.\n
+R10-002	We are beset in the %s system.  We beg you for immediate assistance there.\n	Wir sind im System %s bedrängt.  Wir flehen Euch um sofortigen Beistand dort an.\n
+R10-003	Our time of peace is at and end, %y.\n	Unsere Zeit des Friedens ist zu Ende, %y.\n
+R10-004	Good and kind %y, will you be our allies?\n	Gute und gütige %y, wollt Ihr unsere Verbündeten sein?\n
+R10-005	We wish to learn more of star lanes.  Will you trade your knowledge with us?\n	Wir wünschen mehr über Sternstraßen zu erfahren.  Tauscht Ihr Euer Wissen mit uns?\n
+R10-006	We can teach you of new stars, if you will do the same for us.\n	Wir können Euch von neuen Sternen berichten, wenn Ihr uns gleichfalls davon berichtet.\n
+R10-007	Our researchers desire a trade of technologies, if you are willing.\n	Unsere Forscher wünschen einen Tausch von Technologien, wenn Ihr willens seid.\n
+R10-008	We ask that you end your bloody war with the gentle %t.\n	Wir bitten Euch, Euren blutigen Krieg gegen die sanften %t zu beenden.\n
+R10-009	We fear that our alliance has withered and must be cut off.\n	Wir fürchten, unser Bündnis ist verwelkt und muss gekappt werden.\n
+R10-010	Your fighting the fearsome %t would be of great assistance to us.\n	Euer Kampf gegen die furchtbaren %t wäre uns eine große Hilfe.\n
+R10-011	Do you not know of the treacheries of the %t?  Your alliance endangers you.\n	Kennt Ihr nicht die Tücken der %t?  Euer Bündnis bringt Euch in Gefahr.\n
+R10-012	We ask that you offer to ally with the peaceful %t.\n	Wir bitten Euch, den friedlichen %t ein Bündnis anzubieten.\n
+R10-013	Will you help us drive our enemies from the %s system?\n	Helft Ihr uns, unsere Feinde aus dem System %s zu vertreiben?\n
+R10-014	Let us make peace, brave %y, and have friendship instead of war.\n	Lasst uns Frieden schließen, tapfere %y, und Freundschaft statt Krieg pflegen.\n
+R10-015	Have you anything further to ask of us?\n	Habt Ihr noch etwas von uns zu erbitten?\n
+R10-016	May we coexist in peace and harmony.\n	Mögen wir in Frieden und Eintracht nebeneinander bestehen.\n
+R10-017	We will help you as we can, noble %y.\n	Wir helfen Euch, so gut wir können, edle %y.\n
+R10-018	We do not wish to involve ourselves in further conflicts.\n	Wir wünschen uns nicht in weitere Konflikte zu verwickeln.\n
+R10-019	We are saddened by this evil change of fortune.\n	Dieser böse Wechsel des Schicksals betrübt uns.\n
+R10-020	We welcome the %y as friends and allies.\n	Wir heißen die %y als Freunde und Verbündete willkommen.\n
+R10-021	We trust your benevolence, but we do not feel ready for an alliance.\n	Wir vertrauen Eurem Wohlwollen, doch wir fühlen uns für ein Bündnis nicht bereit.\n
+R10-022	We will gladly trade with you, wise %y.\n	Gern tauschen wir mit Euch, weise %y.\n
+R10-023	We fear we must guard our star lane knowledge with care.\n	Wir fürchten, unser Sternstraßenwissen sorgsam hüten zu müssen.\n
+R10-024	Yes.  Let us learn from each other.\n	Ja.  Lasst uns voneinander lernen.\n
+R10-025	We would not feel well served by such an exchange.\n	Wir fühlten uns durch einen solchen Tausch nicht gut bedient.\n
+R10-026	We accept your generous offer.\n	Wir nehmen Euer großzügiges Angebot an.\n
+R10-027	We must refuse your generous offer.\n	Wir müssen Euer großzügiges Angebot ablehnen.\n
+R10-028	We agree that the time for peace has arrived.\n	Wir stimmen zu, dass die Zeit des Friedens gekommen ist.\n
+R10-029	We understand your concern, but we cannot make peace with the bellicose %t.\n	Wir verstehen Eure Sorge, doch mit den kriegerischen %t können wir keinen Frieden schließen.\n
+R10-030	We apologize for any offense that may have brought you to this decision.\n	Wir bitten um Verzeihung für jede Kränkung, die Euch zu dieser Entscheidung brachte.\n
+R10-031	We %m are peace-loving, but we accept your wish and will fight the %t.\n	Wir, die %m, lieben den Frieden, doch wir erfüllen Euren Wunsch und kämpfen gegen die %t.\n
+R10-032	We do not wish to engage in war with our friends the %t.\n	Wir wünschen keinen Krieg gegen unsere Freunde, die %t.\n
+R10-033	We will trust your advice and break that alliance.\n	Wir vertrauen Eurem Rat und lösen dieses Bündnis.\n
+R10-034	We cannot accommodate your desire.  The %t have been faithful allies.\n	Wir können Euren Wunsch nicht erfüllen.  Die %t waren treue Verbündete.\n
+R10-035	That is a wonderful idea.  We will offer the %t an alliance immediately.\n	Welch wunderbare Idee.  Wir bieten den %t sogleich ein Bündnis an.\n
+R10-036	The time is not right for us to ally with the %t.\n	Die Zeit ist nicht reif, uns mit den %t zu verbünden.\n
+R10-037	We will support you in %s, good %y.\n	Wir unterstützen Euch in %s, gute %y.\n
+R10-038	Alas, we do not have the strength to spare.\n	Ach, wir haben keine Kräfte übrig.\n
+R10-039	All of our strength is far from %s.  Circumstances conspire against us.\n	All unsere Kraft ist weit von %s entfernt.  Die Umstände verschwören sich gegen uns.\n
+R10-040	We have no enemies to fight in the %s system.\n	Im System %s haben wir keine Feinde zu bekämpfen.\n
+R10-041	We fear we cannot provide you further aid in the %s system.\n	Wir fürchten, Euch im System %s keine weitere Hilfe geben zu können.\n
+R10-042	Fortune smiles on you, %y.  We have nearby ships that can give you further aid.\n	Das Glück lächelt Euch zu, %y.  Wir haben Schiffe in der Nähe, die Euch weiter helfen können.\n
+R10-043	Our hearts are gladdened by your offer.  May this peace last forever.\n	Euer Angebot erfreut unsere Herzen.  Möge dieser Friede ewig währen.\n
+R10-044	We would be imprudent to accept your offer.  Our war must continue.\n	Es wäre unklug, Euer Angebot anzunehmen.  Unser Krieg muss weitergehen.\n
+R10-045	What are your thoughts, good %y?\n	Was bewegt Eure Gedanken, gute %y?\n

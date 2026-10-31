@@ -1,0 +1,46 @@
+# Sentences of RACE07.DIP: number, English, German. Entry = one sentence line as parse_dip_sentences keeps it (with its line end, written \n). The aliens address the player with Ihr/Euch. Numbers R07-..
+R07-001	Greetings to you, good %y.  <Sigh>.  We are the sorrowful %m.\n	Seid gegrüßt, gute %y.  <Seufz>.  Wir sind die leidgeprüften %m.\n
+R07-002	If you could spare the force, we desperately need help in the %s system.\n	Könntet Ihr Streitkräfte entbehren, brauchen wir dringend Hilfe im System %s.\n
+R07-003	We %m will not be driven away again.  Prepare to die, %y.\n	Wir, die %m, lassen uns nicht noch einmal vertreiben.  Macht Euch auf den Tod gefasst, %y.\n
+R07-004	It would ease our sorrow if you %y would join us in an alliance.\n	Es würde unseren Kummer lindern, wenn Ihr %y Euch uns in einem Bündnis anschlösset.\n
+R07-005	Will you agree to an exchange of star lane knowledge?\n	Stimmt Ihr einem Austausch von Sternstraßenwissen zu?\n
+R07-006	We offer you a trade of star information.\n	Wir bieten Euch einen Tausch von Sterninformationen an.\n
+R07-007	Our engineers demand new technologies.  Will you trade with us?\n	Unsere Ingenieure verlangen neue Technologien.  Tauscht Ihr mit uns?\n
+R07-008	Offer the %t peace, %y.  War makes us so sad.\n	Bietet den %t Frieden an, %y.  Krieg macht uns so traurig.\n
+R07-009	We regretfully end our alliance with the %y.  <Sigh>.\n	Mit Bedauern beenden wir unser Bündnis mit den %y.  <Seufz>.\n
+R07-010	We beg for your help.  Please declare war on the %t.\n	Wir flehen um Eure Hilfe.  Erklärt den %t bitte den Krieg.\n
+R07-011	Don't be taken in by the wily %t.  End your alliance with them.\n	Lasst Euch nicht von den verschlagenen %t einwickeln.  Beendet Euer Bündnis mit ihnen.\n
+R07-012	We ask you to offer the generous %t an alliance.\n	Wir bitten Euch, den großzügigen %t ein Bündnis anzubieten.\n
+R07-013	We are hard pressed in the %s system.  Can you help us?\n	Wir sind im System %s hart bedrängt.  Könnt Ihr uns helfen?\n
+R07-014	Let us end the sorrows of this needless war.\n	Lasst uns das Leid dieses sinnlosen Krieges beenden.\n
+R07-015	<Sigh>.  What can we do for you, %y?\n	<Seufz>.  Was können wir für Euch tun, %y?\n
+R07-016	May your existence be free from sorrow and care. <Sigh>.\n	Möge Euer Dasein frei von Leid und Sorge sein. <Seufz>.\n
+R07-017	We will do whatever we can to help.\n	Wir tun alles, was wir können, um zu helfen.\n
+R07-018	We cannot help you.  Battle brings back too many painful memories.\n	Wir können Euch nicht helfen.  Kämpfe wecken zu viele schmerzliche Erinnerungen.\n
+R07-019	Oh, no.  Not again.\n	Ach nein.  Nicht schon wieder.\n
+R07-020	Your offer eases our heavy hearts.  We accept.\n	Euer Angebot erleichtert unsere schweren Herzen.  Wir nehmen an.\n
+R07-021	We must regretfully refuse.\n	Wir müssen leider ablehnen.\n
+R07-022	Yes.  Here's some of our lane knowledge.\n	Ja.  Hier ist ein Teil unseres Straßenwissens.\n
+R07-023	We appreciate your offer but must refuse.\n	Wir schätzen Euer Angebot, müssen aber ablehnen.\n
+R07-024	An excellent idea.\n	Eine ausgezeichnete Idee.\n
+R07-025	No.  We must keep our colonies as hidden as we can.\n	Nein.  Wir müssen unsere Kolonien so verborgen halten, wie wir können.\n
+R07-026	Yes.  Let our researchers convene.\n	Ja.  Unsere Forscher sollen zusammentreten.\n
+R07-027	We must refuse.  We have to guard our knowledge carefully.\n	Wir müssen ablehnen.  Wir müssen unser Wissen sorgsam hüten.\n
+R07-028	You are right, of course.  We will try to end this sorrowful conflict.\n	Ihr habt natürlich recht.  Wir versuchen, diesen leidvollen Konflikt zu beenden.\n
+R07-029	No.  We %m will never forget our injuries at the hands of the %t.\n	Nein.  Wir, die %m, vergessen nie, was uns die %t angetan haben.\n
+R07-030	Our sorrow grows ever deeper.\n	Unser Kummer wird immer tiefer.\n
+R07-031	For the sake of our friendship, we will declare war.\n	Um unserer Freundschaft willen erklären wir den Krieg.\n
+R07-032	We cannot do that.  Our sad memories of war are too painful.\n	Das können wir nicht.  Unsere traurigen Erinnerungen an den Krieg sind zu schmerzhaft.\n
+R07-033	We defer to your judgment.  The alliance is broken.\n	Wir beugen uns Eurem Urteil.  Das Bündnis ist gelöst.\n
+R07-034	Our friendship with the %t is all that keeps us from despair.\n	Allein die Freundschaft mit den %t bewahrt uns vor der Verzweiflung.\n
+R07-035	We will try.  An alliance would surely ease our sorrow.\n	Wir versuchen es.  Ein Bündnis würde unseren Kummer gewiss lindern.\n
+R07-036	No.  The %t do not seem entirely scrupulous to us.\n	Nein.  Die %t scheinen uns nicht ganz gewissenhaft.\n
+R07-037	One good turn deserves another.  We will send ships at once.\n	Eine Hand wäscht die andere.  Wir schicken sofort Schiffe.\n
+R07-038	Sadly, we cannot be of help.\n	Leider können wir nicht behilflich sein.\n
+R07-039	Our forces are unfortunately too far away to help you.\n	Unsere Streitkräfte sind leider zu weit entfernt, um Euch zu helfen.\n
+R07-040	We have no enemies in %s.  We have no role in your conflict.\n	Wir haben in %s keine Feinde.  Wir haben keine Rolle in Eurem Konflikt.\n
+R07-041	We cannot provide any further aid.\n	Wir können keine weitere Hilfe leisten.\n
+R07-042	We will send further aid to our friends the %y.\n	Wir schicken unseren Freunden, den %y, weitere Hilfe.\n
+R07-043	At last the sadness of our conflict is at an end.\n	Endlich ist die Traurigkeit unseres Konflikts vorbei.\n
+R07-044	We refuse.  You %y must pay the price for your mercilessness.\n	Wir lehnen ab.  Ihr %y müsst den Preis für Eure Erbarmungslosigkeit zahlen.\n
+R07-045	<Sigh>.  How may we be of service?\n	<Seufz>.  Wie können wir Euch dienen?\n
