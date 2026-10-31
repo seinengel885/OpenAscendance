@@ -1,5 +1,6 @@
 # The strings of static.txt: number (R the species names 101..121, S the index of the others), English as the game reads it (a line break written \n), German.
-# Left English: the plural endings (13, 14, 28, 29, 32, 33), which help.txt uses too (the German texts drop them with %.0s), am/pm and the DOS messages.
+# Plural ending of the days (static 14 and 29, "s"): E14 turns it into "e" (Tag, Tage); the singular ending (13, 28) is empty. Planets, systems, ships and colonies are written without an ending (%.0s swallows it). Left English: am/pm and the DOS messages.
+E14	s	e
 S000	(depleted)	(erschöpft)
 S001	(insufficient power)	(zu wenig Energie)
 S002	Unknown	Unbekannt
@@ -30,7 +31,7 @@ S034	Name Your Ship	Benenne dein Schiff
 S035	Rename Your Ship?	Schiff umbenennen?
 S036	No Project	Kein Projekt
 S037	Pick a Location	Wähle einen Ort
-S038	%d day%s until completion	Noch %d Tag(e)%.0s
+S038	%d day%s until completion	Noch %d Tag%s
 S039	No Progress	Kein Fortschritt
 S040	(No Free Population)	(Keine freie Bevölkerung)
 S041	Tiny	Winzig
@@ -91,7 +92,7 @@ S096	Owned by |%d|%s	Besitzer: |%d|%s
 S097	Maximum Population  %d	Max. Bevölkerung  %d
 S098	Self Managed	Selbstverwaltet
 S099	%s %s: %d per day	%s - %s: %d pro Tag
-S100	%s will %s in %d day%s.	%s: %s in %d Tag(en)%.0s.
+S100	%s will %s in %d day%s.	%s: %s in %d Tag%s.
 R01	Minions	Minione
 R02	Snovemdomas	Snovemdomas
 R03	Orfa	Orfa
@@ -115,23 +116,23 @@ R20	Chamachies	Chamachies
 R21	Nimbuloids	Nimbuloiden
 S122	Current Project:	Aktuelles Projekt:
 S123	(No Progress)	(Kein Fortschritt)
-S124	(%d day%s)	(%d Tag(e)%.0s)
+S124	(%d day%s)	(%d Tag%s)
 S125	Allows	Ermöglicht
 S126	Ships: Small and Medium Hulls	Schiffe: kleine und mittlere Rümpfe
 S127	Large Ship Hull	Großer Schiffsrumpf
 S128	Gigantic Ship Hull	Gigantischer Schiffsrumpf
 S129	(Self Managed)	(Selbstverwaltet)
 S130	%s Knowledge %s	Wissen der %s %s
-S135	 (%d Day%s)	 (%d Tag(e)%.0s)
+S135	 (%d Day%s)	 (%d Tag%s)
 S136	(%s %s Planet)	(Planet: %s, %s)
 S137	Self-Managed	Selbstverwaltet
 S138	 - No Progress	 - Kein Fortschritt
-S139	 - %d day%s until completion	 - noch %d Tag(e)%.0s
+S139	 - %d day%s until completion	 - noch %d Tag%s
 S140	Building %s%s	Baue %s%s
 S142	   (No Free Population)	   (Keine freie Bevölkerung)
 S143	Orbiting %s	Im Orbit um %s
 S144	in %s System	Im System %s
-S146	In Starlane to %s System\nETA - %d Day%s	Auf Sternstraße nach %s\nAnkunft in %d Tag(en)%.0s
+S146	In Starlane to %s System\nETA - %d Day%s	Auf Sternstraße nach %s\nAnkunft in %d Tag%s
 S147	Under Construction at %s	Im Bau bei %s
 S148	Being Refitted at %s	Wird umgerüstet bei %s
 S150	\nMoving to Starlane	\nUnterwegs zur Sternstraße
