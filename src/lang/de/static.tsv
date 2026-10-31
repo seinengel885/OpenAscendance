@@ -87,7 +87,7 @@ S092	Black squares are uninhabitable.  Most structures cannot be built on them.	
 S093	%s squares increase the effectiveness of %s-producing structures.	Felder (%s) steigern die Wirkung der Bauten für %s.
 S094	%s %s Planet	Planet: %s, %s
 S095	No One	Niemand
-S096	Owned by \n%d\n%s	Besitzer: \n%d\n%s
+S096	Owned by |%d|%s	Besitzer: |%d|%s
 S097	Maximum Population  %d	Max. Bevölkerung  %d
 S098	Self Managed	Selbstverwaltet
 S099	%s %s: %d per day	%s - %s: %d pro Tag
