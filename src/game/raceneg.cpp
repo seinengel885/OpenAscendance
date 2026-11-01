@@ -26,6 +26,7 @@ bool alive(const Race& race) { return race.extinct != -1; }
 // attack raise the enemy's attitude.
 constexpr std::uint8_t kNearHops = 2;
 constexpr std::int32_t kCeasefireDays = 50;
+constexpr std::int32_t kCeasefireGain = 3;
 
 // The race and its living allies.
 std::uint32_t side_mask(const Cosmos& cosmos, RaceIndex r) {
@@ -260,7 +261,7 @@ std::int16_t race_war_concession(const Session& session, const Race& race, RaceI
   // 2x stronger +1, 2.5x +2, 3x +3, 4x and more +5.
   std::int32_t d = odds.own == 0 ? 5 : std::clamp(2 * odds.enemy / odds.own - 3, 0, 5);
   if (cosmos.day - session.game->last_attack_days[race.index][target] >= kCeasefireDays) {
-    ++d;
+    d += kCeasefireGain;
   }
   return static_cast<std::int16_t>(d);
 }

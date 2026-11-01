@@ -58,7 +58,7 @@ WarOdds race_war_odds(const Cosmos& cosmos, const Race& race, RaceIndex target);
 bool race_war_justified(const Session& session, const Race& race, RaceIndex target);
 
 // peCustom: the daily attitude rise of the race toward `target`, its enemy:
-// the more superior the target's side, the faster; +1 after days without
+// the more superior the target's side, the faster; +3 after days without
 // attacks by the target.
 std::int16_t race_war_concession(const Session& session, const Race& race, RaceIndex target);
 
