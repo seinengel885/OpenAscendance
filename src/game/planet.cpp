@@ -29,6 +29,9 @@ constexpr std::uint8_t kItemOrbitalShield = 26;
 constexpr std::uint8_t kItemOrbitalMegaShield = 27;
 constexpr std::uint8_t kItemAlienHospitality = 31;
 constexpr std::uint8_t kItemLushGrowthBomb = 37;
+// peCustom: attitude lost at war per bombarding shot and per invasion.
+constexpr std::int16_t kBombardWarLoss = 1;
+constexpr std::int16_t kInvasionWarLoss = 20;
 
 // Gives a weapon item's square its shots for the day in the flags' high
 // byte, when the item has shots (the weapon branch of
@@ -873,7 +876,7 @@ void planet_bombard(Session& session, Planet& planet, std::int32_t damage, RaceI
   }
   Star& star = cosmos.stars[static_cast<std::size_t>(planet.star)];
   if (planet.owner != kNoOwner) {
-    race_offended_by(session, cosmos.races[planet.owner], race, star);
+    race_offended_by(session, cosmos.races[planet.owner], race, star, kBombardWarLoss);
   }
   const std::span<Square> squares = planet_squares(cosmos, planet);
   std::vector<std::uint16_t> occupied;
@@ -926,7 +929,8 @@ bool planet_invade(Session& session, Planet& planet, std::uint16_t ship_square, 
   Race& defender = cosmos.races[planet.owner];
   Star& star = cosmos.stars[static_cast<std::size_t>(planet.star)];
   const bool minions = cosmos.races[attacker].ability == 0;
-  if (race_offended_by(session, defender, attacker, star) && defender.declare_war < defender.attitude[attacker]) {
+  if (race_offended_by(session, defender, attacker, star, kInvasionWarLoss) &&
+      defender.declare_war < defender.attitude[attacker]) {
     defender.attitude[attacker] = wrap_i16(defender.declare_war - 10);
   }
   std::int32_t modules = 0;

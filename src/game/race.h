@@ -67,8 +67,10 @@ std::uint8_t race_at_war_mask(const Session& session, const Race& race);
 
 // `victim` is attacked by `aggressor` at `star`: attitude loss when not at
 // war, the victim's bit in the star's day flags; returns whether the
-// offence counted (`Race_offended_by` 0x3eec4).
-bool race_offended_by(Session& session, Race& victim, RaceIndex aggressor, const Star& star);
+// offence counted (`Race_offended_by` 0x3eec4). peCustom also records the
+// day (`Game::last_attack_days`) and, at war, loses `war_loss`.
+bool race_offended_by(Session& session, Race& victim, RaceIndex aggressor, const Star& star,
+                      std::int16_t war_loss = 0);
 
 // Returns whether the race's special ability is charged and, with `use`,
 // applies it (`Race_use_special_ability` 0x3efc8).

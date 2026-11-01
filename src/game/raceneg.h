@@ -40,6 +40,27 @@ bool race_shares_star_with(const Cosmos& cosmos, const Race& race, RaceIndex oth
 // The AI race's daily diplomacy (`Race_diplomacy_turn` 0x3fb00).
 void race_diplomacy_turn(Session& session, Race& race);
 
+// peCustom: the fleet strength (`race_fleet_strength`) of the race's side
+// (it and its allies) and of its opponents in a war on `target` (the
+// target's side and the race's other enemies with their allies).
+struct WarOdds {
+  std::int32_t own = 0;
+  std::int32_t enemy = 0;
+};
+WarOdds race_war_odds(const Cosmos& cosmos, const Race& race, RaceIndex target);
+
+// peCustom: whether the race may declare war on `target`: its side is at
+// least as strong, and there is an occasion (a recent attack by the target,
+// target ships at one of its colonies' stars, an ally at war with the
+// target, or a target colony near its own while clearly stronger). True in
+// the other variants.
+bool race_war_justified(const Session& session, const Race& race, RaceIndex target);
+
+// peCustom: the daily attitude rise of the race toward `target`, its enemy:
+// the more superior the target's side, the faster; +1 after days without
+// attacks by the target.
+std::int16_t race_war_concession(const Session& session, const Race& race, RaceIndex target);
+
 // Returns the player's menu toward `alien` with `third` the selected third
 // race, -1 for none (`Race_list_actions` 0x3fcb8): kDipNone first, then the
 // actions. With -1 the original reads the byte before the relations (the

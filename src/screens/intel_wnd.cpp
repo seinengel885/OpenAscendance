@@ -1,8 +1,11 @@
 #include "screens/intel_wnd.h"
 
+#include <algorithm>
+#include <array>
 #include <format>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "core/c_format.h"
 #include "core/error.h"
@@ -52,6 +55,19 @@ constexpr int kRelationsX = 0x1cc;
 constexpr int kRelationsMaxX = 600;
 constexpr int kRelationStepX = 0x39;
 constexpr int kRelationStepY = 0x1b;
+// peCustom: the race's mood toward the player, a bar under its name with
+// the thresholds of the current relation, attitude 0..1000.
+constexpr int kMoodX = kNameX;
+constexpr int kMoodLabelY = 0x1c;
+constexpr int kMoodY = 0x2c;
+constexpr int kMoodWidth = 100;
+constexpr int kMoodHeight = 5;
+constexpr int kMoodTick = 2;  // a threshold's mark above and below the bar
+constexpr std::int32_t kMoodMax = 1000;
+constexpr std::uint8_t kMoodTrack = 196;
+constexpr std::uint8_t kMoodTickColor = 14;
+// By the thresholds passed: none, one, two, three.
+constexpr std::array<std::uint8_t, 4> kMoodColors = {83, 89, 146, 225};
 // The title (`IntelWnd_draw`).
 constexpr int kFlagPos = 3;
 constexpr int kTitleY = 9;
@@ -60,6 +76,22 @@ constexpr int kTitleY = 9;
 constexpr std::size_t kCountdownElement = 2;
 
 int race_text_color(int color) { return color * 4 + 0x13; }
+
+// The thresholds of the race's behaviour toward `other` by their relation,
+// ascending: at peace war, accepting and proposing an alliance; at war
+// accepting and proposing peace; allied war and breaking the alliance.
+std::vector<std::int16_t> mood_thresholds(const game::Race& race, std::size_t other) {
+  switch (race.relation[other]) {
+    case game::kWar:
+      return {race.accept_peace, race.propose_peace};
+    case game::kAlliance:
+      return {race.declare_war, race.break_alliance};
+    default:
+      return {race.declare_war, race.accept_alliance, race.propose_alliance};
+  }
+}
+
+int mood_x(std::int32_t attitude) { return kMoodX + std::clamp(attitude, 0, kMoodMax) * (kMoodWidth - 1) / kMoodMax; }
 
 }  // namespace
 
@@ -133,6 +165,9 @@ void IntelWnd::draw_row(const Pane& row, game::RaceIndex index) {
   large.draw_wrapped(screen, kNameX, kTextY, wm_.static_string(kStringSpecies + race.species), 0, color, 0xff, 0);
   vfx_shape_transform_draw(screen, row, wm_.shared_shapes(index).at(0), kPortraitX, kPortraitY, kHalfScale, kHalfScale);
   wm_.draw_colored(row, intel.at(kRing), kPortraitX, kPortraitY, race.color);
+  if (core->game->variant == game::Variant::kPeCustom && index != core->player_race) {
+    draw_mood(row, race, core->player_race, color);
+  }
   // A label and its pips, 9 per row.
   GameFont& small = wm_.small_font();
   const auto pips = [&](int label, int x0, std::int32_t count, int frame) {
@@ -173,6 +208,28 @@ void IntelWnd::draw_row(const Pane& row, game::RaceIndex index) {
       y += kRelationStepY;
       x = kRelationsX;
     }
+  }
+}
+
+void IntelWnd::draw_mood(const Pane& row, const game::Race& race, std::size_t player, int color) {
+  Image8& screen = wm_.screen();
+  GameFont& small = wm_.small_font();
+  small.pane() = row;
+  small.draw_wrapped(screen, kMoodX, kMoodLabelY, wm_.remake_text("Mood"), 0, color, 0xff, 0);
+  const std::int16_t attitude = race.attitude[player];
+  const std::vector<std::int16_t> thresholds = mood_thresholds(race, player);
+  const auto passed = std::count_if(thresholds.begin(), thresholds.end(), [&](std::int16_t t) { return attitude >= t; });
+  const auto rect = [&](int x0, int y0, int x1, int y1, std::uint8_t c) {
+    vfx_pane_wipe(screen,
+                  Pane{std::max(row.x0, row.x0 + x0), std::max(row.y0, row.y0 + y0), std::min(row.x1, row.x0 + x1),
+                       std::min(row.y1, row.y0 + y1)},
+                  c);
+  };
+  rect(kMoodX, kMoodY, kMoodX + kMoodWidth - 1, kMoodY + kMoodHeight - 1, kMoodTrack);
+  rect(kMoodX, kMoodY, mood_x(attitude), kMoodY + kMoodHeight - 1, kMoodColors.at(static_cast<std::size_t>(passed)));
+  for (const std::int16_t t : thresholds) {
+    const int x = mood_x(t);
+    rect(x, kMoodY - kMoodTick, x, kMoodY + kMoodHeight - 1 + kMoodTick, kMoodTickColor);
   }
 }
 

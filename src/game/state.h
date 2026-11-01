@@ -350,6 +350,17 @@ struct Research {
   std::int32_t basics_done = 0;                         // +0x1d6e 0 / -1
 };
 
+// peCustom: a day per pair of races (`Game::last_attack_days`).
+using RaceDays = std::array<std::array<std::int32_t, kMaxRaces>, kMaxRaces>;
+inline constexpr std::int32_t kNoAttackDay = -100000;
+constexpr RaceDays no_attack_days() {
+  RaceDays days{};
+  for (auto& row : days) {
+    row.fill(kNoAttackDay);
+  }
+  return days;
+}
+
 // Everything a save holds about the game: the cosmos, the research state
 // and the saved globals.
 struct Game {
@@ -359,6 +370,9 @@ struct Game {
   // and research trade proposals (-10 never).
   std::array<std::int32_t, 3> last_trade_days{};
   Variant variant = Variant::kStandard;
+  // peCustom: [victim][aggressor] the day of the aggressor's last attack on
+  // the victim or of their declaration of war (`kNoAttackDay` never).
+  RaceDays last_attack_days = no_attack_days();
 };
 
 // The save header (0x74 bytes, `Game_save` 0x4f458): the load-list summary,

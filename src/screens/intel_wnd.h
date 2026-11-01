@@ -41,6 +41,8 @@ class IntelWnd final : public GWindow {
  private:
   // `IntelWnd_draw_race_row` (0x327fc).
   void draw_row(const Pane& row, game::RaceIndex race);
+  // peCustom: the race's mood toward the player (`color` the label's).
+  void draw_mood(const Pane& row, const game::Race& race, std::size_t player, int color);
 
   ListBox* list_ = nullptr;  // +0xab INTELLIST
 };

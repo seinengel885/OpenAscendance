@@ -192,6 +192,9 @@ void race_update_attitude_drift(Session& session, Race& race) {
         d = static_cast<std::int16_t>(d / 3);
       }
     }
+    if (session.game->variant == Variant::kPeCustom && race.relation[ut] == kWar) {
+      d = wrap_i16(d + race_war_concession(session, race, static_cast<RaceIndex>(t)));
+    }
     if (d != 0) {
       std::int16_t& a = race.attitude[ut];
       a = wrap_i16(a + d);

@@ -29,6 +29,10 @@ void race_reset(Race& race) {
 void race_init(Session& session, Race& race, std::uint8_t index, std::uint8_t species) {
   race_reset(race);
   race.index = index;
+  for (auto& row : session.game->last_attack_days) {
+    row[index] = kNoAttackDay;
+  }
+  session.game->last_attack_days[index].fill(kNoAttackDay);
   if (race.species != species) {
     race.species = species;
     race_load_dip_values(session, race);
@@ -232,9 +236,17 @@ std::uint8_t race_at_war_mask(const Session& session, const Race& race) {
   return mask;
 }
 
-bool race_offended_by(Session& session, Race& victim, RaceIndex aggressor, const Star& star) {
+bool race_offended_by(Session& session, Race& victim, RaceIndex aggressor, const Star& star,
+                      std::int16_t war_loss) {
   const Cosmos& cosmos = session.game->cosmos;
+  const bool pe_custom = session.game->variant == Variant::kPeCustom;
+  if (pe_custom) {
+    session.game->last_attack_days.at(victim.index).at(aggressor) = cosmos.day;
+  }
   if (victim.relation.at(aggressor) == kWar) {
+    if (pe_custom) {
+      victim.attitude[aggressor] = wrap_i16(victim.attitude[aggressor] - war_loss);
+    }
     return false;
   }
   const std::int32_t atmosphere = static_cast<std::int32_t>(cosmos.atmosphere);
