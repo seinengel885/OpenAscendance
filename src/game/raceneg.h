@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "game/address.h"
+#include "game/race.h"
 #include "game/session.h"
 #include "game/state.h"
 
@@ -50,10 +51,9 @@ struct WarOdds {
 WarOdds race_war_odds(const Cosmos& cosmos, const Race& race, RaceIndex target);
 
 // peCustom: whether the race may declare war on `target`, by `race_war_odds`
-// and an occasion: attacked by the target within 30 days (at 3/4 of its
-// strength); or at least as strong and target ships at a colony's star
-// within 10 days or an ally at war with the target; or 1.5 times as strong
-// with war or invasion ships within 2 hops of a target colony. True in the
+// and an occasion: at least as strong, and target ships at a star of its
+// colonies or an ally at war with the target; or 1.5 times as strong with
+// war or invasion ships within 2 hops of a target colony. True in the
 // other variants.
 bool race_war_justified(const Session& session, const Race& race, RaceIndex target);
 
@@ -61,6 +61,14 @@ bool race_war_justified(const Session& session, const Race& race, RaceIndex targ
 // the more superior the target's side, the faster; +1 after days without
 // attacks by the target.
 std::int16_t race_war_concession(const Session& session, const Race& race, RaceIndex target);
+
+// peCustom: the victim's reaction to an attack by `aggressor` at peace or
+// allied, at once: an invasion means war; otherwise a stable relation (at
+// peace offering peace, allied accepting an alliance) drops just below that
+// threshold, an unstable one ends: the alliance broken, war unless the
+// victim has less than 3/4 of the aggressor's side's strength. Not for the
+// player's race (its decisions are the player's).
+void race_react_to_attack(Session& session, Race& victim, RaceIndex aggressor, AttackKind kind);
 
 // Returns the player's menu toward `alien` with `third` the selected third
 // race, -1 for none (`Race_list_actions` 0x3fcb8): kDipNone first, then the

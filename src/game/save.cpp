@@ -586,11 +586,9 @@ SaveImage parse_save(std::span<const std::uint8_t> data, std::optional<RawAddres
       }
       // Data appended by later versions is read here, by version.
       if (image.pe_custom_version >= 2) {
-        for (RaceDays* days : {&image.last_attack_days, &image.last_intrusion_days}) {
-          for (auto& row : *days) {
-            for (std::int32_t& day : row) {
-              day = in.i32();
-            }
+        for (auto& row : image.last_attack_days) {
+          for (std::int32_t& day : row) {
+            day = in.i32();
           }
         }
       }
@@ -668,11 +666,9 @@ std::vector<std::uint8_t> serialize_save(const SaveImage& image) {
   }
   if (image.variant == Variant::kPeCustom) {
     w.u32(kPeCustomSaveVersion);
-    for (const RaceDays* days : {&image.last_attack_days, &image.last_intrusion_days}) {
-      for (const auto& row : *days) {
-        for (const std::int32_t day : row) {
-          w.i32(day);
-        }
+    for (const auto& row : image.last_attack_days) {
+      for (const std::int32_t day : row) {
+        w.i32(day);
       }
     }
   }
@@ -744,7 +740,6 @@ SaveImage save_game(const Session& session) {
   if (game.variant == Variant::kPeCustom) {
     image.pe_custom_version = kPeCustomSaveVersion;
     image.last_attack_days = game.last_attack_days;
-    image.last_intrusion_days = game.last_intrusion_days;
   }
   return image;
 }
@@ -764,7 +759,6 @@ void load_game(Session& session, const SaveImage& image) {
   cosmos.score = image.score;
   game.last_trade_days = image.last_trade_days;
   game.last_attack_days = image.last_attack_days;
-  game.last_intrusion_days = image.last_intrusion_days;
   // Research_serialize reads the tree once through Research_load first.
   game.research = image.research;
   session.research_tree_loaded = true;

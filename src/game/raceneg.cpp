@@ -21,12 +21,9 @@ void add_attitude(Race& race, std::size_t other, std::int32_t delta) {
 
 bool alive(const Race& race) { return race.extinct != -1; }
 
-// peCustom diplomacy: occasions for war are an attack and ships at a colony's
-// star within these days, and a target colony within these lane hops of the
-// race's war or invasion ships; this many days without an attack raise the
-// enemy's attitude.
-constexpr std::int32_t kAttackOccasionDays = 30;
-constexpr std::int32_t kIntrusionOccasionDays = 10;
+// peCustom diplomacy: a target colony within these lane hops of the race's
+// war or invasion ships is an occasion for war; this many days without an
+// attack raise the enemy's attitude.
 constexpr std::uint8_t kNearHops = 2;
 constexpr std::int32_t kCeasefireDays = 20;
 
@@ -86,19 +83,17 @@ bool armed_ships_near(const Cosmos& cosmos, const Race& race, RaceIndex target) 
   return false;
 }
 
-// Notes the races with ships at a star of a colony of `race`.
-void note_intrusions(Session& session, const Race& race) {
-  const Cosmos& cosmos = session.game->cosmos;
-  for (std::int16_t s = 0; s < cosmos.star_count; ++s) {
-    const Star& star = cosmos.stars[static_cast<std::size_t>(s)];
-    if ((star.owner_mask & bit(race.index)) == 0) {
-      continue;
-    }
-    for (std::int16_t t = 0; t < cosmos.race_count; ++t) {
-      if (t != race.index && (star.ships_mask & bit(static_cast<std::size_t>(t))) != 0) {
-        session.game->last_intrusion_days[race.index][static_cast<std::size_t>(t)] = cosmos.day;
-      }
-    }
+// The race's action toward `other`: proposed to the player (a talk), else
+// answered and applied at once.
+void take_action(Session& session, Race& race, RaceIndex other, std::uint8_t action, std::int32_t arg) {
+  if (other == session.player_race && !session.autoplay) {
+    race.pending_action = action;
+    race.pending_action_arg = static_cast<RawAddress>(arg);
+    session.post_event(EventCode::kRaceWantsToTalk, race.index, action);
+  } else {
+    Race& target = session.game->cosmos.races[other];
+    const std::uint8_t response = race_respond_to_diplomatic_action(session, target, race.index, action, arg);
+    race_apply_diplomatic_action(session, race, other, action, response, arg);
   }
 }
 
@@ -142,9 +137,6 @@ bool race_shares_star_with(const Cosmos& cosmos, const Race& race, RaceIndex oth
 void race_diplomacy_turn(Session& session, Race& race) {
   Cosmos& cosmos = session.game->cosmos;
   race.pending_action = kDipNone;
-  if (session.game->variant == Variant::kPeCustom) {
-    note_intrusions(session, race);
-  }
   // The original's argument local is only written by the third-party
   // actions (7, 9, 10); otherwise it holds what the stack held
   // (`Session::stale_dip_arg`), and keeps its value from race to race.
@@ -165,16 +157,8 @@ void race_diplomacy_turn(Session& session, Race& race) {
       continue;
     }
     const std::uint8_t action = race_choose_diplomatic_action(session, race, static_cast<RaceIndex>(o), arg);
-    if (action == kDipNone) {
-      continue;
-    }
-    if (o == session.player_race && !session.autoplay) {
-      race.pending_action = action;
-      race.pending_action_arg = static_cast<RawAddress>(arg);
-      session.post_event(EventCode::kRaceWantsToTalk, race.index, action);
-    } else {
-      const std::uint8_t response = race_respond_to_diplomatic_action(session, other, race.index, action, arg);
-      race_apply_diplomatic_action(session, race, static_cast<RaceIndex>(o), action, response, arg);
+    if (action != kDipNone) {
+      take_action(session, race, static_cast<RaceIndex>(o), action, arg);
     }
   }
   session.stale_dip_arg = static_cast<std::uint32_t>(arg);
@@ -250,18 +234,15 @@ bool race_war_justified(const Session& session, const Race& race, RaceIndex targ
     return true;
   }
   const Cosmos& cosmos = session.game->cosmos;
-  const Game& game = *session.game;
   const WarOdds odds = race_war_odds(cosmos, race, target);
-  // Attacked, at three quarters of the enemy's strength.
-  if (cosmos.day - game.last_attack_days[race.index][target] <= kAttackOccasionDays &&
-      4 * odds.own >= 3 * odds.enemy) {
-    return true;
-  }
   if (odds.own < odds.enemy) {
     return false;
   }
-  if (cosmos.day - game.last_intrusion_days[race.index][target] <= kIntrusionOccasionDays) {
-    return true;
+  for (std::int16_t s = 0; s < cosmos.star_count; ++s) {
+    const Star& star = cosmos.stars[static_cast<std::size_t>(s)];
+    if ((star.owner_mask & bit(race.index)) != 0 && (star.ships_mask & bit(target)) != 0) {
+      return true;
+    }
   }
   for (std::int16_t t = 0; t < cosmos.race_count; ++t) {
     const Race& ally = cosmos.races[static_cast<std::size_t>(t)];
@@ -284,6 +265,35 @@ std::int16_t race_war_concession(const Session& session, const Race& race, RaceI
   return static_cast<std::int16_t>(d);
 }
 
+void race_react_to_attack(Session& session, Race& victim, RaceIndex aggressor, AttackKind kind) {
+  if (victim.index == session.player_race && !session.autoplay) {
+    return;  // the player answers by its own decisions
+  }
+  std::int16_t& a = victim.attitude[aggressor];
+  const bool allied = victim.relation[aggressor] == kAlliance;
+  // Stable: an ally at least accepting an alliance, at peace offering peace.
+  const std::int16_t stable = allied ? victim.accept_alliance : victim.propose_peace;
+  std::uint8_t action = kDipNone;
+  if (kind == AttackKind::kInvasion) {
+    action = kDipDeclareWar;
+  } else if (a >= stable) {
+    a = wrap_i16(stable - 1);
+  } else if (allied) {
+    action = kDipBreakAlliance;
+    a = std::min(a, wrap_i16(victim.propose_peace - 1));
+  } else {
+    // A weak race bears it below three quarters of the aggressor's strength.
+    const WarOdds odds = race_war_odds(session.game->cosmos, victim, aggressor);
+    if (4 * odds.own >= 3 * odds.enemy) {
+      action = kDipDeclareWar;
+    }
+  }
+  // Once: the further hits of the battle find it pending or done.
+  if (action != kDipNone && victim.pending_action != action) {
+    take_action(session, victim, aggressor, action, 0);
+  }
+}
+
 // 0x3feb4; Antagonizer 0x44434 (peace and alliance rules by atmosphere).
 std::uint8_t race_choose_diplomatic_action(Session& session, Race& race, RaceIndex other, std::int32_t& arg) {
   Cosmos& cosmos = session.game->cosmos;
@@ -292,30 +302,36 @@ std::uint8_t race_choose_diplomatic_action(Session& session, Race& race, RaceInd
   const bool player = other == session.player_race;
   const std::int32_t colonies = cosmos.ranks[race.index].colonies;
   std::int16_t& a = race.attitude[other];
-  const auto justified = [&] { return race_war_justified(session, race, other); };
+  const bool pe_custom = session.game->variant == Variant::kPeCustom;
+  // peCustom: below the war threshold with an occasion and the odds, in every
+  // atmosphere and toward the AIs too (the original's colony minimum kept).
+  const bool pe_war = pe_custom && a < race.declare_war && (player || colonies > 2) &&
+                      race_war_justified(session, race, other);
   switch (race.relation[other]) {
     case kPeace:
-      if (!antagonizer) {
+      if (pe_custom) {
+        if (pe_war) {
+          return kDipDeclareWar;
+        }
+      } else if (!antagonizer) {
         if (a < race.declare_war && colonies > 2) {
           return kDipDeclareWar;
         }
       } else if (cosmos.atmosphere == Atmosphere::kPeaceful) {
-        if (a < race.declare_war && (war_mask == 0 || player) && (player || colonies > 2) && justified()) {
+        if (a < race.declare_war && (war_mask == 0 || player) && (player || colonies > 2)) {
           return kDipDeclareWar;
         }
       } else if (cosmos.atmosphere == Atmosphere::kNeutral) {
-        if (a < race.declare_war && player && justified()) {
+        if (a < race.declare_war && player) {
           return kDipDeclareWar;
         }
       } else if (cosmos.atmosphere == Atmosphere::kHostile && player) {
-        // The attitude toward the player steps down one threshold a day
-        // (peCustom: war only when justified, the attitude stays).
+        // The attitude toward the player steps down one threshold a day.
         if (a < race.accept_peace) {
-          if (justified()) {
-            a = wrap_i16(race.declare_war - 1);
-            return kDipDeclareWar;
-          }
-        } else if (a < race.propose_peace) {
+          a = wrap_i16(race.declare_war - 1);
+          return kDipDeclareWar;
+        }
+        if (a < race.propose_peace) {
           a = wrap_i16(race.accept_peace - 1);
         } else if (a < race.break_alliance) {
           a = wrap_i16(race.propose_peace - 1);
@@ -337,7 +353,14 @@ std::uint8_t race_choose_diplomatic_action(Session& session, Race& race, RaceInd
       }
       break;
     case kAlliance:
-      if (!antagonizer) {
+      if (pe_custom) {
+        if (pe_war) {
+          return kDipDeclareWar;
+        }
+        if (a < race.break_alliance) {
+          return kDipBreakAlliance;
+        }
+      } else if (!antagonizer) {
         if (a < race.declare_war) {
           return kDipDeclareWar;
         }
@@ -345,7 +368,7 @@ std::uint8_t race_choose_diplomatic_action(Session& session, Race& race, RaceInd
           return kDipBreakAlliance;
         }
       } else if (a < race.declare_war && war_mask == 0) {
-        if ((player || colonies > 2) && justified()) {
+        if (player || colonies > 2) {
           return kDipDeclareWar;
         }
         return kDipBreakAlliance;

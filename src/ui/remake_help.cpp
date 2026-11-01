@@ -77,7 +77,7 @@ How this species feels about you: the mark shows its mood, the zones what it doe
 @Red: declares war when it has a reason and expects to win.
 @Orange: refuses peace.
 @Yellow: accepts peace.
-@Grey: offers peace, but breaks an alliance.
+@Grey-green: offers peace, but breaks an alliance.
 @Light green: keeps an alliance.
 @Green: accepts an alliance.
 @Bright green: offers one.

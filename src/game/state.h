@@ -373,9 +373,6 @@ struct Game {
   // peCustom: [victim][aggressor] the day of the aggressor's last attack on
   // the victim or of their declaration of war (`kNoAttackDay` never).
   RaceDays last_attack_days = no_attack_days();
-  // peCustom: [race][other] the last day a ship of `other` was at a star
-  // of a colony of `race` (`kNoAttackDay` never).
-  RaceDays last_intrusion_days = no_attack_days();
 };
 
 // The save header (0x74 bytes, `Game_save` 0x4f458): the load-list summary,

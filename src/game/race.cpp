@@ -8,6 +8,7 @@
 #include "game/cosmos.h"
 #include "game/planet.h"
 #include "game/race_ai.h"
+#include "game/raceneg.h"
 #include "game/ship.h"
 
 namespace oa::game {
@@ -29,12 +30,10 @@ void race_reset(Race& race) {
 void race_init(Session& session, Race& race, std::uint8_t index, std::uint8_t species) {
   race_reset(race);
   race.index = index;
-  for (RaceDays* days : {&session.game->last_attack_days, &session.game->last_intrusion_days}) {
-    for (auto& row : *days) {
-      row[index] = kNoAttackDay;
-    }
-    (*days)[index].fill(kNoAttackDay);
+  for (auto& row : session.game->last_attack_days) {
+    row[index] = kNoAttackDay;
   }
+  session.game->last_attack_days[index].fill(kNoAttackDay);
   if (race.species != species) {
     race.species = species;
     race_load_dip_values(session, race);
@@ -238,19 +237,15 @@ std::uint8_t race_at_war_mask(const Session& session, const Race& race) {
   return mask;
 }
 
-bool race_offended_by(Session& session, Race& victim, RaceIndex aggressor, const Star& star,
-                      std::int16_t war_loss) {
+namespace {
+
+// peCustom: the attitude lost at war per attack by its kind (ship, a
+// bombarding shot, invasion).
+constexpr std::array<std::int16_t, 3> kWarLoss = {0, 1, 20};
+
+// The attitude loss of the original and the Antagonizer.
+void original_offence_loss(const Session& session, Race& victim, RaceIndex aggressor) {
   const Cosmos& cosmos = session.game->cosmos;
-  const bool pe_custom = session.game->variant == Variant::kPeCustom;
-  if (pe_custom) {
-    session.game->last_attack_days.at(victim.index).at(aggressor) = cosmos.day;
-  }
-  if (victim.relation.at(aggressor) == kWar) {
-    if (pe_custom) {
-      victim.attitude[aggressor] = wrap_i16(victim.attitude[aggressor] - war_loss);
-    }
-    return false;
-  }
   const std::int32_t atmosphere = static_cast<std::int32_t>(cosmos.atmosphere);
   std::int16_t loss = wrap_i16((atmosphere + 1) * 10);
   if (victim.relation[aggressor] == kAlliance) {
@@ -262,10 +257,32 @@ bool race_offended_by(Session& session, Race& victim, RaceIndex aggressor, const
   if (victim.relation[aggressor] == kAlliance && victim.break_alliance < attitude) {
     victim.attitude[aggressor] = wrap_i16(victim.break_alliance - 10);
   }
+}
+
+}  // namespace
+
+bool race_offended_by(Session& session, Race& victim, RaceIndex aggressor, const Star& star, AttackKind kind) {
+  const Cosmos& cosmos = session.game->cosmos;
+  const bool pe_custom = session.game->variant == Variant::kPeCustom;
+  if (pe_custom) {
+    session.game->last_attack_days.at(victim.index).at(aggressor) = cosmos.day;
+  }
+  if (victim.relation.at(aggressor) == kWar) {
+    if (pe_custom) {
+      victim.attitude[aggressor] = wrap_i16(victim.attitude[aggressor] - kWarLoss.at(static_cast<std::size_t>(kind)));
+    }
+    return false;
+  }
+  if (pe_custom) {
+    race_react_to_attack(session, victim, aggressor, kind);
+  } else {
+    original_offence_loss(session, victim, aggressor);
+  }
   std::uint8_t& flags = session.star_day_flags.at(static_cast<std::size_t>(star.index));
   flags = static_cast<std::uint8_t>(flags | bit_of(victim.index));
   return true;
 }
+
 
 std::uint16_t race_ability_period(const Race& race) { return kAbilityPeriod.at(race.ability); }
 

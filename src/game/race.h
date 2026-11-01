@@ -65,12 +65,16 @@ void race_reset_ship_moves_at_star(Session& session, Race& race, const Star& sta
 // (`Race_at_war_mask` 0x3ee6c).
 std::uint8_t race_at_war_mask(const Session& session, const Race& race);
 
+// What an attack hits (peCustom's reactions).
+enum class AttackKind : std::uint8_t { kShip, kBombard, kInvasion };
+
 // `victim` is attacked by `aggressor` at `star`: attitude loss when not at
 // war, the victim's bit in the star's day flags; returns whether the
-// offence counted (`Race_offended_by` 0x3eec4). peCustom also records the
-// day (`Game::last_attack_days`) and, at war, loses `war_loss`.
+// offence counted (`Race_offended_by` 0x3eec4). peCustom records the day
+// (`Game::last_attack_days`), reacts at once when not at war
+// (`race_react_to_attack`) and at war loses attitude by `kind`.
 bool race_offended_by(Session& session, Race& victim, RaceIndex aggressor, const Star& star,
-                      std::int16_t war_loss = 0);
+                      AttackKind kind = AttackKind::kShip);
 
 // Returns whether the race's special ability is charged and, with `use`,
 // applies it (`Race_use_special_ability` 0x3efc8).
