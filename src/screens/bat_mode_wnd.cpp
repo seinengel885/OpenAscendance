@@ -14,6 +14,7 @@
 #include "core/watcom_qsort.h"
 #include "game/cosmos.h"
 #include "game/planet.h"
+#include "game/player_actions.h"
 #include "game/session.h"
 #include "game/ship.h"
 #include "gfx/vfx_poly.h"
@@ -1143,7 +1144,7 @@ void BatModeWnd::abandon_selected() {
     return;
   }
   if (item.kind == ItemKind::kShip) {
-    game::ship_destroy(*s, c.ships[static_cast<std::size_t>(item.object)]);
+    game::ship_abandon(*s, c.ships[static_cast<std::size_t>(item.object)]);
   } else {
     game::planet_abandon(*s, c.planets[static_cast<std::size_t>(item.object)]);
   }

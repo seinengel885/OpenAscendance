@@ -6,6 +6,8 @@
 #include "game/planet.h"
 #include "game/race.h"
 #include "game/ship.h"
+#include "game/tables.h"
+#include "game/variant.h"
 
 namespace oa::game {
 
@@ -15,6 +17,20 @@ void planet_abandon_square(Session& session, Planet& planet, std::uint16_t squar
     ship_destroy(session, session.game->cosmos.ships.at(static_cast<std::size_t>(ship)));
   }
   planet_set_square_item(session, planet, square, kNoItem, SquareMode::kRemove);
+}
+
+void ship_abandon(Session& session, Ship& ship) {
+  Cosmos& cosmos = session.game->cosmos;
+  if (session.game->variant == Variant::kPeCustom && ship.location_kind == ShipLocation::kOrbit) {
+    Planet& planet = cosmos.planets.at(static_cast<std::size_t>(ship.location));
+    if (planet.owner == ship.owner) {
+      const std::int32_t crew = session.tables->planitems.items.at(kItemShip).used_population;
+      planet.population = static_cast<std::uint16_t>(
+          std::min<std::int32_t>(planet.population + crew, planet.max_population));
+      planet_recalc_output(session, planet);
+    }
+  }
+  ship_destroy(session, ship);
 }
 
 void planet_toggle_self_managed(Planet& planet) { planet.self_managed = ~planet.self_managed; }
