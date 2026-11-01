@@ -24,6 +24,8 @@ struct Pane {
   int y1 = kScreenHeight - 1;
 
   bool operator==(const Pane&) const = default;
+  // Whether (x, y) is inside, the edges included.
+  bool contains(int x, int y) const { return x >= x0 && x <= x1 && y >= y0 && y <= y1; }
 };
 
 // `vfx_pane_wipe` (0x59de0): fills the visible part of `pane` with `color`.

@@ -203,7 +203,7 @@ class GWindow {
   }
   void set_border(bool border) { border_ = border; }
   // Whether (x, y) is inside the window's rectangle.
-  bool contains(int x, int y) const { return x >= pane_.x0 && x <= pane_.x1 && y >= pane_.y0 && y <= pane_.y1; }
+  bool contains(int x, int y) const { return pane_.contains(x, y); }
 
  protected:
   // Sends `type` to the children (`GWindow_broadcast_event` 0x2c978).

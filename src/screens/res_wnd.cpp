@@ -299,7 +299,18 @@ void ResWnd::press_areas(std::vector<PressArea>& out) const {
 }
 
 void ResWnd::update_hover() {
-  const std::uint16_t found = item_at(wm_.input().x, wm_.input().y);
+  const int x = wm_.input().x;
+  const int y = wm_.input().y;
+  const bool in_info = kInfoPane.contains(x, y);
+  std::uint16_t found = item_at(x, y);
+  if (found != kNone) {
+    last_hovered_ = found;
+  } else if (in_info) {
+    found = last_hovered_;
+  }
+  if (!in_info && !contains(x, y)) {
+    wm_.cancel_notify(id_, kEventMouseMove);
+  }
   if (found != hovered_) {
     hovered_ = found;
     redraw_info_ = true;
@@ -355,6 +366,7 @@ bool ResWnd::handle_event(int type, int a, int b) {
       redraw_title_ = true;
       redraw_info_ = true;
       hovered_ = kNone;
+      last_hovered_ = kNone;
       GWindow::handle_event(type, a, b);
       wm_.set_timer(id_, kTimer, 0, 0, 0);
       return false;
@@ -370,7 +382,9 @@ bool ResWnd::handle_event(int type, int a, int b) {
       if (active_ && session != nullptr) {
         update_hover();
         game::Research& research = session->game->research;
-        if (hovered_ != kNone && !knows(research, hovered_, session->player_race) &&
+        // Not the item the info column keeps.
+        if (hovered_ != kNone && hovered_ == item_at(wm_.input().x, wm_.input().y) &&
+            !knows(research, hovered_, session->player_race) &&
             game::research_can_research(research, session->player_race, hovered_)) {
           wm_.services().sound.play_sfx(0);
           redraw_tree_ = true;
@@ -422,13 +436,13 @@ bool ResWnd::handle_event(int type, int a, int b) {
       update_hover();
       return false;
     case kEventMouseLeave:
-      wm_.cancel_notify(id_, kEventMouseMove);
       update_hover();
       if (active_ && shown_ && mouse_focus_) {
         draw(kDrawNormal);
       }
       return true;
     case kEventMouseEnter:
+      wm_.cancel_notify(id_, kEventMouseMove);
       wm_.request_notify(id_, WinMgr::kNotifyMove, kEventMouseMove, 0, 0);
       update_hover();
       if (active_ && shown_ && mouse_focus_) {
@@ -438,6 +452,16 @@ bool ResWnd::handle_event(int type, int a, int b) {
     case kEventMouseMove:
       update_hover();
       return false;
+    case kEventHelpClick:
+      if (kInfoPane.contains(a, b)) {
+        for (const InfoEntry& e : info_entries_) {
+          if (e.y0 <= b - kInfoPane.y0 && b - kInfoPane.y0 < e.y1) {
+            wm_.post_message(kMessageHelp, e.index, e.help);
+            return true;
+          }
+        }
+      }
+      return GWindow::handle_event(type, a, b);
     case kRotateLeft:
     case kRotateRight:
     case kMoveUp:
@@ -588,6 +612,7 @@ void ResWnd::draw_info() {
   const std::uint8_t player = session.player_race;
   Image8& screen = wm_.screen();
   vfx_pane_wipe(screen, kInfoPane, 0);
+  info_entries_.clear();
   const std::uint16_t project = project_of(session);
   const std::uint16_t shown = hovered_ != kNone ? hovered_ : project;
   if (shown == kNone) {
@@ -660,6 +685,7 @@ void ResWnd::draw_info() {
     }
     allows();
     const bool ship = i == kItemShip;
+    const int entry_y = y;
     y += font.draw_wrapped(screen, 0, y, ship ? wm_.static_string(kStringShips) : tables.planitems.items[i].name,
                            kFontCenterH, color, kDefault, kInfoWidth);
     const Pane pane = picture_pane(y);
@@ -668,18 +694,21 @@ void ResWnd::draw_info() {
     const PolyPoint c = center_shape(pane, shape);
     vfx_shape_transform_draw(screen, pane, shape, c.x, c.y, scale, scale);
     y += kInfoPictureHeight;
+    info_entries_.push_back(InfoEntry{entry_y, y, kHelpPlanet, static_cast<int>(i)});
   }
   for (std::size_t i = 0; i < game::kGizmoCount; ++i) {
     if (tables.gizmos[i].research_requirement != shown) {
       continue;
     }
     allows();
+    const int entry_y = y;
     y += font.draw_wrapped(screen, 0, y, tables.gizmos[i].name, kFontCenterH, color, kDefault, kInfoWidth);
     const Pane pane = picture_pane(y);
     const Shape& shape = wm_.shared_shapes(kGizmoShapes).at(i);
     const PolyPoint c = center_shape(pane, shape);
     vfx_shape_draw(screen, pane, shape, c.x, c.y);
     y += kInfoPictureHeight;
+    info_entries_.push_back(InfoEntry{entry_y, y, kHelpGizmo, static_cast<int>(i)});
   }
   if (shown == kResearchLargeHull || shown == kResearchGiganticHull) {
     allows();

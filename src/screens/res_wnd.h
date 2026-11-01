@@ -1,7 +1,9 @@
 // The research screen (screen 20, `reswin.cpp`): `ResWnd` (TYPE 9 RESWIN,
 // size 0x9dd, vtable 0x85e98), the research tree as rings in 3D around a
 // vertical axis, the info column of the hovered item (or of the current
-// project) and the title bar; its children RESROTLEFT/RIGHT and
+// project; the remake keeps the last hovered item while the pointer is in
+// the column, whose planet items and gizmos have their help there) and the
+// title bar; its children RESROTLEFT/RIGHT and
 // RESMOVEUP/DOWN are plain buttons sending messages 50..53
 // (`docs/11-screens.md`, "Research screen").
 #pragma once
@@ -101,7 +103,9 @@ class ResWnd final : public GWindow {
   // Lays the tree out when a game is there.
   void sync_with_game();
   // `ResWnd_update_hover` 0x428e8: the front-most visible item within 24
-  // pixels of the pointer on both axes.
+  // pixels of the pointer on both axes; in the info column the last item
+  // hovered in the tree. Stops the pointer's notifications once it is in
+  // neither.
   void update_hover();
   // The item `update_hover` finds at screen point (x, y), `kNone` for none.
   std::uint16_t item_at(int screen_x, int screen_y) const;
@@ -119,6 +123,16 @@ class ResWnd final : public GWindow {
   std::array<float, kMaxItems> depth_{};          // +0x783
   std::array<std::uint16_t, kMaxItems> order_{};  // +0x913
   std::uint16_t hovered_ = kNone;                 // +0x9db
+  std::uint16_t last_hovered_ = kNone;
+  // The planet items and gizmos the info column shows (y relative to the
+  // column), for their help.
+  struct InfoEntry {
+    int y0 = 0;
+    int y1 = 0;
+    HelpKind help = kHelpPlanet;
+    int index = 0;
+  };
+  std::vector<InfoEntry> info_entries_;
   bool laid_out_ = false;
   // The module's globals: redraw the title (`0xf64a0`), the info column
   // (`0xf64a4`), the tree (`0xf64a8`); the motion flags (`0xf64ac`).
