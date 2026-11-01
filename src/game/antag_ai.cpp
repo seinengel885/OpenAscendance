@@ -59,16 +59,6 @@ bool knows(const Research& research, std::uint16_t item, RaceIndex race) {
 
 bool is_ai(const Session& session, const Race& race) { return race.index != session.player_race || session.autoplay; }
 
-// `Ship_has_gizmo` ANTAG 0x4a534: one of the hull's slots holds `gizmo`.
-bool ship_has_gizmo(const Ship& ship, std::int8_t gizmo) {
-  for (std::int32_t i = 0; i < ship.slot_count && i < static_cast<std::int32_t>(kShipSlots); ++i) {
-    if (ship.slots[static_cast<std::size_t>(i)].gizmo == gizmo) {
-      return true;
-    }
-  }
-  return false;
-}
-
 // Returns the counter of the ship's role at a star (`has_colonizer` ->
 // colony, an Invasion Module -> invasion, else war).
 std::array<std::int8_t, kMaxStars>& role_counter(Session::AntagAiWork& work, const Ship& ship) {

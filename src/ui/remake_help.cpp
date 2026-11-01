@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <span>
+#include <string_view>
 
 #include "core/error.h"
 #include "ui/help_wnd.h"
@@ -42,7 +43,8 @@ endtext
 pos 0 15
 flags TJ_HC
 text
-Each setting applies as soon as it is picked. OK keeps them, Cancel puts back those in force when this screen was opened. Shift and a click on a row tells more about it.)" OA_KEY_HINT("Enter and Esc keep them too.") R"(
+Each setting applies as soon as it is picked. OK keeps them, Cancel puts back those in force when this screen was opened. Shift and a click on a row tells more about
+it.)" OA_KEY_HINT("Enter and Esc keep them too.") R"(
 endtext
 pos 5 50
 button
@@ -56,7 +58,29 @@ endtext
 pos 0 15
 flags TJ_HC
 text
-The rules and opponents of the next new game. Standard: those of Ascendancy version 1.6.5. Antagonizer: those of the Antagonizer edition, whose opponents play harder, with a few rule changes. peCustom: the Antagonizer's, as this fork develops them further. A game keeps its variant in its saves.
+The rules and opponents of the next new game. Standard: those of Ascendancy version 1.6.5. Antagonizer: those of the Antagonizer edition, whose opponents play harder,
+with a few rule changes. peCustom: the Antagonizer's, as this fork develops them further. A game keeps its variant in its saves.
+endtext
+pos 5 50
+button
+title OK
+msg 0
+
+help oa_mood
+text
+Mood
+endtext
+pos 0 15
+flags TJ_HC
+text
+How this species feels about you: the mark shows its mood, the zones what it does there.
+@Red: declares war when it has a reason and expects to win.
+@Orange: refuses peace.
+@Yellow: accepts peace.
+@Grey: offers peace, but breaks an alliance.
+@Light green: keeps an alliance.
+@Green: accepts an alliance.
+@Bright green: offers one.
 endtext
 pos 5 50
 button
@@ -98,7 +122,8 @@ endtext
 pos 0 15
 flags TJ_HC
 text
-The music's volume: a click, a tap or a drag on the bar sets it, at the far left no music. At 100 % it plays as loud as in the original.)" OA_KEY_HINT("The wheel and the arrow keys change it by steps; Alt+M switches the music off and back on at this volume.") R"(
+The music's volume: a click, a tap or a drag on the bar sets it, at the far left no music. At 100 % it plays as loud as in the
+original.)" OA_KEY_HINT("The wheel and the arrow keys change it by steps; Alt+M switches the music off and back on at this volume.") R"(
 endtext
 pos 5 50
 button
@@ -112,7 +137,8 @@ endtext
 pos 0 15
 flags TJ_HC
 text
-The sound effects' volume, played at each change: a click, a tap or a drag on the bar sets it, at the far left no sound effects. At 100 % they play as loud as in the original, louder than the music.)" OA_KEY_HINT("The wheel and the arrow keys change it by steps; Alt+N switches them off and back on at this volume.") R"(
+The sound effects' volume, played at each change: a click, a tap or a drag on the bar sets it, at the far left no sound effects. At 100 % they play as loud as in the
+original, louder than the music.)" OA_KEY_HINT("The wheel and the arrow keys change it by steps; Alt+N switches them off and back on at this volume.") R"(
 endtext
 pos 5 50
 button
@@ -140,7 +166,8 @@ endtext
 pos 0 15
 flags TJ_HC
 text
-Keeps these settings and goes back to the opening menu. A new game variant applies to the next new game, a new language from the next start.)" OA_KEY_HINT("Enter and Esc do the same.") R"(
+Keeps these settings and goes back to the opening menu. A new game variant applies to the next new game, a new language from the next
+start.)" OA_KEY_HINT("Enter and Esc do the same.") R"(
 endtext
 pos 5 50
 button
@@ -190,7 +217,14 @@ void show_remake_help(WinMgr& wm, std::string_view topic) {
                    topic);
   HelpTopic& content = help->content();
   for (HelpElement& element : content.elements) {
-    element.text = wm.remake_text(element.text);
+    // The parser ends a text with its last line end, a space, and joins its
+    // lines with one; the translation table's English texts are the lines
+    // joined, without the end.
+    std::string_view english = element.text;
+    if (english.ends_with(' ')) {
+      english.remove_suffix(1);
+    }
+    element.text = wm.remake_text(english);
   }
   for (HelpButton& button : content.buttons) {
     if (button.title) {

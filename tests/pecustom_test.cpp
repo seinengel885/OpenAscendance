@@ -1,7 +1,7 @@
 // The peCustom variant (`game/variant.h`): the Antagonizer's game with
 // fixes of its own, and its saves (`game/save.h`), which must keep loading
-// in later builds. `pecustom_v1.sav` in the folder named by OA_PECUSTOM_SAVES
-// is a save of the first peCustom save format (version 1), kept as written
+// in later builds. `pecustom_v<N>.sav` in the folder named by
+// OA_PECUSTOM_SAVES is a save of peCustom save format N, kept as written
 // then; it holds text of the game files, so it is not part of this
 // repository (the tests using it are skipped without it).
 
@@ -9,6 +9,7 @@
 
 #include <cstdlib>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <iterator>
 #include <optional>
@@ -43,17 +44,20 @@ void play(Session& session, Variant variant, int days) {
   }
 }
 
-// Returns the version-1 save, nothing when OA_PECUSTOM_SAVES is unset.
-std::optional<std::vector<std::uint8_t>> first_save() {
+// Returns the save of format `version` (`pecustom_v<version>.sav`), nothing
+// when OA_PECUSTOM_SAVES is unset.
+std::optional<std::vector<std::uint8_t>> versioned_save(int version) {
   const char* dir = std::getenv("OA_PECUSTOM_SAVES");
   if (dir == nullptr || *dir == '\0') {
     return std::nullopt;
   }
-  const std::filesystem::path path = std::filesystem::path(dir) / "pecustom_v1.sav";
+  const std::filesystem::path path = std::filesystem::path(dir) / std::format("pecustom_v{}.sav", version);
   std::ifstream in(path, std::ios::binary);
   REQUIRE(in);
   return std::vector<std::uint8_t>(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
 }
+
+std::optional<std::vector<std::uint8_t>> first_save() { return versioned_save(1); }
 
 TEST_CASE("a peCustom game plays on, the same every time", "[game][content][pecustom]") {
   OA_REQUIRE_TABLES(t);
@@ -145,6 +149,24 @@ TEST_CASE("the first peCustom saves still load", "[game][content][pecustom]") {
   CHECK(again.variant == Variant::kPeCustom);
   CHECK(again.pe_custom_version == kPeCustomSaveVersion);
   CHECK(again.day == 31);
+}
+
+TEST_CASE("the version-2 peCustom saves still load", "[game][content][pecustom]") {
+  OA_REQUIRE_TABLES(t);
+  const auto saved = versioned_save(2);
+  if (!saved) {
+    SKIP("OA_PECUSTOM_SAVES is not set to the folder of pecustom_v2.sav");
+  }
+  const SaveImage image = parse_save(*saved);
+  CHECK(image.variant == Variant::kPeCustom);
+  CHECK(image.pe_custom_version == 2);
+  CHECK(image.day == 30);
+  Session session(*t);
+  load_game(session, image);
+  CHECK(session.game->cosmos.day == 30);
+  cosmos_next_turn(session);
+  session.events.take();
+  CHECK(session.game->cosmos.day == 31);
 }
 
 }  // namespace

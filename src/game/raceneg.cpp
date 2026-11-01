@@ -6,6 +6,7 @@
 #include "core/fixed_width.h"
 #include "game/cosmos.h"
 #include "game/race.h"
+#include "game/ship.h"
 
 namespace oa::game {
 
@@ -20,12 +21,14 @@ void add_attitude(Race& race, std::size_t other, std::int32_t delta) {
 
 bool alive(const Race& race) { return race.extinct != -1; }
 
-// peCustom diplomacy: an attack this many days ago is an occasion for war;
-// this many days without one raise the enemy's attitude; a colony this many
-// lane hops from another is near.
-constexpr std::int32_t kRecentAttackDays = 10;
-constexpr std::int32_t kCeasefireDays = 20;
+// peCustom diplomacy: occasions for war are an attack and ships at a colony's
+// star within these days, and a target colony within these lane hops of the
+// race's war or invasion ships; this many days without an attack raise the
+// enemy's attitude.
+constexpr std::int32_t kAttackOccasionDays = 30;
+constexpr std::int32_t kIntrusionOccasionDays = 10;
 constexpr std::uint8_t kNearHops = 2;
+constexpr std::int32_t kCeasefireDays = 20;
 
 // The race and its living allies.
 std::uint32_t side_mask(const Cosmos& cosmos, RaceIndex r) {
@@ -50,20 +53,53 @@ std::int32_t mask_strength(const Cosmos& cosmos, std::uint32_t mask) {
   return sum;
 }
 
-// Whether a colony of `b` lies within `kNearHops` lane hops of one of `a`.
-bool colonies_near(const Cosmos& cosmos, RaceIndex a, RaceIndex b) {
-  for (std::int16_t s = 0; s < cosmos.star_count; ++s) {
-    if ((cosmos.stars[static_cast<std::size_t>(s)].owner_mask & bit(a)) == 0) {
+// The star a ship is at or leaves (none while built or refitted).
+std::optional<StarIndex> ship_star(const Cosmos& cosmos, const Ship& ship) {
+  switch (ship.location_kind) {
+    case ShipLocation::kOrbit:
+      return cosmos.planets[static_cast<std::size_t>(ship.location)].star;
+    case ShipLocation::kSystem:
+      return ship.location;
+    case ShipLocation::kLane:
+      return cosmos.lanes[static_cast<std::size_t>(ship.location)].star_a;
+    default:
+      return std::nullopt;
+  }
+}
+
+// Whether a colony of `target` lies within `kNearHops` lane hops of a war
+// or invasion ship of `race`.
+bool armed_ships_near(const Cosmos& cosmos, const Race& race, RaceIndex target) {
+  for (const ShipIndex i : race_list_ships(cosmos, race)) {
+    const Ship& ship = cosmos.ships[static_cast<std::size_t>(i)];
+    const std::optional<StarIndex> here = ship_star(cosmos, ship);
+    if (!here || (ship.weapon_damage == 0 && !ship_has_gizmo(ship, kGizmoInvasionModule))) {
       continue;
     }
-    for (std::int16_t u = 0; u < cosmos.star_count; ++u) {
-      if ((cosmos.stars[static_cast<std::size_t>(u)].owner_mask & bit(b)) != 0 &&
-          cosmos.hops[static_cast<std::size_t>(s)][static_cast<std::size_t>(u)] <= kNearHops) {
+    for (std::int16_t s = 0; s < cosmos.star_count; ++s) {
+      if ((cosmos.stars[static_cast<std::size_t>(s)].owner_mask & bit(target)) != 0 &&
+          cosmos.hops[static_cast<std::size_t>(*here)][static_cast<std::size_t>(s)] <= kNearHops) {
         return true;
       }
     }
   }
   return false;
+}
+
+// Notes the races with ships at a star of a colony of `race`.
+void note_intrusions(Session& session, const Race& race) {
+  const Cosmos& cosmos = session.game->cosmos;
+  for (std::int16_t s = 0; s < cosmos.star_count; ++s) {
+    const Star& star = cosmos.stars[static_cast<std::size_t>(s)];
+    if ((star.owner_mask & bit(race.index)) == 0) {
+      continue;
+    }
+    for (std::int16_t t = 0; t < cosmos.race_count; ++t) {
+      if (t != race.index && (star.ships_mask & bit(static_cast<std::size_t>(t))) != 0) {
+        session.game->last_intrusion_days[race.index][static_cast<std::size_t>(t)] = cosmos.day;
+      }
+    }
+  }
 }
 
 // `race.relation[i]` read with the negotiation window's signed third-party
@@ -106,6 +142,9 @@ bool race_shares_star_with(const Cosmos& cosmos, const Race& race, RaceIndex oth
 void race_diplomacy_turn(Session& session, Race& race) {
   Cosmos& cosmos = session.game->cosmos;
   race.pending_action = kDipNone;
+  if (session.game->variant == Variant::kPeCustom) {
+    note_intrusions(session, race);
+  }
   // The original's argument local is only written by the third-party
   // actions (7, 9, 10); otherwise it holds what the stack held
   // (`Session::stale_dip_arg`), and keeps its value from race to race.
@@ -211,11 +250,17 @@ bool race_war_justified(const Session& session, const Race& race, RaceIndex targ
     return true;
   }
   const Cosmos& cosmos = session.game->cosmos;
+  const Game& game = *session.game;
   const WarOdds odds = race_war_odds(cosmos, race, target);
+  // Attacked, at three quarters of the enemy's strength.
+  if (cosmos.day - game.last_attack_days[race.index][target] <= kAttackOccasionDays &&
+      4 * odds.own >= 3 * odds.enemy) {
+    return true;
+  }
   if (odds.own < odds.enemy) {
     return false;
   }
-  if (cosmos.day - session.game->last_attack_days[race.index][target] <= kRecentAttackDays) {
+  if (cosmos.day - game.last_intrusion_days[race.index][target] <= kIntrusionOccasionDays) {
     return true;
   }
   for (std::int16_t t = 0; t < cosmos.race_count; ++t) {
@@ -224,13 +269,8 @@ bool race_war_justified(const Session& session, const Race& race, RaceIndex targ
       return true;
     }
   }
-  for (std::int16_t s = 0; s < cosmos.star_count; ++s) {
-    const Star& star = cosmos.stars[static_cast<std::size_t>(s)];
-    if ((star.owner_mask & bit(race.index)) != 0 && (star.ships_mask & bit(target)) != 0) {
-      return true;
-    }
-  }
-  return 2 * odds.own >= 3 * odds.enemy && colonies_near(cosmos, race.index, target);
+  // A conquest within reach, clearly stronger.
+  return 2 * odds.own >= 3 * odds.enemy && armed_ships_near(cosmos, race, target);
 }
 
 std::int16_t race_war_concession(const Session& session, const Race& race, RaceIndex target) {

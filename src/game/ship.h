@@ -136,6 +136,9 @@ void ship_new_day(Session& session, Ship& ship);
 // 0x45ddc) and the day's power (`Ship_battle_power` 0x45e0c).
 std::int32_t ship_experience(const Session& session, const Ship& ship);
 std::int32_t ship_battle_power(const Session& session, const Ship& ship);
+// Whether one of the hull's slots holds `gizmo` (`Ship_has_gizmo` ANTAG
+// 0x4a534).
+bool ship_has_gizmo(const Ship& ship, std::int8_t gizmo);
 // Returns the hops from the ship's star to `star` and, unless it is the
 // current star, heads the ship there (`Ship_set_destination_star` 0x45e80).
 std::uint8_t ship_set_destination_star(Session& session, Ship& ship, const Star& star);

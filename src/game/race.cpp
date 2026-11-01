@@ -29,10 +29,12 @@ void race_reset(Race& race) {
 void race_init(Session& session, Race& race, std::uint8_t index, std::uint8_t species) {
   race_reset(race);
   race.index = index;
-  for (auto& row : session.game->last_attack_days) {
-    row[index] = kNoAttackDay;
+  for (RaceDays* days : {&session.game->last_attack_days, &session.game->last_intrusion_days}) {
+    for (auto& row : *days) {
+      row[index] = kNoAttackDay;
+    }
+    (*days)[index].fill(kNoAttackDay);
   }
-  session.game->last_attack_days[index].fill(kNoAttackDay);
   if (race.species != species) {
     race.species = species;
     race_load_dip_values(session, race);

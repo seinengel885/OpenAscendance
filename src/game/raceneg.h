@@ -49,11 +49,12 @@ struct WarOdds {
 };
 WarOdds race_war_odds(const Cosmos& cosmos, const Race& race, RaceIndex target);
 
-// peCustom: whether the race may declare war on `target`: its side is at
-// least as strong, and there is an occasion (a recent attack by the target,
-// target ships at one of its colonies' stars, an ally at war with the
-// target, or a target colony near its own while clearly stronger). True in
-// the other variants.
+// peCustom: whether the race may declare war on `target`, by `race_war_odds`
+// and an occasion: attacked by the target within 30 days (at 3/4 of its
+// strength); or at least as strong and target ships at a colony's star
+// within 10 days or an ally at war with the target; or 1.5 times as strong
+// with war or invasion ships within 2 hops of a target colony. True in the
+// other variants.
 bool race_war_justified(const Session& session, const Race& race, RaceIndex target);
 
 // peCustom: the daily attitude rise of the race toward `target`, its enemy:

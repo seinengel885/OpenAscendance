@@ -8,6 +8,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 #include "game/address.h"
 #include "game/state.h"
@@ -45,6 +46,7 @@ class IntelWnd final : public GWindow {
   void draw_mood(const Pane& row, const game::Race& race, std::size_t player, int color);
 
   ListBox* list_ = nullptr;  // +0xab INTELLIST
+  std::string list_help_;     // its help topic (peCustom: by the click)
 };
 
 class AbilityWnd final : public HelpWnd {

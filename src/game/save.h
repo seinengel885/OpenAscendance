@@ -45,7 +45,7 @@ inline constexpr RawAddress kAntagCosmosAddress = 0x219f6c;
 
 // The format version of the peCustom saves this build writes, the newest it
 // loads. Raise it when appending data to the peCustom trailer.
-// 2: `Game::last_attack_days`.
+// 2: `Game::last_attack_days`, `Game::last_intrusion_days`.
 inline constexpr std::uint32_t kPeCustomSaveVersion = 2;
 
 // Size of the window state of the v1.6.5 window table (`COSMOSWnd` 0xbe,
@@ -82,6 +82,7 @@ struct SaveImage {
   std::uint32_t pe_custom_version = 0;
   // peCustom version 2 on (never attacked before).
   RaceDays last_attack_days = no_attack_days();
+  RaceDays last_intrusion_days = no_attack_days();
 };
 
 // Parses a save file. Throws `DataError` on a record-size mismatch, a count

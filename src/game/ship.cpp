@@ -734,4 +734,13 @@ std::int32_t ship_detected_by_race(const Session& session, const Ship& ship, Rac
   return seen;
 }
 
+bool ship_has_gizmo(const Ship& ship, std::int8_t gizmo) {
+  for (std::int32_t i = 0; i < ship.slot_count && i < static_cast<std::int32_t>(kShipSlots); ++i) {
+    if (ship.slots[static_cast<std::size_t>(i)].gizmo == gizmo) {
+      return true;
+    }
+  }
+  return false;
+}
+
 }  // namespace oa::game
