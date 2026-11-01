@@ -72,6 +72,21 @@ std::int32_t race_ship_count(const Cosmos& cosmos, const Race& race) {
   return count;
 }
 
+std::int32_t race_fleet_strength(const Cosmos& cosmos, const Race& race) {
+  std::int32_t sum = 0;
+  std::int32_t used = 0;
+  for (std::size_t i = 0; i < kMaxShips && used < cosmos.ship_count; ++i) {
+    const Ship& ship = cosmos.ships[i];
+    if (ship.owner != -1) {
+      ++used;
+      if (ship.owner == race.index) {
+        sum += static_cast<std::int8_t>(ship.hull_size) + 1;
+      }
+    }
+  }
+  return sum;
+}
+
 std::int32_t race_count_planets(const Cosmos& cosmos, const Race& race) {
   std::int32_t count = 0;
   for (std::int16_t i = 0; i < cosmos.planet_count; ++i) {

@@ -1140,6 +1140,13 @@ void BatModeWnd::abandon_selected() {
   help->open_topic("help.txt", topic);
   HelpTopic& content = help->content();
   content.elements[0].text = c_format(content.elements[0].text, name.c_str());
+  if (item.kind == ItemKind::kShip) {
+    if (const game::Planet* home = game::ship_crew_home(*s, c.ships[static_cast<std::size_t>(item.object)]);
+        home != nullptr) {
+      content.elements[0].text += "\n\n" + c_format(wm_.remake_text("Its crew returns to %s."),
+                                                    std::string(game::name_view(home->name)).c_str());
+    }
+  }
   if (wm_.do_modal(*help) == 0) {
     return;
   }

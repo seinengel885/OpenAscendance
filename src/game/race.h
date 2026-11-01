@@ -28,6 +28,9 @@ void race_load_dip_values(Session& session, Race& race);
 // Returns the number of ships of `race` among the used slots
 // (`Race_list_ships` 0x3c338 without its lists).
 std::int32_t race_ship_count(const Cosmos& cosmos, const Race& race);
+// Returns the fleet strength of `race`: the sum of its ships' hull size + 1
+// (`Race_list_ships` 0x3c338's sum).
+std::int32_t race_fleet_strength(const Cosmos& cosmos, const Race& race);
 // Returns the number of planets owned by `race` (`Race_count_planets`
 // 0x3c3f4).
 std::int32_t race_count_planets(const Cosmos& cosmos, const Race& race);

@@ -63,21 +63,6 @@ int race_text_color(int color) { return color * 4 + 0x13; }
 
 }  // namespace
 
-std::int32_t IntelWnd::fleet_strength(const game::Cosmos& cosmos, const game::Race& race) {
-  std::int32_t sum = 0;
-  std::int16_t used = 0;
-  for (std::size_t i = 0; i < game::kMaxShips && used < cosmos.ship_count; ++i) {
-    const game::Ship& ship = cosmos.ships[i];
-    if (ship.owner != -1) {
-      ++used;
-      if (ship.owner == race.index) {
-        sum += static_cast<std::int8_t>(ship.hull_size) + 1;
-      }
-    }
-  }
-  return sum;
-}
-
 game::RaceIndex IntelWnd::row_race(int row) const {
   // Each row's text holds its race slot (the original's row is the race
   // record, whose first byte is the slot).
@@ -119,7 +104,7 @@ void IntelWnd::draw(int /*mode*/) {
     const game::Race& race = cosmos.races[static_cast<std::size_t>(r)];
     if (r == core->player_race ||
         (player.relation[static_cast<std::size_t>(r)] != game::kNotMet && race.extinct == 0)) {
-      const std::int32_t value = fleet_strength(cosmos, race) + game::race_count_planets(cosmos, race);
+      const std::int32_t value = game::race_fleet_strength(cosmos, race) + game::race_count_planets(cosmos, race);
       const int row = list_->add_item(std::string(1, static_cast<char>(r)));
       list_->set_item_data(row, -value);
     }
@@ -164,7 +149,7 @@ void IntelWnd::draw_row(const Pane& row, game::RaceIndex index) {
       }
     }
   };
-  pips(kStringFleet, kFleetX, fleet_strength(cosmos, race), kFleetPip);
+  pips(kStringFleet, kFleetX, game::race_fleet_strength(cosmos, race), kFleetPip);
   pips(kStringColonies, kColoniesX, game::race_count_planets(cosmos, race), kColonyPip);
   pips(kStringDiscoveries, kDiscoveriesX, game::race_count_discoveries(core->game->research, race) >> 2, kDiscoveryPip);
   // The species this one has met that the player knows (or the player),

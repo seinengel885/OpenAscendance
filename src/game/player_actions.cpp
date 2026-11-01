@@ -14,21 +14,25 @@ namespace oa::game {
 void planet_abandon_square(Session& session, Planet& planet, std::uint16_t square) {
   if (planet_squares(session.game->cosmos, planet)[square].item == kItemShip) {
     const ShipIndex ship = planet_square_ship(session, planet, square);
-    ship_destroy(session, session.game->cosmos.ships.at(static_cast<std::size_t>(ship)));
+    ship_abandon(session, session.game->cosmos.ships.at(static_cast<std::size_t>(ship)));
   }
   planet_set_square_item(session, planet, square, kNoItem, SquareMode::kRemove);
 }
 
+Planet* ship_crew_home(Session& session, const Ship& ship) {
+  if (session.game->variant != Variant::kPeCustom || ship.location_kind != ShipLocation::kOrbit) {
+    return nullptr;
+  }
+  Planet& planet = session.game->cosmos.planets.at(static_cast<std::size_t>(ship.location));
+  return planet.owner == ship.owner && planet.population < planet.max_population ? &planet : nullptr;
+}
+
 void ship_abandon(Session& session, Ship& ship) {
-  Cosmos& cosmos = session.game->cosmos;
-  if (session.game->variant == Variant::kPeCustom && ship.location_kind == ShipLocation::kOrbit) {
-    Planet& planet = cosmos.planets.at(static_cast<std::size_t>(ship.location));
-    if (planet.owner == ship.owner) {
-      const std::int32_t crew = session.tables->planitems.items.at(kItemShip).used_population;
-      planet.population = static_cast<std::uint16_t>(
-          std::min<std::int32_t>(planet.population + crew, planet.max_population));
-      planet_recalc_output(session, planet);
-    }
+  if (Planet* planet = ship_crew_home(session, ship); planet != nullptr) {
+    const std::int32_t crew = session.tables->planitems.items.at(kItemShip).used_population;
+    planet->population =
+        static_cast<std::uint16_t>(std::min<std::int32_t>(planet->population + crew, planet->max_population));
+    planet_recalc_output(session, *planet);
   }
   ship_destroy(session, ship);
 }

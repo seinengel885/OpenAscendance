@@ -38,10 +38,6 @@ class IntelWnd final : public GWindow {
   int row_count() const { return list_ != nullptr ? list_->count() : 0; }
   game::RaceIndex row_race(int row) const;
 
-  // The fleet strength of `race` (`Race_list_ships` 0x3c338's sum of
-  // `hull_size + 1`).
-  static std::int32_t fleet_strength(const game::Cosmos& cosmos, const game::Race& race);
-
  private:
   // `IntelWnd_draw_race_row` (0x327fc).
   void draw_row(const Pane& row, game::RaceIndex race);

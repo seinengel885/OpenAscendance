@@ -446,8 +446,11 @@ void cosmos_rank_races(Session& session) {
   for (std::int16_t r = 0; r < cosmos.race_count; ++r) {
     RaceRank& rank = cosmos.ranks[static_cast<std::size_t>(r)];
     const Race& race = cosmos.races[static_cast<std::size_t>(r)];
-    // Original bug kept: the fleet-size sum is overwritten by the count.
-    rank.fleet = static_cast<std::int16_t>(race_ship_count(cosmos, race));
+    // Original bug: the fleet-strength sum is overwritten by the ship count;
+    // fixed in peCustom.
+    rank.fleet =
+        static_cast<std::int16_t>(session.game->variant == Variant::kPeCustom ? race_fleet_strength(cosmos, race)
+                                                                              : race_ship_count(cosmos, race));
     rank.colonies = static_cast<std::int16_t>(race_count_planets(cosmos, race));
   }
   for (std::int16_t r = 0; r < cosmos.race_count; ++r) {

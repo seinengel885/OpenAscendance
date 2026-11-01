@@ -14,14 +14,18 @@
 
 namespace oa::game {
 
-// The square dialog's Abandon (command 0x35): destroys the square's ship,
-// if any, then removes the item (`planet_set_square_item` remove).
+// The square dialog's Abandon (command 0x35): abandons the square's ship
+// (`ship_abandon`), if any, then removes the item (`planet_set_square_item` remove).
 void planet_abandon_square(Session& session, Planet& planet, std::uint16_t square);
 
-// The system view's Abandon of the player's ship: destroys it. In peCustom
-// a ship in orbit of a planet of its owner first returns its crew there:
-// the population a ship takes when it is launched, at most up to the
-// planet's maximum.
+// The planet an abandoned `ship`'s crew returns to (peCustom): the planet
+// of its owner it orbits, unless that planet's population is at its
+// maximum; nullptr otherwise.
+Planet* ship_crew_home(Session& session, const Ship& ship);
+
+// The Abandon of the player's ship (system view, planet square): destroys
+// it after its crew returned to `ship_crew_home`, if any: the population a
+// ship takes when it is launched, at most up to the planet's maximum.
 void ship_abandon(Session& session, Ship& ship);
 
 // The planet screen's M key: toggles `planet.self_managed` (0 / -1).
