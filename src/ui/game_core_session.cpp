@@ -245,7 +245,7 @@ int GameCoreSession::next_contested_star() { return game::cosmos_next_contested_
 bool GameCoreSession::end_day() {
   const bool playing = session_.game->cosmos.ending == 0;
   game::cosmos_end_day(session_);
-  game::mood_log_note(session_, "sonstige");
+  game::mood_log_note(session_, {"sonstige"});
   write_mood_log({});
   return playing && session_.game->cosmos.ending != 0;
 }
@@ -273,7 +273,7 @@ std::string GameCoreSession::mood_race_name(int race) {
     }
   }
   const auto species = static_cast<std::size_t>(kStringSpecies + race_species(race));
-  return std::format("{} ({})", species < species_names_.size() ? species_names_[species] : "?", race);
+  return species < species_names_.size() ? species_names_[species] : "?";
 }
 
 void GameCoreSession::write_mood_log(const std::string& marker) {
@@ -292,9 +292,13 @@ void GameCoreSession::write_mood_log(const std::string& marker) {
   }
   constexpr std::array<const char*, 4> kRelations = {"unbekannt", "Frieden", "Krieg", "Bündnis"};
   for (const game::MoodChange& c : changes) {
+    std::string cause = c.cause.text;
+    if (c.cause.actor != game::MoodCause::kNoRace) {
+      cause += std::format(" ({} an {})", mood_race_name(c.cause.actor), mood_race_name(c.cause.target));
+    }
     out << std::format("{}\t{}\t{}\t{}\t{:+}\t{}\t{}\n", c.day, mood_race_name(c.race), mood_race_name(c.other),
                        c.relation < kRelations.size() ? kRelations[c.relation] : "?", c.after - c.before, c.after,
-                       c.cause);
+                       cause);
   }
   changes.clear();
   if (!out) {

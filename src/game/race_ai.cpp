@@ -231,9 +231,9 @@ void race_update_attitude_drift(Session& session, Race& race) {
                                         ? "noch nie angegriffen"
                                         : std::format("{} {} ohne Angriff", calm, calm == 1 ? "Tag" : "Tage");
           log.set_cause(
-              std::format("Krieg: Mitleid {:+}, Nachgeben+Waffenruhe {:+} ({}){}", pity, concession, since, bias));
+              {std::format("Krieg: Mitleid {:+}, Nachgeben+Waffenruhe {:+} ({}){}", pity, concession, since, bias)});
         } else {
-          log.set_cause(std::format("Schiffe im Gebiet: {}{}", ships, bias));
+          log.set_cause({std::format("Schiffe im Gebiet: {}{}", ships, bias)});
         }
       }
       std::int16_t& a = race.attitude[ut];

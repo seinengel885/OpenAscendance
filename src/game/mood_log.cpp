@@ -21,7 +21,7 @@ void mood_log_start(Session& session) {
   }
 }
 
-void mood_log_note(Session& session, std::string_view cause) {
+void mood_log_note(Session& session, const MoodCause& cause) {
   if (!logging(session)) {
     return;
   }
@@ -36,7 +36,7 @@ void mood_log_note(Session& session, std::string_view cause) {
       if (now != seen) {
         if (!player) {
           log.changes.push_back({cosmos.day, static_cast<std::uint8_t>(r), static_cast<std::uint8_t>(o),
-                                 cosmos.races[r].relation[o], seen, now, std::string(cause)});
+                                 cosmos.races[r].relation[o], seen, now, cause});
         }
         seen = now;
       }
@@ -46,21 +46,21 @@ void mood_log_note(Session& session, std::string_view cause) {
 
 MoodLogScope::MoodLogScope(Session& session, std::string cause) : session_(session), active_(logging(session)) {
   if (active_) {
-    std::vector<std::string>& causes = session_.mood_log.causes;
-    mood_log_note(session_, causes.empty() ? std::string_view("sonstige") : std::string_view(causes.back()));
-    causes.push_back(std::move(cause));
+    std::vector<MoodCause>& causes = session_.mood_log.causes;
+    mood_log_note(session_, causes.empty() ? MoodCause{"sonstige"} : causes.back());
+    causes.push_back({std::move(cause)});
   }
 }
 
 MoodLogScope::~MoodLogScope() {
   if (active_) {
-    std::vector<std::string>& causes = session_.mood_log.causes;
+    std::vector<MoodCause>& causes = session_.mood_log.causes;
     mood_log_note(session_, causes.back());
     causes.pop_back();
   }
 }
 
-void MoodLogScope::set_cause(std::string cause) {
+void MoodLogScope::set_cause(MoodCause cause) {
   if (active_) {
     session_.mood_log.causes.back() = std::move(cause);
   }

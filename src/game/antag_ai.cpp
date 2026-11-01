@@ -138,7 +138,9 @@ std::int32_t star_ai_colonise_value(const Session& session, const Star& star, Ra
 }
 
 // `Star_ai_defence_value` ANTAG 0x1db70, with the race's own ship list (so
-// the threat of the races at war, which it sums, is always 0: kept).
+// the threat of the races at war, which it sums, is always 0: original bug,
+// fixed in peCustom, which sums the ships at the star of the races the race
+// sees as a danger, `race_danger_mask`).
 std::int32_t star_ai_defence_value(const Session& session, const Star& star, RaceIndex race,
                                    const std::vector<ShipIndex>& ships) {
   const Cosmos& cosmos = session.game->cosmos;
@@ -150,12 +152,17 @@ std::int32_t star_ai_defence_value(const Session& session, const Star& star, Rac
   std::int32_t acc = 0;
   float threat = 0.0f;
   if (star.ships_mask != 0) {
-    for (const ShipIndex i : ships) {
+    const bool pe_custom = session.game->variant == Variant::kPeCustom;
+    const std::uint8_t danger = pe_custom ? race_danger_mask(cosmos, cosmos.races[race]) : 0;
+    const std::vector<ShipIndex> here_ships = pe_custom ? cosmos_ships_at_star(cosmos, star) : std::vector<ShipIndex>{};
+    for (const ShipIndex i : pe_custom ? here_ships : ships) {
       const Ship& ship = cosmos.ships[static_cast<std::size_t>(i)];
       const bool at_star = (ship.location_kind == ShipLocation::kSystem && ship.location == here) ||
                            (ship.location_kind == ShipLocation::kOrbit &&
                             cosmos.planets[static_cast<std::size_t>(ship.location)].star == here);
-      if (at_star && ship.owner != race && cosmos.races[race].relation[static_cast<std::size_t>(ship.owner)] == kWar) {
+      const bool hostile = pe_custom ? (danger & bit_of(static_cast<std::uint32_t>(ship.owner))) != 0
+                                     : cosmos.races[race].relation[static_cast<std::size_t>(ship.owner)] == kWar;
+      if (at_star && ship.owner != race && hostile) {
         threat = f32(static_cast<double>(ship_ai_strength(session, ship)) + threat);
       }
     }
@@ -249,13 +256,15 @@ void race_ai_evaluate_stars(Session& session, Race& race, const std::vector<Ship
   Cosmos& cosmos = session.game->cosmos;
   Session::AntagAiWork& work = session.antag_ai;
   const std::uint8_t war = race_at_war_mask(session, race);
+  // peCustom: the frontier stars with ships of races it sees as a danger.
+  const std::uint8_t threat = session.game->variant == Variant::kPeCustom ? race_danger_mask(cosmos, race) : war;
   cosmos_count_frontier_lanes(session, race.index);
   for (std::int16_t s = 0; s < cosmos.star_count; ++s) {
     const auto us = static_cast<std::size_t>(s);
     const Star& star = cosmos.stars[us];
     work.colonise[us] = star_ai_colonise_value(session, star, race.index);
     work.defence[us] = star_ai_defence_value(session, star, race.index, ships);
-    if (work.frontier[us] > 0 && (war & star.ships_mask) != 0) {
+    if (work.frontier[us] > 0 && (threat & star.ships_mask) != 0) {
       work.defence[us] = work.defence[us] * 2 + 300 + work.frontier[us] * 150;
     }
     work.war_ships[us] = 0;

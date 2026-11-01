@@ -50,12 +50,22 @@ struct WarOdds {
 };
 WarOdds race_war_odds(const Cosmos& cosmos, const Race& race, RaceIndex target);
 
-// peCustom: whether the race may declare war on `target`, by `race_war_odds`
-// and an occasion: at least as strong, and target ships at a star of its
-// colonies or an ally at war with the target; or 1.5 times as strong with
-// war or invasion ships within 2 hops of a target colony. True in the
-// other variants.
+// peCustom: whether the race may declare war on `target`: by
+// `race_war_odds` at least as strong, and target ships at a star of its
+// colonies where it is 1.25 times as strong (ships by hull size, a planet
+// with a planetary weapon as an enormous ship, the sides as in
+// `race_war_odds`) or an ally at war with the target; or 1.5 times as
+// strong with war or invasion ships within 2 hops of a target colony. True
+// in the other variants.
 bool race_war_justified(const Session& session, const Race& race, RaceIndex target);
+
+// peCustom: the races (bits) the race sees as a danger: at war, or at
+// peace with its attitude below its war threshold (DECLARE_WAR).
+std::uint8_t race_danger_mask(const Cosmos& cosmos, const Race& race);
+
+// peCustom: whether a ship of a race the race sees as a danger has been at
+// `star` for at least `days` days (`Session::ship_arrival_day`).
+bool race_danger_lingers_at(const Session& session, const Race& race, const Star& star, std::int32_t days);
 
 // peCustom: the daily attitude rise of the race toward `target`, its enemy:
 // the more superior the target's side, the faster; +3 after days without

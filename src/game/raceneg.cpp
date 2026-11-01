@@ -6,6 +6,7 @@
 #include <string_view>
 
 #include "core/fixed_width.h"
+#include "game/antag_planet.h"
 #include "game/cosmos.h"
 #include "game/mood_log.h"
 #include "game/race.h"
@@ -30,6 +31,11 @@ bool alive(const Race& race) { return race.extinct != -1; }
 constexpr std::uint8_t kNearHops = 2;
 constexpr std::int32_t kCeasefireDays = 50;
 constexpr std::int32_t kCeasefireGain = 3;
+// The strength at a star of a planet with a planetary weapon (an enormous
+// ship's) and the edge there for war (5/4 = 1.25 times as strong).
+constexpr std::int32_t kArmedPlanetStrength = 4;
+constexpr std::int32_t kLocalEdgeNum = 5;
+constexpr std::int32_t kLocalEdgeDen = 4;
 
 // The race and its living allies.
 std::uint32_t side_mask(const Cosmos& cosmos, RaceIndex r) {
@@ -49,6 +55,40 @@ std::int32_t mask_strength(const Cosmos& cosmos, std::uint32_t mask) {
     const Race& race = cosmos.races[static_cast<std::size_t>(t)];
     if ((mask & (1u << t)) != 0 && alive(race)) {
       sum += race_fleet_strength(cosmos, race);
+    }
+  }
+  return sum;
+}
+
+// The opponents of `race` in a war on `target`: the target's side and the
+// race's other enemies with their allies, without the race's side.
+std::uint32_t enemy_mask(const Cosmos& cosmos, const Race& race, RaceIndex target) {
+  std::uint32_t enemy = side_mask(cosmos, target);
+  for (std::int16_t t = 0; t < cosmos.race_count; ++t) {
+    const auto ut = static_cast<std::size_t>(t);
+    if (alive(cosmos.races[ut]) && race.relation[ut] == kWar) {
+      enemy |= side_mask(cosmos, static_cast<RaceIndex>(t));
+    }
+  }
+  return enemy & ~side_mask(cosmos, race.index);
+}
+
+// The strength of the races of `mask` at `star`: hull size + 1 per ship
+// (as `race_fleet_strength`), `kArmedPlanetStrength` per planet with a
+// planetary weapon.
+std::int32_t strength_at(const Cosmos& cosmos, std::uint32_t mask, const Star& star) {
+  std::int32_t sum = 0;
+  for (const ShipIndex i : cosmos_ships_at_star(cosmos, star)) {
+    const Ship& ship = cosmos.ships[static_cast<std::size_t>(i)];
+    if ((mask & (1u << ship.owner)) != 0) {
+      sum += static_cast<std::int8_t>(ship.hull_size) + 1;
+    }
+  }
+  for (std::int16_t k = 0; k < star.planet_count; ++k) {
+    const Planet& planet = cosmos.planets[static_cast<std::size_t>(star.planets[static_cast<std::size_t>(k)])];
+    if (planet.owner < kMaxRaces && (mask & (1u << planet.owner)) != 0 &&
+        planet_orbital_weapon_strength(cosmos, planet) > 0) {
+      sum += kArmedPlanetStrength;
     }
   }
   return sum;
@@ -304,15 +344,8 @@ std::vector<std::uint8_t> race_list_actions(const Session& session, const Race& 
 }
 
 WarOdds race_war_odds(const Cosmos& cosmos, const Race& race, RaceIndex target) {
-  const std::uint32_t own = side_mask(cosmos, race.index);
-  std::uint32_t enemy = side_mask(cosmos, target);
-  for (std::int16_t t = 0; t < cosmos.race_count; ++t) {
-    const auto ut = static_cast<std::size_t>(t);
-    if (alive(cosmos.races[ut]) && race.relation[ut] == kWar) {
-      enemy |= side_mask(cosmos, static_cast<RaceIndex>(t));
-    }
-  }
-  return {mask_strength(cosmos, own), mask_strength(cosmos, enemy & ~own)};
+  return {mask_strength(cosmos, side_mask(cosmos, race.index)),
+          mask_strength(cosmos, enemy_mask(cosmos, race, target))};
 }
 
 bool race_war_justified(const Session& session, const Race& race, RaceIndex target) {
@@ -324,9 +357,12 @@ bool race_war_justified(const Session& session, const Race& race, RaceIndex targ
   if (odds.own < odds.enemy) {
     return false;
   }
+  const std::uint32_t own = side_mask(cosmos, race.index);
+  const std::uint32_t enemy = enemy_mask(cosmos, race, target);
   for (std::int16_t s = 0; s < cosmos.star_count; ++s) {
     const Star& star = cosmos.stars[static_cast<std::size_t>(s)];
-    if ((star.owner_mask & bit(race.index)) != 0 && (star.ships_mask & bit(target)) != 0) {
+    if ((star.owner_mask & bit(race.index)) != 0 && (star.ships_mask & bit(target)) != 0 &&
+        kLocalEdgeDen * strength_at(cosmos, own, star) >= kLocalEdgeNum * strength_at(cosmos, enemy, star)) {
       return true;
     }
   }
@@ -338,6 +374,34 @@ bool race_war_justified(const Session& session, const Race& race, RaceIndex targ
   }
   // A conquest within reach, clearly stronger.
   return 2 * odds.own >= 3 * odds.enemy && armed_ships_near(cosmos, race, target);
+}
+
+std::uint8_t race_danger_mask(const Cosmos& cosmos, const Race& race) {
+  std::uint8_t mask = 0;
+  for (std::int16_t t = 0; t < cosmos.race_count; ++t) {
+    const auto ut = static_cast<std::size_t>(t);
+    if (ut != race.index && alive(cosmos.races[ut]) &&
+        (race.relation[ut] == kWar || (race.relation[ut] == kPeace && race.attitude[ut] < race.declare_war))) {
+      mask = static_cast<std::uint8_t>(mask | bit(ut));
+    }
+  }
+  return mask;
+}
+
+bool race_danger_lingers_at(const Session& session, const Race& race, const Star& star, std::int32_t days) {
+  const Cosmos& cosmos = session.game->cosmos;
+  const std::uint8_t danger = race_danger_mask(cosmos, race);
+  if ((star.ships_mask & danger) == 0) {
+    return false;
+  }
+  for (const ShipIndex i : cosmos_ships_at_star(cosmos, star)) {
+    const auto ui = static_cast<std::size_t>(i);
+    if ((danger & bit(static_cast<std::size_t>(cosmos.ships[ui].owner))) != 0 &&
+        session.ship_arrival_star[ui] == star.index && cosmos.day - session.ship_arrival_day[ui] >= days) {
+      return true;
+    }
+  }
+  return false;
 }
 
 std::int16_t race_war_concession(const Session& session, const Race& race, RaceIndex target) {
@@ -618,8 +682,8 @@ void race_apply_diplomatic_action(Session& session, Race& actor, RaceIndex targe
   MoodLogScope log(session);
   if (log.active()) {
     const std::string_view answer = response_text(response);
-    log.set_cause(std::format("Verhandlung {} -> {}: {}{}{}", actor.index, target, action_text(action),
-                              answer.empty() ? "" : ", ", answer));
+    log.set_cause({std::format("Verhandlung: {}{}{}", action_text(action), answer.empty() ? "" : ", ", answer),
+                   actor.index, target});
   }
   switch (action) {
     case kDipDiscover:

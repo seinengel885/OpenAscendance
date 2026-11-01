@@ -88,7 +88,7 @@ class GameCoreSession final : public GameSession {
   // file next to the saves (`marker` before them unless empty).
   void start_mood_log(const std::string& marker);
   void write_mood_log(const std::string& marker);
-  // A race in the log: its species name and slot, "du" for the player.
+  // A race in the log: its species name, "du" for the player.
   std::string mood_race_name(int race);
 
   const GameFiles& files_;

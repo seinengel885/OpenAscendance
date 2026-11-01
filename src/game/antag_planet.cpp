@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "game/planet.h"
+#include "game/raceneg.h"
 #include "game/tables.h"
 
 namespace oa::game {
@@ -33,6 +34,10 @@ constexpr std::uint8_t kOrbitalCloaker = 25;
 constexpr std::uint8_t kOrbitalShield = 26;
 constexpr std::uint8_t kOrbitalMegaShield = 27;
 constexpr std::uint8_t kLushGrowthBomb = 37;
+
+// peCustom: the days ships of races seen as a danger stay at a star before
+// its planets build planetary defences first.
+constexpr std::int32_t kDangerDays = 5;
 
 // The special buildings, in order (0x96918, the bytes of PATCH 0x867a0).
 constexpr std::array<std::uint8_t, 5> kSpecials = {kItemHyperpowerPlant, kItemFertilizationPlant, kItemInternet,
@@ -345,14 +350,25 @@ std::int32_t antag_race_ai_choose_orbital_project(Session& session, Race& race, 
   if (antag_race_research_complete(session, race)) {
     research = 1000;
   }
-  if (planet_count_buildings(cosmos, planet) < 5) {
-    return 0;
-  }
-  const std::uint32_t industry = static_cast<std::uint16_t>(planet.industry);
   const std::int32_t shields = planet_orbital_shield_strength(cosmos, planet);
   const std::int32_t weapons = planet_orbital_weapon_strength(cosmos, planet);
   const std::uint8_t best_shield = planet_best_orbital_shield_item(session, planet);
   const std::uint8_t best_weapon = planet_best_orbital_weapon_item(session, planet);
+  // peCustom: under a lingering danger the planetary defences come first,
+  // weapons and shields in turn.
+  if (session.game->variant == Variant::kPeCustom &&
+      race_danger_lingers_at(session, race, cosmos.stars[static_cast<std::size_t>(planet.star)], kDangerDays)) {
+    const std::uint8_t item =
+        best_weapon != kNoItem && (weapons <= shields || best_shield == kNoItem) ? best_weapon : best_shield;
+    if (item != kNoItem && (planet_auto_place_item(session, planet, item, 0) != kNoSquare ||
+                            antag_race_ai_replace_orbital_defence(session, race, planet, item))) {
+      return 1;
+    }
+  }
+  if (planet_count_buildings(cosmos, planet) < 5) {
+    return 0;
+  }
+  const std::uint32_t industry = static_cast<std::uint16_t>(planet.industry);
   const bool full = planet.free_orbital < 2 || (room(planet) < 1 && idle(planet) < 2) || u16(planet.prosperity) < 2;
   std::uint8_t c = kNoItem;
   if (shields < 1 && best_shield != kNoItem) {
