@@ -1,9 +1,9 @@
 #include "game/raceneg.h"
 
 #include <algorithm>
-#include <array>
 #include <format>
 #include <optional>
+#include <string_view>
 
 #include "core/fixed_width.h"
 #include "game/cosmos.h"
@@ -114,6 +114,87 @@ std::uint8_t relation_at(const Race& race, std::int16_t i) {
 // `race.attitude[i]` read the same way: -1 reads `ship_patience` (+0x1b0).
 std::int16_t attitude_at(const Race& race, std::int32_t i) {
   return i == -1 ? race.ship_patience : race.attitude.at(static_cast<std::size_t>(i));
+}
+
+// The mood log's text of a diplomatic action.
+std::string_view action_text(std::uint8_t action) {
+  switch (action) {
+    case kDipDiscover:
+      return "Entdeckung";
+    case kDipDiscoverAskHelp:
+      return "Entdeckung mit Hilfebitte";
+    case kDipDeclareWar:
+      return "Kriegserklärung";
+    case kDipProposeAlliance:
+      return "Bündnisangebot";
+    case kDipTradeStarlanes:
+      return "Tausch Sternstraßen";
+    case kDipTradeStars:
+      return "Tausch Sterne";
+    case kDipTradeResearch:
+      return "Tausch Forschung";
+    case kDipOfferPeaceToOtherRace:
+      return "Frieden mit Drittem";
+    case kDipBreakAlliance:
+      return "Bündnisbruch";
+    case kDipDeclareWarOnOtherRace:
+      return "Krieg gegen Dritten";
+    case kDipBreakAllianceWithOtherRace:
+      return "Bündnisbruch mit Drittem";
+    case kDipProposeAllianceToOtherRace:
+      return "Bündnis mit Drittem";
+    case kDipHelpControlSystem:
+      return "Hilfe im System";
+    case kDipOfferPeace:
+      return "Friedensangebot";
+    default:
+      return "?";
+  }
+}
+
+// The mood log's text of a response (`race_respond_to_diplomatic_action`,
+// the player's replies); empty where there is no choice.
+std::string_view response_text(std::uint8_t response) {
+  switch (response) {
+    case 1:
+    case 4:
+    case 6:
+    case 8:
+    case 10:
+    case 12:
+    case 15:
+    case 17:
+    case 19:
+    case 27:
+      return "angenommen";
+    case 2:
+    case 5:
+    case 7:
+    case 9:
+    case 11:
+    case 13:
+    case 16:
+    case 18:
+    case 20:
+    case 28:
+      return "abgelehnt";
+    case 21:
+      return "hilft";
+    case 22:
+      return "hilft nicht";
+    case 23:
+      return "keine Schiffe frei";
+    case 24:
+      return "dort kein Feind";
+    case 25:
+      return "schon dort, keine weiteren Schiffe";
+    case 26:
+      return "hilft, schon dort";
+    case 29:
+      return "keine Antwort";
+    default:
+      return "";
+  }
 }
 
 // Both races meet: relations 1, each attitude its own START_ATTITUDE.
@@ -536,12 +617,9 @@ void race_apply_diplomatic_action(Session& session, Race& actor, RaceIndex targe
   const auto t = static_cast<std::size_t>(arg);
   MoodLogScope log(session);
   if (log.active()) {
-    constexpr std::array<const char*, 14> kNames = {
-        "Entdeckung", "Entdeckung mit Hilfebitte", "Kriegserklärung", "Bündnisangebot", "Tausch Sternstraßen",
-        "Tausch Sterne", "Tausch Forschung", "Frieden mit Drittem", "Bündnisbruch", "Krieg gegen Dritten",
-        "Bündnisbruch mit Drittem", "Bündnis mit Drittem", "Hilfe im System", "Friedensangebot"};
-    log.set_cause(std::format("Verhandlung {} -> {}: {} (Antwort {})", actor.index, target,
-                              action < kNames.size() ? kNames[action] : "?", response));
+    const std::string_view answer = response_text(response);
+    log.set_cause(std::format("Verhandlung {} -> {}: {}{}{}", actor.index, target, action_text(action),
+                              answer.empty() ? "" : ", ", answer));
   }
   switch (action) {
     case kDipDiscover:
