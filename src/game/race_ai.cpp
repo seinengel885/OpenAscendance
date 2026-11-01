@@ -55,8 +55,14 @@ constexpr std::array<std::int8_t, 22> kCombatSpecials = {69, 63, 50, 46, 45, 38,
                                                          55, 52, 35, 64, 54, 50, 37, 66, 61, 48, 49};
 // Peace drift per shared star by atmosphere (`i16[3]` 0x86792).
 constexpr std::array<std::int16_t, 3> kPeaceDrift = {0, -1, -5};
-// peCustom: per ship of the other race at a star of the race's colonies.
+// peCustom: per ship of the other race at a star of the race's colonies
+// from its second day there.
 constexpr std::array<std::int16_t, 3> kPeCustomPeaceDrift = {0, -2, -5};
+// The Antagonizer's bias toward the player: losses times, gains divided by
+// (peCustom: losses x1 / x1 / x2, its war concessions every 1 / 2 / 3 days).
+constexpr std::array<std::int16_t, 3> kAntagonizerLossFactor = {1, 2, 3};
+constexpr std::array<std::int16_t, 3> kPeCustomLossFactor = {1, 1, 2};
+constexpr std::array<std::int16_t, 3> kGainDivisor = {1, 2, 3};
 
 constexpr std::uint32_t bit_of(std::size_t race) { return 1u << (race & 0x1f); }
 
@@ -178,7 +184,9 @@ void race_update_attitude_drift(Session& session, Race& race) {
         }
         if (pe_custom) {
           for (const ShipIndex i : cosmos_ships_at_star(cosmos, star)) {
-            if (static_cast<std::size_t>(cosmos.ships[static_cast<std::size_t>(i)].owner) == ut) {
+            const auto ui = static_cast<std::size_t>(i);
+            if (static_cast<std::size_t>(cosmos.ships[ui].owner) == ut && session.ship_arrival_star[ui] == s &&
+                session.ship_arrival_day[ui] < cosmos.day) {
               d = wrap_i16(d + kPeCustomPeaceDrift.at(atmosphere));
             }
           }
@@ -190,21 +198,16 @@ void race_update_attitude_drift(Session& session, Race& race) {
     // Original dead code not ported: a fleet and rank comparison between the
     // war sets of `t` and of this race, guarded by two identical
     // `Race_at_war_mask(t)` calls that must differ.
-    if (antagonizer && ut == session.player_race && !session.autoplay) {
+    const bool biased = antagonizer && ut == session.player_race && !session.autoplay;
+    if (biased) {
       // ANTAG 0x3c670: the bias toward the player.
       if (d < 0) {
-        if (atmosphere == 1) {
-          d = wrap_i16(d * 2);
-        } else if (atmosphere == 2) {
-          d = wrap_i16(d * 3);
-        }
-      } else if (atmosphere == 1) {
-        d = static_cast<std::int16_t>(d / 2);
-      } else if (atmosphere == 2) {
-        d = static_cast<std::int16_t>(d / 3);
+        d = wrap_i16(d * (pe_custom ? kPeCustomLossFactor : kAntagonizerLossFactor).at(atmosphere));
+      } else {
+        d = static_cast<std::int16_t>(d / kGainDivisor.at(atmosphere));
       }
     }
-    if (pe_custom && race.relation[ut] == kWar) {
+    if (pe_custom && race.relation[ut] == kWar && cosmos.day % (biased ? kGainDivisor.at(atmosphere) : 1) == 0) {
       d = wrap_i16(d + race_war_concession(session, race, static_cast<RaceIndex>(t)));
     }
     if (d != 0) {

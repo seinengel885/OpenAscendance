@@ -101,6 +101,10 @@ void cosmos_next_turn(Session& session);
 // last used slot is missed.
 bool lane_blocked(const Session& session, LaneIndex lane, const Race& race);
 
+// peCustom: notes each ship's star and its first day there
+// (`Session::ship_arrival_star`, `ship_arrival_day`).
+void cosmos_note_ship_arrivals(Session& session);
+
 // Ranks the races by ship count + colonies (`Cosmos_rank_races` 0x2078c).
 void cosmos_rank_races(Session& session);
 

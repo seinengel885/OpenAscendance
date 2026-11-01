@@ -412,6 +412,9 @@ void cosmos_end_day(Session& session) {
     planet_daily_update(session, cosmos.planets[static_cast<std::size_t>(i)]);
   }
   cosmos_rank_races(session);
+  if (game.variant == Variant::kPeCustom) {
+    cosmos_note_ship_arrivals(session);
+  }
   const StrategicAi& ai = strategic_ai(game.variant);
   for (std::int16_t r = 0; r < cosmos.race_count; ++r) {
     if (r != session.player_race) {
@@ -523,6 +526,23 @@ void star_resolve_combat(Session& session, Star& star, bool include_player) {
       } else if (action.kind == BattleActor::kShip) {
         ship_do_action(session, cosmos.ships[static_cast<std::size_t>(action.index)], true);
       }
+    }
+  }
+}
+
+void cosmos_note_ship_arrivals(Session& session) {
+  const Cosmos& cosmos = session.game->cosmos;
+  for (std::size_t i = 0; i < kMaxShips; ++i) {
+    const Ship& ship = cosmos.ships[i];
+    StarIndex star = kNone;
+    if (ship.owner != -1 && ship.location_kind == ShipLocation::kSystem) {
+      star = ship.location;
+    } else if (ship.owner != -1 && ship.location_kind == ShipLocation::kOrbit) {
+      star = cosmos.planets[static_cast<std::size_t>(ship.location)].star;
+    }
+    if (session.ship_arrival_star[i] != star) {
+      session.ship_arrival_star[i] = star;
+      session.ship_arrival_day[i] = cosmos.day;
     }
   }
 }

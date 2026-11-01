@@ -50,6 +50,11 @@ struct Session {
   // arrival event shown today", bit `1 << race` "race offended here today"
   // (`Race_offended_by`); cleared by `Cosmos_end_day`.
   std::array<std::uint8_t, kMaxStars> star_day_flags{};
+  // peCustom: per ship slot the star it is at in space or orbit and the day
+  // it was first seen there (`cosmos_note_ship_arrivals`); not saved, so
+  // after loading each ship's day there starts anew.
+  std::array<StarIndex, kMaxShips> ship_arrival_star = null_indices<kMaxShips>();
+  std::array<std::int32_t, kMaxShips> ship_arrival_day{};
   std::int32_t player_mood = 0;  // 0xf4574, the player's bio-rhythm mood (UI)
   // 0xfe56c (high half of the dword 0xfe56a): the current screen, which some
   // day code tests (16 the System Display: the tactical AI also plays the
