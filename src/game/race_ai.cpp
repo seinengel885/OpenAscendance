@@ -55,6 +55,8 @@ constexpr std::array<std::int8_t, 22> kCombatSpecials = {69, 63, 50, 46, 45, 38,
                                                          55, 52, 35, 64, 54, 50, 37, 66, 61, 48, 49};
 // Peace drift per shared star by atmosphere (`i16[3]` 0x86792).
 constexpr std::array<std::int16_t, 3> kPeaceDrift = {0, -1, -5};
+// peCustom: per ship of the other race at a star of the race's colonies.
+constexpr std::array<std::int16_t, 3> kPeCustomPeaceDrift = {0, -2, -5};
 
 constexpr std::uint32_t bit_of(std::size_t race) { return 1u << (race & 0x1f); }
 
@@ -153,6 +155,7 @@ void race_update_attitude_drift(Session& session, Race& race) {
   Cosmos& cosmos = session.game->cosmos;
   const auto atmosphere = static_cast<std::uint8_t>(cosmos.atmosphere);
   const bool antagonizer = antagonizer_rules(session.game->variant);
+  const bool pe_custom = session.game->variant == Variant::kPeCustom;
   for (std::int16_t t = 0; t < cosmos.race_count; ++t) {
     const auto ut = static_cast<std::size_t>(t);
     if (ut == race.index || race.relation[ut] == kNotMet || cosmos.races[ut].extinct == -1) {
@@ -170,7 +173,16 @@ void race_update_attitude_drift(Session& session, Race& race) {
     } else if (race.relation[ut] == kPeace) {
       for (std::int16_t s = 0; s < cosmos.star_count; ++s) {
         const Star& star = cosmos.stars[static_cast<std::size_t>(s)];
-        if ((star.owner_mask & bit_of(race.index)) != 0 && (star.ships_mask & bit_of(ut)) != 0) {
+        if ((star.owner_mask & bit_of(race.index)) == 0 || (star.ships_mask & bit_of(ut)) == 0) {
+          continue;
+        }
+        if (pe_custom) {
+          for (const ShipIndex i : cosmos_ships_at_star(cosmos, star)) {
+            if (static_cast<std::size_t>(cosmos.ships[static_cast<std::size_t>(i)].owner) == ut) {
+              d = wrap_i16(d + kPeCustomPeaceDrift.at(atmosphere));
+            }
+          }
+        } else {
           d = wrap_i16(d + kPeaceDrift.at(atmosphere));
         }
       }
@@ -192,7 +204,7 @@ void race_update_attitude_drift(Session& session, Race& race) {
         d = static_cast<std::int16_t>(d / 3);
       }
     }
-    if (session.game->variant == Variant::kPeCustom && race.relation[ut] == kWar) {
+    if (pe_custom && race.relation[ut] == kWar) {
       d = wrap_i16(d + race_war_concession(session, race, static_cast<RaceIndex>(t)));
     }
     if (d != 0) {
@@ -242,13 +254,17 @@ void race_bio_rhythm(Session& session, Race& race) {
   if (race.index == session.player_race) {
     session.player_mood = wrap_i16(chop(m));
   }
-  // The atmosphere's offset: PATCH +2 / +1 / -2, ANTAG 0x3c968 -4 / -2 / -6.
+  // The atmosphere's offset: PATCH +2 / +1 / -2, ANTAG 0x3c968 -4 / -2 / -6,
+  // peCustom -2 / -4 / -6 (peaceful the mildest).
   const bool antagonizer = antagonizer_rules(session.game->variant);
+  const bool pe_custom = session.game->variant == Variant::kPeCustom;
   double offset = antagonizer ? -2.0 : 1.0;
   if (cosmos.atmosphere == Atmosphere::kHostile) {
     offset = antagonizer ? -6.0 : -2.0;
   } else if (cosmos.atmosphere == Atmosphere::kPeaceful) {
-    offset = antagonizer ? -4.0 : 2.0;
+    offset = pe_custom ? -2.0 : antagonizer ? -4.0 : 2.0;
+  } else if (pe_custom) {
+    offset = -4.0;
   }
   m = f32(static_cast<double>(m) + offset);
   // No 50..950 clamp here (the next drift clamps).

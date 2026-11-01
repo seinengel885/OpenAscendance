@@ -25,7 +25,7 @@ bool alive(const Race& race) { return race.extinct != -1; }
 // war or invasion ships is an occasion for war; this many days without an
 // attack raise the enemy's attitude.
 constexpr std::uint8_t kNearHops = 2;
-constexpr std::int32_t kCeasefireDays = 20;
+constexpr std::int32_t kCeasefireDays = 50;
 
 // The race and its living allies.
 std::uint32_t side_mask(const Cosmos& cosmos, RaceIndex r) {
