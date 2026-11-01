@@ -59,7 +59,7 @@ constexpr std::array<std::int16_t, 3> kPeaceDrift = {0, -1, -5};
 // from its second day there.
 constexpr std::array<std::int16_t, 3> kPeCustomPeaceDrift = {0, -2, -2};
 // The Antagonizer's bias toward the player: losses times, gains divided by
-// (peCustom: losses x1 / x1 / x3, its war concessions every 1 / 2 / 3 days).
+// (peCustom: losses x1 / x1 / x3, the full gains every 1 / 2 / 3 days).
 constexpr std::array<std::int16_t, 3> kAntagonizerLossFactor = {1, 2, 3};
 constexpr std::array<std::int16_t, 3> kPeCustomLossFactor = {1, 1, 3};
 constexpr std::array<std::int16_t, 3> kGainDivisor = {1, 2, 3};
@@ -203,6 +203,9 @@ void race_update_attitude_drift(Session& session, Race& race) {
       // ANTAG 0x3c670: the bias toward the player.
       if (d < 0) {
         d = wrap_i16(d * (pe_custom ? kPeCustomLossFactor : kAntagonizerLossFactor).at(atmosphere));
+      } else if (pe_custom) {
+        // peCustom: the full gain every 1 / 2 / 3 days, not truncated away.
+        d = cosmos.day % kGainDivisor.at(atmosphere) == 0 ? d : std::int16_t{0};
       } else {
         d = static_cast<std::int16_t>(d / kGainDivisor.at(atmosphere));
       }
