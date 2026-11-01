@@ -57,11 +57,11 @@ constexpr std::array<std::int8_t, 22> kCombatSpecials = {69, 63, 50, 46, 45, 38,
 constexpr std::array<std::int16_t, 3> kPeaceDrift = {0, -1, -5};
 // peCustom: per ship of the other race at a star of the race's colonies
 // from its second day there.
-constexpr std::array<std::int16_t, 3> kPeCustomPeaceDrift = {0, -2, -5};
+constexpr std::array<std::int16_t, 3> kPeCustomPeaceDrift = {0, -2, -2};
 // The Antagonizer's bias toward the player: losses times, gains divided by
-// (peCustom: losses x1 / x1 / x2, its war concessions every 1 / 2 / 3 days).
+// (peCustom: losses x1 / x1 / x3, its war concessions every 1 / 2 / 3 days).
 constexpr std::array<std::int16_t, 3> kAntagonizerLossFactor = {1, 2, 3};
-constexpr std::array<std::int16_t, 3> kPeCustomLossFactor = {1, 1, 2};
+constexpr std::array<std::int16_t, 3> kPeCustomLossFactor = {1, 1, 3};
 constexpr std::array<std::int16_t, 3> kGainDivisor = {1, 2, 3};
 
 constexpr std::uint32_t bit_of(std::size_t race) { return 1u << (race & 0x1f); }
