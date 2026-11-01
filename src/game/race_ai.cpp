@@ -3,12 +3,14 @@
 #include <array>
 #include <bit>
 #include <cmath>
+#include <format>
 #include <span>
 #include <vector>
 
 #include "core/fixed_width.h"
 #include "game/cosmos.h"
 #include "game/float_math.h"
+#include "game/mood_log.h"
 #include "game/planet.h"
 #include "game/race.h"
 #include "game/raceneg.h"
@@ -168,6 +170,7 @@ void race_update_attitude_drift(Session& session, Race& race) {
       continue;
     }
     std::int16_t d = 0;
+    std::int32_t ships = 0;  // peCustom: the ships in its area (for the mood log)
     if (race.relation[ut] == kWar) {
       // Toward a weaker enemy the attitude rises.
       d = wrap_i16(cosmos.ranks[ut].rank - rank_of(cosmos, race).rank);
@@ -188,6 +191,7 @@ void race_update_attitude_drift(Session& session, Race& race) {
             if (static_cast<std::size_t>(cosmos.ships[ui].owner) == ut && session.ship_arrival_star[ui] == s &&
                 session.ship_arrival_day[ui] < cosmos.day) {
               d = wrap_i16(d + kPeCustomPeaceDrift.at(atmosphere));
+              ++ships;
             }
           }
         } else {
@@ -198,6 +202,7 @@ void race_update_attitude_drift(Session& session, Race& race) {
     // Original dead code not ported: a fleet and rank comparison between the
     // war sets of `t` and of this race, guarded by two identical
     // `Race_at_war_mask(t)` calls that must differ.
+    const std::int16_t pity = race.relation[ut] == kWar ? d : std::int16_t{0};
     const bool biased = antagonizer && ut == session.player_race && !session.autoplay;
     if (biased) {
       // ANTAG 0x3c670: the bias toward the player.
@@ -210,10 +215,22 @@ void race_update_attitude_drift(Session& session, Race& race) {
         d = static_cast<std::int16_t>(d / kGainDivisor.at(atmosphere));
       }
     }
+    std::int16_t concession = 0;
     if (pe_custom && race.relation[ut] == kWar && cosmos.day % (biased ? kGainDivisor.at(atmosphere) : 1) == 0) {
-      d = wrap_i16(d + race_war_concession(session, race, static_cast<RaceIndex>(t)));
+      concession = race_war_concession(session, race, static_cast<RaceIndex>(t));
+      d = wrap_i16(d + concession);
     }
     if (d != 0) {
+      MoodLogScope log(session);
+      if (log.active()) {
+        const std::string bias = biased ? ", Spielerfaktor" : "";
+        if (race.relation[ut] == kWar) {
+          log.set_cause(std::format("Krieg: Mitleid {:+}, Nachgeben+Waffenruhe {:+} ({} Tage ohne Angriff){}", pity,
+                                    concession, cosmos.day - session.game->last_attack_days[race.index][ut], bias));
+        } else {
+          log.set_cause(std::format("Schiffe im Gebiet: {}{}", ships, bias));
+        }
+      }
       std::int16_t& a = race.attitude[ut];
       a = wrap_i16(a + d);
       if (a < 50) {
@@ -273,6 +290,7 @@ void race_bio_rhythm(Session& session, Race& race) {
     offset = -4.0;
   }
   m = f32(static_cast<double>(m) + offset);
+  const MoodLogScope log(session, "Schwankung");
   // No 50..950 clamp here (the next drift clamps).
   for (std::int16_t i = 0; i < cosmos.race_count; ++i) {
     const auto ui = static_cast<std::size_t>(i);

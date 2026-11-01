@@ -13,6 +13,7 @@
 
 #include "core/watcom_random.h"
 #include "game/events.h"
+#include "game/mood_log.h"
 #include "game/state.h"
 #include "game/tables.h"
 
@@ -112,6 +113,8 @@ struct Session {
   // the user interface (`WinMgr_serialize_windows` 0x556a4).
   SaveHeader stale_header;
   std::vector<std::uint8_t> window_state;
+  // peCustom, temporary: the attitude changes for the user interface.
+  MoodLog mood_log;
 };
 
 }  // namespace oa::game

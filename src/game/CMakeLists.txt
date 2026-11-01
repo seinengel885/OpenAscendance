@@ -11,6 +11,8 @@ oa_add_module(oa_game
     cosmos.cpp
     float_math.cpp
     galaxy.cpp
+    # peCustom, temporary: the attitude changes with their causes.
+    mood_log.cpp
     # The negotiation screen's dialogue (NegWnd's logic).
     negotiation.cpp
     new_game.cpp

@@ -10,6 +10,7 @@
 #include "game/address.h"
 #include "game/cosmos.h"
 #include "game/float_math.h"
+#include "game/mood_log.h"
 #include "game/race.h"
 #include "game/research.h"
 #include "game/ship.h"
@@ -569,6 +570,7 @@ void planet_daily_update(Session& session, Planet& planet) {
     // it never acts (original bug).
     if (session.game->variant == Variant::kPeCustom && planet.project_item == kItemAlienHospitality &&
         cosmos.day % 10 == 0) {
+      const MoodLogScope log(session, "Gastfreundschaft (Projekt)");
       for (std::int32_t r = 0; r < cosmos.race_count; ++r) {
         std::int16_t& attitude = cosmos.races[static_cast<std::size_t>(r)].attitude[session.player_race];
         attitude = wrap_i16(attitude + planet.industry / 10 + 1);
@@ -926,6 +928,7 @@ bool planet_invade(Session& session, Planet& planet, std::uint16_t ship_square, 
   Race& defender = cosmos.races[planet.owner];
   Star& star = cosmos.stars[static_cast<std::size_t>(planet.star)];
   const bool minions = cosmos.races[attacker].ability == 0;
+  const MoodLogScope log(session, "Angriff: Invasion");
   if (race_offended_by(session, defender, attacker, star, AttackKind::kInvasion) &&
       defender.declare_war < defender.attitude[attacker]) {
     defender.attitude[attacker] = wrap_i16(defender.declare_war - 10);

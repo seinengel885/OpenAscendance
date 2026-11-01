@@ -2,10 +2,12 @@
 
 #include <array>
 #include <span>
+#include <string>
 
 #include "core/fixed_width.h"
 #include "core/watcom_qsort.h"
 #include "game/cosmos.h"
+#include "game/mood_log.h"
 #include "game/planet.h"
 #include "game/race_ai.h"
 #include "game/raceneg.h"
@@ -263,6 +265,8 @@ void original_offence_loss(const Session& session, Race& victim, RaceIndex aggre
 
 bool race_offended_by(Session& session, Race& victim, RaceIndex aggressor, const Star& star, AttackKind kind) {
   const Cosmos& cosmos = session.game->cosmos;
+  constexpr std::array<const char*, 3> kKindNames = {"Schiff", "Beschuss", "Invasion"};
+  const MoodLogScope log(session, std::string("Angriff: ") + kKindNames.at(static_cast<std::size_t>(kind)));
   const bool pe_custom = session.game->variant == Variant::kPeCustom;
   if (pe_custom) {
     session.game->last_attack_days.at(victim.index).at(aggressor) = cosmos.day;
@@ -298,6 +302,7 @@ bool race_use_special_ability(Session& session, Race& race, bool use) {
   }
   const std::uint32_t own = bit_of(race.index);
   std::int32_t charge = 0;
+  const MoodLogScope log(session, "Sonderfähigkeit");
   switch (race.ability) {
     case kFludentri:
       for (const ShipIndex i : race_list_ships(cosmos, race)) {

@@ -1,10 +1,13 @@
 #include "game/raceneg.h"
 
 #include <algorithm>
+#include <array>
+#include <format>
 #include <optional>
 
 #include "core/fixed_width.h"
 #include "game/cosmos.h"
+#include "game/mood_log.h"
 #include "game/race.h"
 #include "game/ship.h"
 
@@ -149,6 +152,7 @@ void race_diplomacy_turn(Session& session, Race& race) {
     }
     if ((o != session.player_race || session.autoplay) && race.relation[o] == kNotMet &&
         race_shares_star_with(cosmos, race, static_cast<RaceIndex>(o))) {
+      const MoodLogScope log(session, "Erstkontakt");
       race.attitude[o] = race.start_attitude;
       other.attitude[race.index] = other.start_attitude;
       other.relation[race.index] = kPeace;
@@ -530,6 +534,15 @@ void race_apply_diplomatic_action(Session& session, Race& actor, RaceIndex targe
   const std::size_t self = actor.index;
   const bool by_player = actor.index == session.player_race;
   const auto t = static_cast<std::size_t>(arg);
+  MoodLogScope log(session);
+  if (log.active()) {
+    constexpr std::array<const char*, 14> kNames = {
+        "Entdeckung", "Entdeckung mit Hilfebitte", "Kriegserklärung", "Bündnisangebot", "Tausch Sternstraßen",
+        "Tausch Sterne", "Tausch Forschung", "Frieden mit Drittem", "Bündnisbruch", "Krieg gegen Dritten",
+        "Bündnisbruch mit Drittem", "Bündnis mit Drittem", "Hilfe im System", "Friedensangebot"};
+    log.set_cause(std::format("Verhandlung {} -> {}: {} (Antwort {})", actor.index, target,
+                              action < kNames.size() ? kNames[action] : "?", response));
+  }
   switch (action) {
     case kDipDiscover:
       b.relation[self] = kPeace;

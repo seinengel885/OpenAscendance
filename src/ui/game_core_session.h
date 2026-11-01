@@ -83,6 +83,13 @@ class GameCoreSession final : public GameSession {
   bool load_bytes(std::span<const std::uint8_t> data, const std::string& name);
   // The host path save `slot` is read from, nothing when it does not exist.
   std::optional<std::filesystem::path> find_save(int slot) const;
+  // peCustom, temporary: turns the attitude log on (with a save folder),
+  // `marker` its first line; writes the changes noted so far to the log
+  // file next to the saves (`marker` before them unless empty).
+  void start_mood_log(const std::string& marker);
+  void write_mood_log(const std::string& marker);
+  // A race in the log: its species name and slot, "du" for the player.
+  std::string mood_race_name(int race);
 
   const GameFiles& files_;
   std::filesystem::path save_dir_;
@@ -91,6 +98,7 @@ class GameCoreSession final : public GameSession {
   game::Session session_;
   game::NewGameSetup setup_;
   bool has_game_ = false;
+  std::vector<std::string> species_names_;  // static.txt, for the mood log
 };
 
 }  // namespace oa
