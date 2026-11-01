@@ -996,6 +996,15 @@ std::int32_t planet_orbital_defence_rating(const Cosmos& cosmos, const Planet& p
                                                                         {kItemMegaWhopper, 6}}});
 }
 
+std::int32_t planet_orbital_defence_count(const Cosmos& cosmos, const Planet& planet) {
+  return strength(cosmos, planet, planet.surface_squares, planet.square_count,
+                  std::array<std::pair<std::uint8_t, std::int32_t>, 5>{{{kOrbitalShield, 1},
+                                                                        {kOrbitalMegaShield, 1},
+                                                                        {kItemMissileBase, 1},
+                                                                        {kItemWhopper, 1},
+                                                                        {kItemMegaWhopper, 1}}});
+}
+
 // 0x364b4
 std::int32_t planet_ai_target_value(const Session& session, const Planet& planet, RaceIndex race) {
   const Cosmos& cosmos = session.game->cosmos;

@@ -31,9 +31,7 @@ bool alive(const Race& race) { return race.extinct != -1; }
 constexpr std::uint8_t kNearHops = 2;
 constexpr std::int32_t kCeasefireDays = 50;
 constexpr std::int32_t kCeasefireGain = 3;
-// The strength at a star of a planet with a planetary weapon (an enormous
-// ship's) and the edge there for war (5/4 = 1.25 times as strong).
-constexpr std::int32_t kArmedPlanetStrength = 4;
+// The edge at a star for war (5/4 = 1.25 times as strong).
 constexpr std::int32_t kLocalEdgeNum = 5;
 constexpr std::int32_t kLocalEdgeDen = 4;
 
@@ -73,22 +71,21 @@ std::uint32_t enemy_mask(const Cosmos& cosmos, const Race& race, RaceIndex targe
   return enemy & ~side_mask(cosmos, race.index);
 }
 
-// The strength of the races of `mask` at `star`: hull size + 1 per ship
-// (as `race_fleet_strength`), `kArmedPlanetStrength` per planet with a
-// planetary weapon.
+// Twice the strength of the races of `mask` at `star`: hull size + 1 per
+// ship (as `race_fleet_strength`), half a point per orbital shield and
+// weapon of their planets.
 std::int32_t strength_at(const Cosmos& cosmos, std::uint32_t mask, const Star& star) {
   std::int32_t sum = 0;
   for (const ShipIndex i : cosmos_ships_at_star(cosmos, star)) {
     const Ship& ship = cosmos.ships[static_cast<std::size_t>(i)];
     if ((mask & (1u << ship.owner)) != 0) {
-      sum += static_cast<std::int8_t>(ship.hull_size) + 1;
+      sum += 2 * (static_cast<std::int8_t>(ship.hull_size) + 1);
     }
   }
   for (std::int16_t k = 0; k < star.planet_count; ++k) {
     const Planet& planet = cosmos.planets[static_cast<std::size_t>(star.planets[static_cast<std::size_t>(k)])];
-    if (planet.owner < kMaxRaces && (mask & (1u << planet.owner)) != 0 &&
-        planet_orbital_weapon_strength(cosmos, planet) > 0) {
-      sum += kArmedPlanetStrength;
+    if (planet.owner < kMaxRaces && (mask & (1u << planet.owner)) != 0) {
+      sum += planet_orbital_defence_count(cosmos, planet);
     }
   }
   return sum;

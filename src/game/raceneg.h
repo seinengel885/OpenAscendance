@@ -52,8 +52,8 @@ WarOdds race_war_odds(const Cosmos& cosmos, const Race& race, RaceIndex target);
 
 // peCustom: whether the race may declare war on `target`: by
 // `race_war_odds` at least as strong, and target ships at a star of its
-// colonies where it is 1.25 times as strong (ships by hull size, a planet
-// with a planetary weapon as an enormous ship, the sides as in
+// colonies where it is 1.25 times as strong (ships by hull size, planets
+// half a point per orbital shield and weapon, the sides as in
 // `race_war_odds`) or an ally at war with the target; or 1.5 times as
 // strong with war or invasion ships within 2 hops of a target colony. True
 // in the other variants.

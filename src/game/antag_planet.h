@@ -83,6 +83,8 @@ std::int32_t planet_surface_shield_strength(const Cosmos& cosmos, const Planet& 
 // Rates the built orbital defences: 26: 1, 27: 2, 28: 2, 29: 4, 30: 6
 // (`Planet_orbital_defence_rating` 0x360d8).
 std::int32_t planet_orbital_defence_rating(const Cosmos& cosmos, const Planet& planet);
+// peCustom: the number of built orbital shields and weapons.
+std::int32_t planet_orbital_defence_count(const Cosmos& cosmos, const Planet& planet);
 // The value of `planet` as a target for `race`: an enemy planet's worth, an
 // unowned planet's habitability above 70, else 0 (`Planet_ai_target_value`
 // 0x364b4).
