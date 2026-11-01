@@ -225,8 +225,13 @@ void race_update_attitude_drift(Session& session, Race& race) {
       if (log.active()) {
         const std::string bias = biased ? ", Spielerfaktor" : "";
         if (race.relation[ut] == kWar) {
-          log.set_cause(std::format("Krieg: Mitleid {:+}, Nachgeben+Waffenruhe {:+} ({} Tage ohne Angriff){}", pity,
-                                    concession, cosmos.day - session.game->last_attack_days[race.index][ut], bias));
+          const std::int32_t last = session.game->last_attack_days[race.index][ut];
+          const std::int32_t calm = cosmos.day - last;
+          const std::string since = last == kNoAttackDay
+                                        ? "noch nie angegriffen"
+                                        : std::format("{} {} ohne Angriff", calm, calm == 1 ? "Tag" : "Tage");
+          log.set_cause(
+              std::format("Krieg: Mitleid {:+}, Nachgeben+Waffenruhe {:+} ({}){}", pity, concession, since, bias));
         } else {
           log.set_cause(std::format("Schiffe im Gebiet: {}{}", ships, bias));
         }
