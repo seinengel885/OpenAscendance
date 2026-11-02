@@ -128,6 +128,11 @@ class PlanWnd final : public GWindow {
   // shown), and whether (x, y) is on it while nothing else is open.
   Pane management_pane() const;
   bool management_hot(int x, int y) const;
+  // peCustom: the bottom left line "<name> <label symbol> <labels>", the
+  // symbol's (and the labels') area a click on which opens the planet's
+  // labels, and whether (x, y) is on it while nothing else is open.
+  Pane label_pane() const;
+  bool label_hot(int x, int y) const;
   // The remake greys the panels that do nothing on another species' planet
   // (all but PLPOP's planet dialog): on entering the screen and after the
   // planet may have changed hands (a colony founded, an invasion).

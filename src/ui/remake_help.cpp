@@ -239,9 +239,14 @@ void open_remake_topic(WinMgr& wm, HelpWnd& help, std::string_view topic) {
     }
     element.text = wm.remake_text(english);
   }
-  for (HelpButton& button : content.buttons) {
+  // The buttons' captions (`open_topic` named the button windows already).
+  for (std::size_t i = 0; i < content.buttons.size(); ++i) {
+    HelpButton& button = content.buttons[i];
     if (button.title) {
       button.title = wm.remake_text(*button.title);
+      if (i < help.children().size()) {
+        help.children()[i]->set_name(*button.title);
+      }
     }
   }
 }

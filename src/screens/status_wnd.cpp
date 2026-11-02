@@ -10,6 +10,8 @@
 #include "core/error.h"
 #include "game/float_math.h"
 #include "game/planet.h"
+#include "game/planet_plan.h"
+#include "game/variant.h"
 #include "game/session.h"
 #include "game/tables.h"
 #include "gfx/vfx_poly.h"
@@ -58,6 +60,52 @@ constexpr std::int32_t kHalfScale = 0x8000;
 
 int race_text_color(int color) { return color * 4 + 0x13; }
 
+// peCustom: the title bar's buttons (screen y range, the right end, the gap
+// and the padding of their captions), the mark box left of a row's planet
+// name, the bell at the row's right and its colours (yellow, red for a
+// danger), the frames' colour.
+constexpr Pane kTitleBar{40, 8, 630, 36};
+constexpr int kButtonY0 = 10;
+constexpr int kButtonY1 = 32;
+constexpr int kButtonsRight = 622;
+constexpr int kButtonGap = 5;
+constexpr int kButtonPad = 6;
+constexpr int kMarkX = 0xfc;
+constexpr int kMarkY = 0x10;
+constexpr int kMarkSize = 12;
+constexpr int kBellX = 0x22c;
+constexpr int kBellWidth = 16;
+constexpr int kBellY = 0x0c;
+constexpr std::uint8_t kBellColor = 0xf4;
+constexpr std::uint8_t kDangerColor = 0xe8;
+constexpr std::uint8_t kFrameColor = 0xfe;
+
+void draw_frame(Image8& screen, const Pane& p, std::uint8_t color) {
+  const int w = p.x1 - p.x0;
+  const int h = p.y1 - p.y0;
+  vfx_line_draw(screen, p, 0, 0, w, 0, color);
+  vfx_line_draw(screen, p, 0, 0, 0, h, color);
+  vfx_line_draw(screen, p, w, h, 0, h, color);
+  vfx_line_draw(screen, p, w, h, w, 0, color);
+}
+
+// A bell, 13 x 14 pixels, its top left at (x, y) of `pane`.
+void draw_bell(Image8& screen, const Pane& pane, int x, int y, std::uint8_t color) {
+  constexpr std::array<std::pair<int, int>, 11> kRows{
+      {{5, 7}, {4, 8}, {3, 9}, {3, 9}, {3, 9}, {3, 9}, {2, 10}, {2, 10}, {1, 11}, {0, 12}, {0, 12}}};
+  for (std::size_t r = 0; r < kRows.size(); ++r) {
+    const int yy = y + static_cast<int>(r);
+    vfx_line_draw(screen, pane, x + kRows[r].first, yy, x + kRows[r].second, yy, color);
+  }
+  vfx_line_draw(screen, pane, x + 5, y + 12, x + 7, y + 12, color);
+  vfx_line_draw(screen, pane, x + 6, y + 13, x + 6, y + 13, color);
+}
+
+// A planet's strategy as a key for comparing (-1 off).
+int strategy_key(const game::Session& session, const game::Planet& planet) {
+  return planet.self_managed == 0 ? -1 : static_cast<int>(game::planet_goal(session, planet));
+}
+
 // The outputs' picture frame: `chop(value ** 0.75)` as a `u16`, at most 20.
 std::size_t output_frame(std::uint16_t value) {
   const auto f = static_cast<std::uint16_t>(game::chop(std::pow(static_cast<double>(value), 0.75)));
@@ -90,6 +138,15 @@ void StatusWnd::fill() {
   const game::Cosmos& cosmos = session->game->cosmos;
   for (std::int16_t p = 0; p < cosmos.planet_count; ++p) {
     const game::Planet& planet = cosmos.planets.at(static_cast<std::size_t>(p));
+    // peCustom: the filters.
+    if (planet.owner == session->player_race && pe_custom()) {
+      const std::uint32_t labels = session->game->planet_management.at(static_cast<std::size_t>(p)).labels;
+      if ((size_filter_ >= 0 && planet.size != size_filter_) ||
+          (label_filter_ >= 0 && ((labels >> label_filter_) & 1u) == 0) ||
+          (bell_filter_ && game::planet_alarm(*session, planet) == game::PlanetAlarm::kNone)) {
+        continue;
+      }
+    }
     if (planet.owner == session->player_race) {
       const int row = list_->add_item(std::string(game::name_view(planet.name)), kRowHeight);
       list_->set_item_data(row, p);
@@ -120,6 +177,7 @@ bool StatusWnd::handle_event(int type, int a, int b) {
       }
       fill();
       list_->scroll_to(top_);
+      title_bar_.clear();
       return GWindow::handle_event(type, a, b);
     case kEventDeactivate:
       top_ = list_ != nullptr ? list_->top() : 0;
@@ -129,6 +187,26 @@ bool StatusWnd::handle_event(int type, int a, int b) {
       if (session != nullptr && list_ != nullptr && a >= 0 && a < list_->count()) {
         game::Cosmos& cosmos = session->game->cosmos;
         const game::PlanetIndex planet = row_planet(a);
+        const int x = wm_.input().x;
+        const int y = wm_.input().y;
+        if (const auto mark = mark_areas_.find(planet); mark != mark_areas_.end() && mark->second.contains(x, y)) {
+          if (!marked_.erase(planet)) {
+            marked_.insert(planet);
+          }
+          list_->draw(kDrawNormal);
+          return false;
+        }
+        if (const auto label = label_areas_.find(planet); label != label_areas_.end() && label->second.contains(x, y)) {
+          // The labels of the marked planets when the row is one of them.
+          std::vector<game::Planet*> planets{&cosmos.planets.at(static_cast<std::size_t>(planet))};
+          if (marked_.contains(planet)) {
+            planets = marked_or_shown();
+          }
+          run_label_menu(wm_, *session, planets);
+          fill();
+          draw(kDrawNormal);
+          return false;
+        }
         if (const auto area = management_areas_.find(planet);
             area != management_areas_.end() && area->second.contains(wm_.input().x, wm_.input().y)) {
           run_management_menu(wm_, *session, cosmos.planets.at(static_cast<std::size_t>(planet)));
@@ -146,9 +224,128 @@ bool StatusWnd::handle_event(int type, int a, int b) {
       }
       return false;
     }
+    case kEventLeftClick:
+      if (pe_custom() && contains(a, b)) {
+        const auto buttons = pe_buttons();
+        for (std::size_t i = 0; i < buttons.size(); ++i) {
+          if (buttons[i].second.contains(a, b)) {
+            pe_click(static_cast<int>(i));
+            return true;
+          }
+        }
+      }
+      return GWindow::handle_event(type, a, b);
     default:
       return GWindow::handle_event(type, a, b);
   }
+}
+
+bool StatusWnd::pe_custom() const {
+  const game::Session* session = wm_.services().game.core();
+  return session != nullptr && session->game->variant == game::Variant::kPeCustom;
+}
+
+std::vector<std::pair<std::string, Pane>> StatusWnd::pe_buttons() const {
+  const game::Session& session = *wm_.services().game.core();
+  std::string size = wm_.remake_text("Size");
+  if (size_filter_ >= 0) {
+    size += ": " + const_cast<WinMgr&>(wm_).static_string(kStringSizes + size_filter_);
+  }
+  std::string label = wm_.remake_text("Labels");
+  if (label_filter_ >= 0 && label_filter_ < static_cast<int>(session.game->planet_labels.size())) {
+    label = session.game->planet_labels[static_cast<std::size_t>(label_filter_)];
+  }
+  const std::array<std::string, kPeButtons> captions{wm_.remake_text("All"), wm_.remake_text("Same strategy"), size,
+                                                     label, wm_.remake_text("Only"),
+                                                     wm_.remake_text("Strategy ...")};
+  GameFont& font = const_cast<WinMgr&>(wm_).small_font();
+  std::vector<std::pair<std::string, Pane>> out(kPeButtons);
+  int x1 = kButtonsRight;
+  for (int i = kPeButtons - 1; i >= 0; --i) {
+    const std::string& caption = captions[static_cast<std::size_t>(i)];
+    const int x0 = x1 - font.string_width(caption) - 2 * kButtonPad - (i == kBell ? kBellWidth : 0);
+    out[static_cast<std::size_t>(i)] = {caption, Pane{x0, kButtonY0, x1, kButtonY1}};
+    x1 = x0 - kButtonGap;
+  }
+  return out;
+}
+
+std::vector<game::Planet*> StatusWnd::marked_or_shown() const {
+  game::Cosmos& cosmos = wm_.services().game.core()->game->cosmos;
+  std::vector<game::Planet*> marked;
+  std::vector<game::Planet*> shown;
+  for (int r = 0; r < row_count(); ++r) {
+    game::Planet* p = &cosmos.planets.at(static_cast<std::size_t>(row_planet(r)));
+    shown.push_back(p);
+    if (marked_.contains(row_planet(r))) {
+      marked.push_back(p);
+    }
+  }
+  return marked.empty() ? shown : marked;
+}
+
+void StatusWnd::pe_click(int button) {
+  game::Session& session = *wm_.services().game.core();
+  game::Cosmos& cosmos = session.game->cosmos;
+  switch (button) {
+    case kAll: {
+      bool all = true;
+      for (int r = 0; r < row_count(); ++r) {
+        all = all && marked_.contains(row_planet(r));
+      }
+      marked_.clear();
+      for (int r = 0; !all && r < row_count(); ++r) {
+        marked_.insert(row_planet(r));
+      }
+      break;
+    }
+    case kSameStrategy: {
+      // The strategy of the first marked planet shown (else the first one).
+      std::optional<int> key;
+      for (int r = 0; r < row_count() && !key; ++r) {
+        if (marked_.contains(row_planet(r)) || r == row_count() - 1) {
+          key = strategy_key(session, cosmos.planets.at(static_cast<std::size_t>(row_planet(r))));
+        }
+      }
+      marked_.clear();
+      for (int r = 0; key && r < row_count(); ++r) {
+        if (strategy_key(session, cosmos.planets.at(static_cast<std::size_t>(row_planet(r)))) == *key) {
+          marked_.insert(row_planet(r));
+        }
+      }
+      break;
+    }
+    case kSize: {
+      std::vector<std::string> names{wm_.remake_text("All sizes")};
+      for (int s = 0; s < 5; ++s) {
+        names.push_back(wm_.static_string(kStringSizes + s));
+      }
+      if (const int pick = wm_.choice_box(wm_.remake_text("Show the planets of size"), names, size_filter_ + 1);
+          pick >= 0) {
+        size_filter_ = pick - 1;
+      }
+      break;
+    }
+    case kLabel: {
+      std::vector<std::string> names{wm_.remake_text("All labels")};
+      names.insert(names.end(), session.game->planet_labels.begin(), session.game->planet_labels.end());
+      if (const int pick = wm_.choice_box(wm_.remake_text("Show the planets labelled"), names, label_filter_ + 1);
+          pick >= 0) {
+        label_filter_ = pick - 1;
+      }
+      break;
+    }
+    case kBell:
+      bell_filter_ = !bell_filter_;
+      break;
+    case kStrategy:
+      run_strategy_menu(wm_, session, marked_or_shown());
+      break;
+    default:
+      break;
+  }
+  fill();
+  draw(kDrawNormal);
 }
 
 void StatusWnd::draw(int /*mode*/) {
@@ -168,7 +365,42 @@ void StatusWnd::draw(int /*mode*/) {
         wm_.static_string(systems == 1 ? kStringNoEnding : kStringPlural).c_str());
     GameFont& font = wm_.large_font();
     font.pane() = pane_;
-    font.draw_wrapped(wm_.screen(), 0x19, 9, title, kFontCenterH, race_text_color(race.color), 0xff, 0);
+    if (pe_custom()) {
+      // peCustom: a short title, the buttons right of it, on the title bar
+      // as the screen's background has it (kept at the first draw).
+      Image8& screen = wm_.screen();
+      if (title_bar_.empty()) {
+        for (int yy = kTitleBar.y0; yy <= kTitleBar.y1; ++yy) {
+          for (int xx = kTitleBar.x0; xx <= kTitleBar.x1; ++xx) {
+            title_bar_.push_back(screen.at(xx, yy));
+          }
+        }
+      } else {
+        std::size_t k = 0;
+        for (int yy = kTitleBar.y0; yy <= kTitleBar.y1; ++yy) {
+          for (int xx = kTitleBar.x0; xx <= kTitleBar.x1; ++xx) {
+            screen.set(xx, yy, title_bar_[k++]);
+          }
+        }
+      }
+      const std::string short_title = c_format("%s (%d)", wm_.static_string(kStringSpecies + race.species).c_str(), planets);
+      font.draw_wrapped(wm_.screen(), 0x2a, 12, short_title, 0, race_text_color(race.color), 0xff, 0);
+      GameFont& small = wm_.small_font();
+      small.pane() = GSystem::kScreenPane;
+      const auto buttons = pe_buttons();
+      for (std::size_t i = 0; i < buttons.size(); ++i) {
+        const auto& [caption, p] = buttons[i];
+        const bool on = (i == kBell && bell_filter_) || (i == kSize && size_filter_ >= 0) || (i == kLabel && label_filter_ >= 0);
+        vfx_pane_wipe(wm_.screen(), p, on ? kHotBackColor : kBackColor);
+        draw_frame(wm_.screen(), p, kFrameColor);
+        small.draw_wrapped(wm_.screen(), p.x0 + kButtonPad, p.y0 + 7, caption, 0, kTextColor, 0xff, 0);
+        if (i == kBell) {
+          draw_bell(wm_.screen(), GSystem::kScreenPane, p.x1 - kButtonPad - 13, p.y0 + 4, kBellColor);
+        }
+      }
+    } else {
+      font.draw_wrapped(wm_.screen(), 0x19, 9, title, kFontCenterH, race_text_color(race.color), 0xff, 0);
+    }
     wm_.draw_colored(pane_, wm_.shared_shapes(kRaceFlags).at(race.species), 3, 3, race.color);
   }
   draw_children();
@@ -217,9 +449,34 @@ void StatusWnd::draw_row(const Pane& row, game::PlanetIndex index, bool hilite) 
     const bool hot =
         hilite && management_areas_.contains(index) && management_areas_[index].contains(wm_.input().x, wm_.input().y);
     small.draw_wrapped(screen, 0x113, 0x1e, label, 0, hot ? kTextColor : planet_color, 0xff, 0);
-    management_areas_[index] = Pane{row.x0 + 0x113, row.y0 + 0x1e, row.x0 + 0x113 + small.string_width(label),
-                                    row.y0 + 0x1e + small.font().height};
+    const int label_x1 = 0x113 + small.string_width(label);
+    management_areas_[index] = Pane{row.x0 + 0x113, row.y0 + 0x1e, row.x0 + label_x1, row.y0 + 0x1e + small.font().height};
     y = 0x27;
+    // The mark box, the label symbol and labels, the bell and its reason.
+    const Pane mark{row.x0 + kMarkX, row.y0 + kMarkY, row.x0 + kMarkX + kMarkSize, row.y0 + kMarkY + kMarkSize};
+    vfx_pane_wipe(screen, mark, 0);
+    draw_frame(screen, mark, kFrameColor);
+    if (marked_.contains(index)) {
+      for (int k = 0; k < 2; ++k) {
+        vfx_line_draw(screen, mark, 2, 6 + k, 5, 9 + k, kTextColor);
+        vfx_line_draw(screen, mark, 5, 9 + k, 10, 2 + k, kTextColor);
+      }
+    }
+    mark_areas_[index] = Pane{mark.x0 - 3, mark.y0 - 3, mark.x1 + 3, mark.y1 + 3};
+    const int tag_x = label_x1 + 10;
+    draw_label_icon(screen, row.x0 + tag_x, row.y0 + 0x1f, static_cast<std::uint8_t>(planet_color));
+    const std::string labels = planet_labels_text(*session, planet);
+    small.draw_wrapped(screen, tag_x + 20, 0x1e, labels, 0, planet_color, 0xff, 0);
+    label_areas_[index] = Pane{row.x0 + tag_x - 2, row.y0 + 0x1c, row.x0 + tag_x + 22 + small.string_width(labels),
+                               row.y0 + 0x1e + small.font().height};
+    if (const game::PlanetAlarm alarm = game::planet_alarm(*session, planet); alarm != game::PlanetAlarm::kNone) {
+      const std::uint8_t color = alarm == game::PlanetAlarm::kDanger ? kDangerColor : kBellColor;
+      draw_bell(screen, row, kBellX, kBellY, color);
+      // The reason after the labels.
+      const std::string reason = wm_.remake_text(game::planet_alarm_text(alarm));
+      const int reason_x = label_areas_[index].x1 - row.x0 + 10;
+      small.draw_wrapped(screen, reason_x, 0x1e, reason, 0, color, 0xff, 0);
+    }
   } else if (planet.self_managed == -1) {
     small.draw_wrapped(screen, 0x113, 0x1e, wm_.static_string(kStringSelfManaged), 0, planet_color, 0xff, 0);
     y = 0x27;

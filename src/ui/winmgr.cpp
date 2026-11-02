@@ -1414,8 +1414,10 @@ void WinMgr::end_modal(int result) {
 std::span<std::uint8_t> WinMgr::scratch_buffer(bool remake_window) {
   game::Session* core = services_.game.core();
   if (remake_window || core == nullptr || core->scratch.size() < kScratchBytes) {
-    own_scratch_.resize(kScratchBytes);
-    return own_scratch_;
+    // The remake's own windows may cover the whole screen; the original's
+    // keep the bound of its buffer.
+    own_scratch_.resize(static_cast<std::size_t>(kScreenWidth) * kScreenHeight);
+    return remake_window ? std::span(own_scratch_) : std::span(own_scratch_).first(kScratchBytes);
   }
   return core->scratch;
 }

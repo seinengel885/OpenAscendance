@@ -46,4 +46,44 @@ O44	Archaeology	Archäologie
 O45	Balanced V2	Ausgewogen V2
 O46	Industry V2	Industrie V2
 O47	Research V2	Forschung V2
-O48	%s is built up for its strategy %s.	%s ist für die Strategie „%s“ ausgebaut.
+O48	%s is built up for its strategy %s.	%s ist für die Strategie %s ausgebaut.
+O49	Strategy	Strategie
+O50	Buildings (Never / Reserve / Along / First)	Bauten (Nein / Vorsehen / Mitwachsend / Vorrang)
+O51	Never	Nein
+O52	Reserve	Vorsehen
+O53	Along	Mitwachsend
+O54	First	Vorrang
+O55	Planetary defence	Planetare Verteidigung
+O56	Surface Shields	Oberflächenschilde
+O57	Observation Installation	Beobachtungsstation
+O58	Surface Cloaker	Oberflächentarnung
+O59	Tractor Beam	Traktorstrahl
+O60	Orbital defence	Orbitale Verteidigung
+O61	Orbital weapons and shields	Orbitalwaffen und -schilde
+O62	Orbital Cloaker	Orbitaltarnung
+O63	Orbital Dock	Orbitaldock
+O64	Xeno Archeological Dig	Xenoarchäologie-Grabung
+O65	Keep (0: off)	Erhalten (0: aus)
+O66	Industry at least	Industrie mindestens
+O67	Research at least	Forschung mindestens
+O68	Growth: an inhabitant within	Wachstum: Einwohner spätestens alle
+O69	%d days	%d Tage
+O70	Research boost	Forschungsboost
+O71	On	An
+O72	Standard	Standard
+O73	Strategy of %d planets	Strategie von %d Planeten
+O74	Labels	Labels
+O75	New label ...	Neues Label ...
+O76	danger at the star	Gefahr am Stern
+O77	growth stopped	Wachstum steht
+O78	no project, free workers	kein Projekt, Arbeiter frei
+O79	All	Alle
+O80	Same strategy	Gleiche Strategie
+O81	Size	Größe
+O82	Only	Nur
+O83	Strategy ...	Strategie ...
+O84	All sizes	Alle Größen
+O85	All labels	Alle Labels
+O86	Show the planets of size	Planeten der Größe zeigen
+O87	Show the planets labelled	Planeten mit Label zeigen
+O88	Go^to^Planet	Zum^Planeten

@@ -881,9 +881,9 @@ bool planet_goal_v2(PlanetGoal goal) {
   return goal == PlanetGoal::kBalancedV2 || goal == PlanetGoal::kIndustryV2 || goal == PlanetGoal::kResearchV2;
 }
 
-void pe_manage_planet_v2(Session& session, Planet& planet, PlanetGoal goal) {
+void pe_manage_planet_v2(Session& session, Planet& planet, PlanetGoal goal, const PlanetManagement& management) {
   const bool complete = antag_race_research_complete(session, session.game->cosmos.races.at(planet.owner));
-  Rules rules(session, planet, goal, planet_management(session, planet), complete);
+  Rules rules(session, planet, goal, management, complete);
   const Action a = rules.decide();
   // The player hears once when the planet is built up (nothing left to
   // build or replace), again after it built anew.

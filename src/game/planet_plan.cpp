@@ -491,6 +491,107 @@ std::uint16_t ruins_square(const Session& session, const Planet& planet) {
   return kNoSquare;
 }
 
+// Whether `planet` is its owner's first planet: the oldest of its home
+// star.
+bool first_planet(const Session& session, const Planet& planet) {
+  const Cosmos& cosmos = session.game->cosmos;
+  bool first = planet.owner < cosmos.race_count && planet.star == cosmos.races.at(planet.owner).home;
+  for (PlanetIndex i = 0; first && i < cosmos.planet_count; ++i) {
+    const Planet& other = cosmos.planets[static_cast<std::size_t>(i)];
+    first = other.owner != planet.owner || other.star != planet.star || other.acquired_day > planet.acquired_day ||
+            (other.acquired_day == planet.acquired_day && &other >= &planet);
+  }
+  return first;
+}
+
+struct AiPlan {
+  PlanetGoal goal;
+  PlanetManagement management;
+};
+
+// Hops from `star` to the nearest star that is not `race`'s alone (one with
+// no colony, or another's).
+std::int32_t frontier_hops(const Cosmos& cosmos, const Race& race, StarIndex star) {
+  const auto bit = static_cast<std::uint8_t>(1u << (race.index & 0x1f));
+  std::int32_t best = 0xff;
+  for (StarIndex s = 0; s < cosmos.star_count; ++s) {
+    if ((cosmos.stars[static_cast<std::size_t>(s)].owner_mask & 0x7f) != bit) {
+      best = std::min<std::int32_t>(best, cosmos.hops[static_cast<std::size_t>(star)][static_cast<std::size_t>(s)]);
+    }
+  }
+  return best;
+}
+
+// The AI's planets for Shipyards: one, and one more per four planets, of
+// the planets of size small up the best by industry, nearer the frontier
+// first (a species deep in a dead end builds them toward its way out).
+std::vector<PlanetIndex> ai_shipyard_planets(const Session& session, const Race& race) {
+  constexpr std::int32_t kHopWeight = 6;
+  const Cosmos& cosmos = session.game->cosmos;
+  std::vector<std::pair<std::int32_t, PlanetIndex>> ranked;
+  std::int32_t planets = 0;
+  for (PlanetIndex i = 0; i < cosmos.planet_count; ++i) {
+    const Planet& p = cosmos.planets[static_cast<std::size_t>(i)];
+    if (p.owner != race.index) {
+      continue;
+    }
+    ++planets;
+    if (p.size >= 1) {
+      const std::int32_t score =
+          u16(p.industry) + 2 * p.size - kHopWeight * frontier_hops(cosmos, race, p.star);
+      ranked.emplace_back(-score, i);
+    }
+  }
+  std::ranges::sort(ranked);
+  const std::size_t n = std::min<std::size_t>(ranked.size(), static_cast<std::size_t>(1 + planets / 4));
+  std::vector<PlanetIndex> out;
+  for (std::size_t k = 0; k < n; ++k) {
+    out.push_back(ranked[k].second);
+  }
+  return out;
+}
+
+// The AI's strategy and management of `planet` (`race` its owner): a
+// Shipyard along on its Shipyard planets (first while it has none) (`ai_shipyard_planets`), which
+// build for industry; its first planet balanced, for research when the
+// Shipyards are elsewhere; the others by their squares' colours (red: industry, blue:
+// research, else balanced); defences first under a lingering danger.
+AiPlan ai_plan(const Session& session, const Race& race, const Planet& planet) {
+  const Cosmos& cosmos = session.game->cosmos;
+  const auto index = planet_index(cosmos, planet);
+  AiPlan plan{PlanetGoal::kBalancedV2, planet_management_standard(session, planet)};
+  const std::vector<PlanetIndex> yards = ai_shipyard_planets(session, race);
+  const bool yard = std::ranges::find(yards, index) != yards.end();
+  // The species' first Shipyard comes first: its ships colonize.
+  const bool none = std::ranges::none_of(yards, [&](PlanetIndex i) {
+    return planet_find_item(cosmos, cosmos.planets[static_cast<std::size_t>(i)], kItemShipyard) != kNoSquare;
+  });
+  plan.management.levels[PlanetManagement::kShipyard] =
+      !yard ? BuildLevel::kNo : none ? BuildLevel::kFirst : BuildLevel::kAlong;
+  if (pe_danger_at(session, race, planet)) {
+    plan.management.levels[PlanetManagement::kPlanetaryDefence] = BuildLevel::kFirst;
+    plan.management.levels[PlanetManagement::kOrbitalDefence] = BuildLevel::kFirst;
+  }
+  std::int32_t red = 0;
+  std::int32_t blue = 0;
+  for (const Square& sq : planet_squares(cosmos, planet).first(planet.surface_squares)) {
+    red += sq.color == 2 ? 1 : 0;
+    blue += sq.color == 4 ? 1 : 0;
+  }
+  const bool first = first_planet(session, planet);
+  if (first) {
+    // Balanced, or research when the Shipyards are elsewhere.
+    plan.goal = yard || yards.empty() ? PlanetGoal::kBalancedV2 : PlanetGoal::kResearchV2;
+  } else if (yard) {
+    plan.goal = PlanetGoal::kIndustryV2;
+  } else if (2 * red > 3 * blue) {
+    plan.goal = PlanetGoal::kIndustryV2;
+  } else if (2 * blue > 3 * red) {
+    plan.goal = PlanetGoal::kResearchV2;
+  }
+  return plan;
+}
+
 // Hands a planet back to the player.
 void hand_back(Session& session, Planet& planet) {
   planet.self_managed = 0;
@@ -656,15 +757,8 @@ std::string_view planet_goal_name(PlanetGoal goal) {
 PlanetManagement planet_management_standard(const Session& session, const Planet& planet) {
   constexpr std::array<std::int16_t, 5> kShields{2, 3, 4, 6, 8};
   constexpr std::array<std::int16_t, 5> kIndustry{3, 4, 5, 6, 8};
-  const Cosmos& cosmos = session.game->cosmos;
   const std::size_t size = std::min<std::size_t>(planet.size, 4);
-  // The owner's first planet: the oldest of its home star.
-  bool first = planet.owner < cosmos.race_count && planet.star == cosmos.races.at(planet.owner).home;
-  for (PlanetIndex i = 0; first && i < cosmos.planet_count; ++i) {
-    const Planet& other = cosmos.planets[static_cast<std::size_t>(i)];
-    first = other.owner != planet.owner || other.star != planet.star || other.acquired_day > planet.acquired_day ||
-            (other.acquired_day == planet.acquired_day && &other >= &planet);
-  }
+  const bool first = first_planet(session, planet);
   PlanetManagement m;
   m.levels = {BuildLevel::kAlong, BuildLevel::kAlong, first ? BuildLevel::kAlong : BuildLevel::kNo, BuildLevel::kNo,
               ruins_square(session, planet) != kNoSquare ? BuildLevel::kAlong : BuildLevel::kNo};
@@ -691,6 +785,42 @@ PlanetManagement planet_management(const Session& session, const Planet& planet)
   m.growth_days = m.growth_days < 0 ? standard.growth_days : m.growth_days;
   m.research_boost = m.research_boost < 0 ? standard.research_boost : m.research_boost;
   return m;
+}
+
+PlanetAlarm planet_alarm(const Session& session, const Planet& planet) {
+  const Cosmos& cosmos = session.game->cosmos;
+  if (planet.owner >= cosmos.race_count) {
+    return PlanetAlarm::kNone;
+  }
+  if (pe_danger_at(session, cosmos.races.at(planet.owner), planet)) {
+    return PlanetAlarm::kDanger;
+  }
+  const std::span<const Square> squares = planet_squares(cosmos, planet);
+  const bool empty = std::ranges::any_of(squares.first(planet.surface_squares), [](const Square& sq) {
+    return sq.item == kNoItem && sq.color != 0 && (sq.color & kSquareRuins) == 0;
+  });
+  if (empty && planet.prosperity <= 0 && planet.population < planet.max_population &&
+      planet.population <= planet.used_population) {
+    return PlanetAlarm::kGrowthStopped;
+  }
+  if (planet.self_managed == 0 && planet.project_item == kNoItem && planet.population > planet.used_population) {
+    return PlanetAlarm::kIdle;
+  }
+  return PlanetAlarm::kNone;
+}
+
+std::string_view planet_alarm_text(PlanetAlarm alarm) {
+  switch (alarm) {
+    case PlanetAlarm::kDanger:
+      return "danger at the star";
+    case PlanetAlarm::kGrowthStopped:
+      return "growth stopped";
+    case PlanetAlarm::kIdle:
+      return "no project, free workers";
+    case PlanetAlarm::kNone:
+      break;
+  }
+  return "";
 }
 
 bool planet_goal_available(const Session& session, const Planet& planet, PlanetGoal goal) {
@@ -728,13 +858,18 @@ void pe_manage_planet(Session& session, Race& race, Planet& planet) {
     if (defence && pe_danger_at(session, race, planet) && pe_build_orbital_defence(session, race, planet)) {
       return;
     }
-  } else if (antag_race_ai_choose_orbital_project(session, race, planet) == 1 ||
-             antag_race_ai_planet_specials(session, race, planet)) {
-    // The AI's orbital projects and specials stay the Antagonizer's.
+  } else {
+    // The AI: the Antagonizer's specials, the rest by the rule-based
+    // planner for the strategy and management it picks.
+    if (antag_race_ai_planet_specials(session, race, planet)) {
+      return;
+    }
+    const AiPlan plan = ai_plan(session, race, planet);
+    pe_manage_planet_v2(session, planet, plan.goal, plan.management);
     return;
   }
   if (planet_goal_v2(goal)) {
-    pe_manage_planet_v2(session, planet, goal);
+    pe_manage_planet_v2(session, planet, goal, planet_management(session, planet));
     return;
   }
   switch (goal) {

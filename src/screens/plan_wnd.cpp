@@ -55,6 +55,11 @@ constexpr std::uint8_t kHotColor = 0x96;
 // peCustom: the bottom right corner of the management label.
 constexpr int kManagementRight = 628;
 constexpr int kManagementBottom = 466;
+// peCustom: the left end of the planet's name and labels, the gap between
+// name, label symbol and labels, and the symbol's width.
+constexpr int kLabelsLeft = 96;
+constexpr int kLabelGap = 6;
+constexpr int kLabelIconWidth = 16;
 
 // static.txt.
 constexpr int kStringNone = 0x1c;
@@ -258,6 +263,12 @@ bool PlanWnd::handle_event(int type, int a, int b) {
         draw(kDrawNormal);
         return false;
       }
+      if (label_hot(a, b)) {
+        game::Planet* const planets[] = {planet()};
+        run_label_menu(wm_, *session(), planets);
+        draw(kDrawNormal);
+        return false;
+      }
       left_click();
       if (design_square_ != kNoSquare) {
         ship_design(design_square_, false);
@@ -352,6 +363,22 @@ Pane PlanWnd::management_pane() const {
   const int width = font.string_width(management_label(wm_, *s, *p));
   const int height = font.font().height;
   return Pane{kManagementRight - width, kManagementBottom - height, kManagementRight, kManagementBottom};
+}
+
+Pane PlanWnd::label_pane() const {
+  const game::Session* s = session();
+  const game::Planet* p = planet();
+  if (s == nullptr || p == nullptr || !management_shown(*s, *p)) {
+    return Pane{0, 0, -1, -1};
+  }
+  GameFont& font = wm_.large_font();
+  const int x0 = kLabelsLeft + font.string_width(name_of(p->name)) + kLabelGap;
+  const int width = kLabelIconWidth + kLabelGap + font.string_width(planet_labels_text(*s, *p));
+  return Pane{x0, kManagementBottom - font.font().height, x0 + width, kManagementBottom};
+}
+
+bool PlanWnd::label_hot(int x, int y) const {
+  return !list().shown() && !dialog().shown() && selection_ == kNoSelection && label_pane().contains(x, y);
 }
 
 bool PlanWnd::management_hot(int x, int y) const {
@@ -640,6 +667,14 @@ void PlanWnd::draw(int /*mode*/) {
                           ? kHotColor
                           : s->game->cosmos.races.at(s->player_race).color * 4 + 0x13;
     font.draw_wrapped(screen, area.x0, area.y0, management_label(wm_, *s, *p), 0, color, 0xff, 0);
+    // Bottom left: the name, the label symbol and the labels.
+    const Pane labels = label_pane();
+    const int name_color = s->game->cosmos.races.at(s->player_race).color * 4 + 0x13;
+    const int label_color = label_hot(wm_.input().x, wm_.input().y) ? kHotColor : name_color;
+    font.draw_wrapped(screen, kLabelsLeft, labels.y0, name_of(p->name), 0, name_color, 0xff, 0);
+    draw_label_icon(screen, labels.x0, labels.y0 + 2, static_cast<std::uint8_t>(label_color));
+    font.draw_wrapped(screen, labels.x0 + kLabelIconWidth + kLabelGap, labels.y0, planet_labels_text(*s, *p), 0,
+                      label_color, 0xff, 0);
   }
   if (list().shown()) {
     vfx_shape_draw(screen, Pane{0x70, 0x70, 0x210, 0x1ac}, np.at(kListBorder), 0, 0);

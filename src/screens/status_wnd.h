@@ -8,6 +8,9 @@
 
 #include <cstdint>
 #include <map>
+#include <set>
+#include <string>
+#include <vector>
 
 #include "game/state.h"
 #include "ui/gwindow.h"
@@ -39,7 +42,8 @@ class StatusWnd final : public GWindow {
   bool handle_event(int type, int a, int b) override;
   // `StatusWnd_draw` (0x4caf0): the title "<species>  (N Planets
   // Occupied, M Systems Controlled)" in the player's colour with its flag,
-  // over the background, then the list.
+  // over the background, then the list. peCustom: "<species> (N)" and the
+  // buttons of the planets' marks and filters (`PeButton`).
   void draw(int mode) override;
   void draw_hilite(int mode) override { draw(mode); }
 
@@ -54,6 +58,14 @@ class StatusWnd final : public GWindow {
 
  private:
   void fill();
+  // peCustom: the title bar's buttons, their captions and panes (screen),
+  // and a click on one.
+  enum PeButton : int { kAll, kSameStrategy, kSize, kLabel, kBell, kStrategy, kPeButtons };
+  bool pe_custom() const;
+  std::vector<std::pair<std::string, Pane>> pe_buttons() const;
+  void pe_click(int button);
+  // The marked planets shown, all those shown when none is.
+  std::vector<game::Planet*> marked_or_shown() const;
   // `StatusWnd_draw_planet_item` (0x4b940).
   void draw_row(const Pane& row, game::PlanetIndex planet, bool hilite);
 
@@ -62,6 +74,17 @@ class StatusWnd final : public GWindow {
   // peCustom: where each planet's management label was last drawn (a click
   // there opens its menu).
   std::map<game::PlanetIndex, Pane> management_areas_;
+  // peCustom: where each row's mark box and label symbol were drawn, the
+  // marked planets and the filters (size, label: -1 all; only the planets
+  // with a bell).
+  std::map<game::PlanetIndex, Pane> mark_areas_;
+  std::map<game::PlanetIndex, Pane> label_areas_;
+  std::set<game::PlanetIndex> marked_;
+  int size_filter_ = -1;
+  int label_filter_ = -1;
+  bool bell_filter_ = false;
+  // The title bar's background, kept at the first draw after activation.
+  std::vector<std::uint8_t> title_bar_;
 };
 
 // Adds `StatusWnd` (TYPE 16) to `factory`.

@@ -61,15 +61,26 @@ PlanetManagement planet_management(const Session& session, const Planet& planet)
 // 3 / 4 / 5 / 6 / 8 kept by size (tiny .. enormous).
 PlanetManagement planet_management_standard(const Session& session, const Planet& planet);
 
+// Why a planet of the player needs the player (the planet list's bell), in
+// this order: a lingering danger at its star, its growth stopped while
+// empty squares wait for workers, no project while it has free workers
+// (not self-managed).
+enum class PlanetAlarm : std::uint8_t { kNone, kDanger, kGrowthStopped, kIdle };
+PlanetAlarm planet_alarm(const Session& session, const Planet& planet);
+// The alarm's English text (the remake text's key), "" for none.
+std::string_view planet_alarm_text(PlanetAlarm alarm);
+
 // Whether `goal` is one of the rule-based planner's (`planet_plan_v2.cpp`).
 bool planet_goal_v2(PlanetGoal goal);
 
 // The rule-based planner (`planet_plan_v2.cpp`): starts the next project of
-// an idle planet managed for the V2 goal `goal`.
-void pe_manage_planet_v2(Session& session, Planet& planet, PlanetGoal goal);
+// an idle planet managed for the V2 goal `goal` with `management` (its
+// standards filled in).
+void pe_manage_planet_v2(Session& session, Planet& planet, PlanetGoal goal, const PlanetManagement& management);
 
-// peCustom: chooses the project of an idle planet that the AI runs or that
-// manages itself (`Planet::project_item` none). The Shipyard and Archaeology
+// peCustom: chooses the project of an idle planet that the AI runs (by the
+// rule-based planner, for a strategy and management it picks itself) or
+// that manages itself (`Planet::project_item` none). The Shipyard and Archaeology
 // goals hand the planet back to the player (self-management off) once their
 // project has started, so the player hears of its completion.
 void pe_manage_planet(Session& session, Race& race, Planet& planet);
