@@ -34,9 +34,10 @@
 namespace oa::game {
 
 // The goals in the order the menus list them.
-inline constexpr std::array<PlanetGoal, kPlanetGoalCount> kPlanetGoals{PlanetGoal::kBalanced, PlanetGoal::kIndustry,
-                                                                       PlanetGoal::kResearch, PlanetGoal::kDefence,
-                                                                       PlanetGoal::kShipyard, PlanetGoal::kArchaeology};
+inline constexpr std::array<PlanetGoal, kPlanetGoalCount> kPlanetGoals{
+    PlanetGoal::kBalanced,   PlanetGoal::kIndustry,    PlanetGoal::kResearch,   PlanetGoal::kDefence,
+    PlanetGoal::kShipyard,   PlanetGoal::kArchaeology, PlanetGoal::kBalancedV2, PlanetGoal::kIndustryV2,
+    PlanetGoal::kResearchV2};
 
 // The goal's English name (the remake text's key).
 std::string_view planet_goal_name(PlanetGoal goal);
@@ -49,6 +50,13 @@ bool planet_goal_available(const Session& session, const Planet& planet, PlanetG
 // The goal `planet`'s self-management follows: the player's choice (the
 // balanced goal when that is no longer available), or the AI's own.
 PlanetGoal planet_goal(const Session& session, const Planet& planet);
+
+// Whether `goal` is one of the rule-based planner's (`planet_plan_v2.cpp`).
+bool planet_goal_v2(PlanetGoal goal);
+
+// The rule-based planner (`planet_plan_v2.cpp`): starts the next project of
+// an idle planet managed for the V2 goal `goal`.
+void pe_manage_planet_v2(Session& session, Planet& planet, PlanetGoal goal);
 
 // peCustom: chooses the project of an idle planet that the AI runs or that
 // manages itself (`Planet::project_item` none). The Shipyard and Archaeology

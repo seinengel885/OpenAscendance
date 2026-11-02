@@ -371,8 +371,12 @@ enum class PlanetGoal : std::uint8_t {
   kDefence = 3,      // planetary shields and weapons on a sound economy
   kShipyard = 4,     // a Shipyard as soon as possible, then hands back
   kArchaeology = 5,  // a dig on the ruins as soon as possible, then hands back
+  // The goals of the rule-based planner (`planet_plan_v2.cpp`).
+  kBalancedV2 = 6,
+  kIndustryV2 = 7,
+  kResearchV2 = 8,
 };
-inline constexpr std::size_t kPlanetGoalCount = 6;
+inline constexpr std::size_t kPlanetGoalCount = 9;
 
 // Everything a save holds about the game: the cosmos, the research state
 // and the saved globals.
