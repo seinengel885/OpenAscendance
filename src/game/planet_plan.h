@@ -75,8 +75,9 @@ void pe_manage_planet(Session& session, Race& race, Planet& planet);
 bool pe_take_project_bell(Session& session, const Planet& planet);
 
 // peCustom: a planet of the player whose management was just turned on or
-// changed starts its project now when idle (`pe_manage_planet`), not only
-// with the next day.
+// changed starts its project now (`pe_manage_planet`), not only with the
+// next day: when idle or its project has not begun (no progress, not a
+// ship), that one cancelled.
 void pe_manage_planet_now(Session& session, Planet& planet);
 
 }  // namespace oa::game

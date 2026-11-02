@@ -284,10 +284,26 @@ bool pe_take_project_bell(Session& session, const Planet& planet) {
 }
 
 void pe_manage_planet_now(Session& session, Planet& planet) {
-  if (session.game->variant == Variant::kPeCustom && is_player_planet(session, planet) && planet.self_managed != 0 &&
-      planet.project_item == kNoItem) {
-    pe_manage_planet(session, session.game->cosmos.races.at(planet.owner), planet);
+  if (session.game->variant != Variant::kPeCustom || !is_player_planet(session, planet) || planet.self_managed == 0) {
+    return;
   }
+  if (planet.project_item != kNoItem) {
+    // A project not begun yet (no progress; a ship stays, its design is the
+    // player's) makes way, as a new project cancels it.
+    if (planet.progress != 0 || planet.project_item == kItemShip) {
+      return;
+    }
+    if (planet.project_square != kNoSquare) {
+      Square& old = planet_squares(session.game->cosmos, planet)[planet.project_square];
+      if ((old.flags & kSquareBuilt) == 0) {
+        old.item = kNoItem;
+      }
+    }
+    planet.project_square = kNoSquare;
+    planet.project_item = kNoItem;
+    planet_recalc_output(session, planet);
+  }
+  pe_manage_planet(session, session.game->cosmos.races.at(planet.owner), planet);
 }
 
 }  // namespace oa::game
