@@ -5,7 +5,7 @@
 // 1. Housing: while the planet needs more workers than it has room for,
 //    housing in time (when the room left fills before housing is built).
 // 2. Growth: when workers come slower than the goal's buildings are done
-//    (or as slow), the growth building that brings inhabitants soonest; without
+//    (or as slow), or too slow for a Shipyard's ships, the growth building that brings inhabitants soonest; without
 //    a worker, the least needed building makes way for one if that is
 //    sooner than waiting, its rebuilding counted (always when growth has
 //    stopped).
@@ -18,8 +18,9 @@
 //    building, on the square of its colour.
 // 6. Replacement (no empty square left): the building whose replacement
 //    gains the goal most, if the gain makes up for the loss while
-//    rebuilding; the prosperity a Shipyard needs, a minimum of industry and
-//    the housing in use stay. Each replacement raises the goal's outputs,
+//    rebuilding; the prosperity a Shipyard needs (an inhabitant within a
+//    ship's building time; two workers stay free for ships), a minimum of
+//    industry and the housing in use stay. Each replacement raises the goal's outputs,
 //    so buildings never replace each other back and forth.
 // Squares: an item goes on the colour of its role (housing white), else
 // white, else the colour the goal needs least; among those the square
@@ -63,6 +64,10 @@ constexpr std::int32_t kShieldDays = 20;
 // The cost of a well equipped ship per hull (hull and slots full of
 // gizmos): a planet with a Shipyard keeps the growth for one in its time.
 constexpr std::array<std::int32_t, 4> kShipCost{320, 670, 1000, 1650};
+// The free workers a full planet with a Shipyard keeps: one builds a ship
+// (and leaves with it), the other the next one at once, while growth fills
+// the room the first left.
+constexpr std::int32_t kShipWorkers = 2;
 
 // What a building is put up for (its square's colour follows from it).
 enum class Role : std::uint8_t { kHousing, kGrowth, kIndustry, kGoal };
@@ -128,14 +133,16 @@ class Rules {
     return goal_ == PlanetGoal::kBalancedV2 ? i + r - 0.5 * std::abs(i - r) : i + r;
   }
 
-  // The workers the planet wants: one per empty usable square more, one
-  // kept for ships with a Shipyard.
+  // The workers kept for ships by a planet with a Shipyard (`kShipWorkers`).
+  std::int32_t ship_workers() const { return shipyard_ ? kShipWorkers : 0; }
+  // The workers the planet wants: one per empty usable square more, and
+  // those kept for ships.
   std::int32_t wanted_population() const {
-    return std::min(100, static_cast<std::int32_t>(b_.planet.used_population) + empty_ + (shipyard_ ? 1 : 0));
+    return std::min(100, static_cast<std::int32_t>(b_.planet.used_population) + empty_ + ship_workers());
   }
-  // Free workers for a new building (a Shipyard's planet keeps one for
-  // ships once it is full).
-  std::int32_t free_workers() const { return b_.free_population() - (shipyard_ && empty_ <= 1 ? 1 : 0); }
+  // Free workers for a new building (a Shipyard's planet keeps its ship
+  // workers once it is full).
+  std::int32_t free_workers() const { return b_.free_population() - (empty_ <= 1 ? ship_workers() : 0); }
 
   // Days until the next inhabitant, the growth gathered and its rate
   // given (`kNever` without room or growth).
@@ -337,23 +344,25 @@ class Rules {
 
   // 2. Growth before the workers run out.
   std::optional<Action> growth() {
-    if (b_.planet.population >= wanted_population() || b_.room() <= 0) {
+    // Growth for workers still wanted, or for the ships of a Shipyard.
+    const bool workers = b_.planet.population < wanted_population() && b_.room() > 0;
+    const bool ships = b_.free_population() <= ship_workers() && b_.growth_rate() < ship_growth();
+    if (!workers && !ships) {
       return std::nullopt;
     }
     const std::int32_t free = free_workers();
-    if (free >= 2) {
+    // Workers: only when they come slower than the buildings are done.
+    if (!ships && (free >= 2 || (free == 1 && interval(b_) < next_days()))) {
       return std::nullopt;
     }
     const std::int32_t wait = next_inhabitant(b_);
     const auto grows = [](const PlanItem& it) { return it.prosperity > 0; };
     std::vector<Action> options;
-    if (free == 1) {
-      if (interval(b_) < next_days()) {
-        return std::nullopt;
-      }
+    if (free >= 1) {
       options = candidates(Role::kGrowth, grows);
-    } else {
-      // No worker: the least needed buildings may make way.
+    }
+    if (options.empty()) {
+      // No worker or no square: the least needed buildings may make way.
       for (const std::uint16_t victim : victims()) {
         if (grows(b_.item(b_.squares[victim].item))) {
           continue;
@@ -373,10 +382,9 @@ class Rules {
       }
     }
     std::optional<Action> best;
-    if (wait == kNever) {
-      // Growth stopped: the most prosperity, even if more buildings must
-      // follow before it restarts (they make way again once the planet is
-      // full).
+    if (ships || wait == kNever) {
+      // Growth too slow for ships or stopped: the most prosperity, even if
+      // more buildings must follow (they make way again once not needed).
       std::int32_t most = prosperity_sum(b_);
       for (const Action& a : options) {
         if (const std::int32_t p = b_.with(a, [&](const Sim& s) { return prosperity_sum(s); }); p > most) {
@@ -489,9 +497,11 @@ class Rules {
   // The prosperity a day the planet needs: its growth while it wants more
   // workers, with a Shipyard an inhabitant within a ship's building time.
   std::int32_t needed_growth() const {
-    if (b_.planet.population < wanted_population()) {
-      return std::numeric_limits<std::int32_t>::max();
-    }
+    return b_.planet.population < wanted_population() ? std::numeric_limits<std::int32_t>::max() : ship_growth();
+  }
+  // The prosperity a day for an inhabitant within a ship's building time
+  // (0 without a Shipyard).
+  std::int32_t ship_growth() const {
     if (!shipyard_) {
       return 0;
     }
