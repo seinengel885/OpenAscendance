@@ -49,7 +49,7 @@ void set_weapon_shots(const GameTables& tables, Square& sq, std::uint8_t item) {
 
 // Returns `trunc((sum + 1) ** 0.85)` for a non-zero `sum`, else 0: the
 // output curve of industry and prosperity (pow 0x73f30, `__CHP`).
-std::int32_t curve(std::int32_t sum) { return sum == 0 ? 0 : chop(std::pow(static_cast<double>(sum + 1), 0.85)); }
+std::int32_t curve(std::int32_t sum) { return sum == 0 ? 0 : chop(planet_output_curve(sum)); }
 
 // The first square of `squares` holding `item`, `kNoSquare` if none.
 std::uint16_t find_item(std::span<const Square> squares, std::uint8_t item) {
@@ -182,7 +182,10 @@ void planet_recalc_output(const Session& session, Planet& planet) {
   planet_recalc_output(session, planet, planet_squares(session.game->cosmos, planet));
 }
 
-void planet_recalc_output(const Session& session, Planet& planet, std::span<const Square> squares) {
+double planet_output_curve(std::int32_t sum) { return sum == 0 ? 0.0 : std::pow(static_cast<double>(sum + 1), 0.85); }
+
+void planet_recalc_output(const Session& session, Planet& planet, std::span<const Square> squares,
+                          std::int32_t* industry_sum) {
   const GameTables& tables = *session.tables;
   const Cosmos& cosmos = session.game->cosmos;
   const bool antagonizer = antagonizer_rules(session.game->variant);
@@ -256,6 +259,9 @@ void planet_recalc_output(const Session& session, Planet& planet, std::span<cons
       break;
     default:
       break;
+  }
+  if (industry_sum != nullptr) {
+    *industry_sum = industry;
   }
   industry = curve(industry);
   prosperity = curve(prosperity) - (planet.population >> 2);

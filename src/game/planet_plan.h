@@ -1,16 +1,27 @@
 // peCustom's planet management (this fork's own, not in the original): the
 // project of an idle planet the AI runs or the player lets manage itself,
-// chosen for the planet's goal (`PlanetGoal`, `Game::planet_goals`).
+// chosen for the planet's goal (`PlanetGoal`, `Game::planet_goals`). No
+// building comes for free.
 //
-// The economy is planned ahead: the planner copies the planet and plays its
-// days forward with the game's own rules (`planet_recalc_output`,
-// `planet_can_place_item`: colour bonus, adjacency, population, growth). Each
-// candidate first project (an item on a square, possibly replacing a
-// building) is followed by a quick greedy continuation for a horizon of
-// days, and the one that yields the most of the goal's outputs over that
-// horizon wins. So growth first or output first, which colour and which
-// square, and converting buildings after a change of goal are all decided by
-// the same reckoning, for the planet as it is.
+// The economy is planned ahead on a copy of the planet played forward day by
+// day with the game's own rules (`planet_recalc_output`,
+// `planet_can_place_item`: colour bonus, adjacency, workers, growth toward
+// the next inhabitant). In this order:
+// - The workforce rule: while empty squares wait for more workers than the
+//   planet has or will have, its last free worker builds housing in time,
+//   and growth is restarted when one building can (else the planner
+//   decides); without a worker the least useful building makes way.
+// - While new buildings are worth it (empty squares first), each candidate
+//   (an item on the square of a colour that suits it) is played forward
+//   150 days, the next projects chosen by a quick estimate, and the one
+//   yielding the most of the goal's outputs wins: growth first or output
+//   first is decided for the planet as it is.
+// - Only then (no empty square for a worthwhile building, or no worker and
+//   none to come) buildings are replaced: the least useful ones (for the
+//   goal, after a change of goal first those it does not want), each by the
+//   best building by the quick estimate if it gains more than the outputs
+//   lost while rebuilding (so buildings never replace each other back and
+//   forth).
 #pragma once
 
 #include <array>

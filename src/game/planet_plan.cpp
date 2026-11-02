@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -37,7 +39,8 @@ constexpr std::int32_t kHorizon = 150;
 constexpr std::int32_t kTail = 150;
 // The best candidates (by the quick estimate) that are played forward.
 constexpr std::size_t kRollouts = 8;
-// The candidate victims of a replacement: the least useful buildings.
+// The victims of a replacement tried: the least useful buildings for which
+// something else may go there.
 constexpr std::size_t kVictims = 3;
 // The average cost of a building, for the buildings industry can build.
 constexpr double kAverageCost = 40.0;
@@ -91,12 +94,12 @@ Weights goal_weights(PlanetGoal goal, bool research_complete) {
   return w;
 }
 
-// A project: `item` on `square`, after demolishing the building there when
-// `replace`. No item: wait.
+// A project: `item` on `square`, after demolishing the building on `victim`
+// (if any; it frees a worker and possibly the square itself). No item: wait.
 struct Action {
   std::uint8_t item = kNoItem;
   std::uint16_t square = kNoSquare;
-  bool replace = false;
+  std::uint16_t victim = kNoSquare;
 };
 
 // The surface squares' neighbours (up to 4, `kNoSquare` for none).
@@ -123,6 +126,7 @@ class Sim {
       : planet(real_planet), session_(&session), neighbours_(&neighbours) {
     const std::span<const Square> real = planet_squares(session.game->cosmos, real_planet);
     squares.assign(real.begin(), real.end());
+    recalc();
   }
 
   const Neighbours& neighbours() const { return *neighbours_; }
@@ -134,7 +138,12 @@ class Sim {
   std::int32_t room() const {
     return static_cast<std::int32_t>(planet.max_population) - static_cast<std::int32_t>(planet.population);
   }
-  double rate(const Weights& w) const { return w.industry * u16(planet.industry) + w.research * u16(planet.research); }
+  // The goal's outputs a day. The industry counts its fraction lost to the
+  // rounding down: one more Factory often adds less than 1, but always some.
+  double rate(const Weights& w) const {
+    const double exact = planet_output_curve(industry_sum_);
+    return w.industry * (u16(planet.industry) + (exact - std::floor(exact))) + w.research * u16(planet.research);
+  }
 
   bool built(std::uint16_t square) const {
     return square != kNoSquare && squares[square].item != kNoItem && (squares[square].flags & kSquareBuilt) != 0;
@@ -159,7 +168,16 @@ class Sim {
     return sq.item != kNoItem && item(sq.item).max_population <= room();
   }
 
-  void recalc() { planet_recalc_output(*session_, planet, squares); }
+  void recalc() { planet_recalc_output(*session_, planet, squares, &industry_sum_); }
+
+  // The growth needed per inhabitant, and the growth a day: the
+  // prosperity, +1 for an AI planet of prosperity under 4
+  // (`planet_daily_update`).
+  std::int32_t pop_growth() const { return session_->tables->planitems.pop_growth; }
+  std::int32_t growth_rate() const {
+    const std::int32_t p = u16(planet.prosperity);
+    return p + (planet.owner != session_->player_race && p < 4 ? 1 : 0);
+  }
 
   // Starts `a` as the project.
   void start(const Action& a) {
@@ -171,14 +189,19 @@ class Sim {
     recalc();
   }
 
+  // Empties `square` (no recalc).
+  void clear(std::uint16_t square) { squares[square] = Square{squares[square].color, kNoItem, 0}; }
+
   // Applies `a` finished (no item: only the demolition), calls `look` and
   // undoes it all.
   template <typename F>
   auto with(const Action& a, F look) {
     const Planet saved = planet;
+    const std::uint16_t victim = a.victim != kNoSquare ? a.victim : a.square;
+    const Square old_victim = squares[victim];
     const Square square = squares[a.square];
-    if (a.replace) {
-      squares[a.square] = Square{square.color, kNoItem, 0};
+    if (a.victim != kNoSquare) {
+      clear(a.victim);
     }
     if (a.item == kItemTerraforming) {
       squares[a.square] = Square{1, kNoItem, 0};
@@ -190,6 +213,7 @@ class Sim {
     auto result = look(*this);
     planet = saved;
     squares[a.square] = square;
+    squares[victim] = old_victim;
     return result;
   }
 
@@ -214,11 +238,8 @@ class Sim {
     }
     bool reset = planet.population >= planet.max_population;
     if (!reset) {
-      planet.growth = static_cast<std::uint16_t>(planet.growth + planet.prosperity);
-      if (planet.owner != session_->player_race && u16(planet.prosperity) < 4) {
-        planet.growth = static_cast<std::uint16_t>(planet.growth + 1);
-      }
-      if (session_->tables->planitems.pop_growth <= static_cast<std::int32_t>(planet.growth)) {
+      planet.growth = static_cast<std::uint16_t>(planet.growth + growth_rate());
+      if (pop_growth() <= static_cast<std::int32_t>(planet.growth)) {
         planet.population = static_cast<std::uint16_t>(planet.population + 1);
         if (built(find(kCloningPlant))) {
           planet.population = static_cast<std::uint16_t>(planet.population + 1);
@@ -252,6 +273,7 @@ class Sim {
  private:
   const Session* session_;
   const Neighbours* neighbours_;
+  std::int32_t industry_sum_ = 0;
 };
 
 // Days to build `cost` at `industry`.
@@ -266,19 +288,23 @@ struct Look {
   std::int32_t prosperity = 0;
   std::int32_t free = 0;
   std::int32_t room = 0;
-  // The empty squares (not black) a building may go on.
+  // The growth gathered toward the next inhabitant, the growth a day and
+  // the inhabitants each one brings (two with a Cloning Plant).
+  std::int32_t growth = 0;
+  std::int32_t growth_rate = 0;
+  std::int32_t per_growth = 1;
+  // The empty squares (not black) a building may go on, and all of them.
   std::int32_t open = 0;
+  std::int32_t empty = 0;
 };
 
 // The planner of one planet's economy.
 class Planner {
  public:
-  // `replace` allows replacing buildings.
-  Planner(const Session& session, const Planet& planet, Weights weights, bool replace = true)
+  Planner(const Session& session, const Planet& planet, Weights weights)
       : neighbours_(surface_neighbours(session.tables->planitems, planet)),
         start_(session, planet, neighbours_),
-        weights_(weights),
-        replace_(replace) {}
+        weights_(weights) {}
 
   const Sim& start() const { return start_; }
 
@@ -291,11 +317,21 @@ class Planner {
   // The best project for the planet now (no item: wait).
   Action best() const {
     Sim sim = start_;
+    if (const std::optional<Action> a = workforce(sim, kHorizon)) {
+      return *a;
+    }
     std::vector<Scored> candidates = scored(sim, kHorizon);
     if (candidates.empty()) {
       return {};
     }
     std::ranges::stable_sort(candidates, [](const Scored& a, const Scored& b) { return a.score > b.score; });
+    // Replacements (the planet is full, see `scored`): the best one by the
+    // quick estimate, if it gains more than the outputs lost while
+    // rebuilding. (Playing them forward would credit each with the later
+    // replacements, while waiting gets none.)
+    if (std::ranges::any_of(candidates, [](const Scored& c) { return c.action.victim != kNoSquare; })) {
+      return candidates.front().score > 0.0 ? candidates.front().action : Action{};
+    }
     if (candidates.size() > kRollouts) {
       candidates.resize(kRollouts);
     }
@@ -319,16 +355,75 @@ class Planner {
     return chosen;
   }
 
-  std::vector<Scored> scored(Sim& sim, std::int32_t remaining) const {
-    std::vector<Scored> out;
-    Look now = look(sim, weights_);
-    for (std::uint16_t i = 0; i < sim.planet.surface_squares; ++i) {
-      if (sim.empty(i) && sim.squares[i].color != 0 && sim.touches_built(i)) {
-        ++now.open;
+  // The workforce rule, before any reckoning: while empty squares wait for
+  // more workers than the planet has or will have, the planet's last free
+  // worker builds housing in time (when at most one inhabitant's room is
+  // left), and growth is restarted where one building can; without a worker
+  // to build them, the least useful building (not one of the same kind)
+  // makes way.
+  // Returns the best such project by the quick estimate, if one is due.
+  std::optional<Action> workforce(Sim& sim, std::int32_t remaining) const {
+    const Look now = look(sim, weights_);
+    if (now.free > 1 || now.empty <= std::max(now.free, 0) + std::max(now.room, 0)) {
+      return std::nullopt;
+    }
+    bool (*fits)(const PlanItem&) = nullptr;
+    if (now.room <= 1) {
+      fits = [](const PlanItem& it) { return it.max_population > 0; };
+    } else if (now.growth_rate == 0) {
+      fits = [](const PlanItem& it) { return it.prosperity > 0; };
+    } else {
+      return std::nullopt;
+    }
+    std::vector<Action> options = new_buildings(sim);
+    std::erase_if(options, [&](const Action& a) { return !fits(sim.item(a.item)); });
+    if (options.empty()) {
+      // Never at the cost of a building of the same kind.
+      options = replacements(sim);
+      std::erase_if(options, [&](const Action& a) {
+        return !fits(sim.item(a.item)) || fits(sim.item(sim.squares[a.victim].item));
+      });
+    }
+    // Growth only where the building restarts it (with many inhabitants one
+    // building may not).
+    if (now.room > 1) {
+      std::erase_if(options,
+                    [&](const Action& a) { return sim.with(a, [](const Sim& x) { return x.growth_rate(); }) == 0; });
+    }
+    std::optional<Action> best;
+    double best_score = 0.0;
+    for (const Action& a : options) {
+      const double v = estimate(sim, a, now, remaining);
+      if (!best || v > best_score) {
+        best = a;
+        best_score = v;
       }
     }
-    for (const Action& a : candidates(sim)) {
+    return best;
+  }
+
+  // The economy building whose loss costs the goal the least, `kNoSquare`
+  // if none may go.
+  std::uint16_t least_useful() const {
+    Sim sim = start_;
+    const std::vector<std::uint16_t> v = victims(sim);
+    return v.empty() ? kNoSquare : v.front();
+  }
+
+  std::vector<Scored> scored(Sim& sim, std::int32_t remaining) const {
+    std::vector<Scored> out;
+    const Look now = look(sim, weights_);
+    for (const Action& a : new_buildings(sim)) {
       out.push_back({a, estimate(sim, a, now, remaining)});
+    }
+    // Buildings are replaced only when no new one is worth it (no empty
+    // square left for it, or no worker to build with) and the planet does
+    // not just wait for its next inhabitant.
+    const bool waiting = now.free < 1 && now.room >= 1 && now.growth_rate > 0;
+    if (!waiting && std::ranges::none_of(out, [](const Scored& c) { return c.score > 0.0; })) {
+      for (const Action& a : replacements(sim)) {
+        out.push_back({a, estimate(sim, a, now, remaining)});
+      }
     }
     return out;
   }
@@ -337,68 +432,86 @@ class Planner {
   // The candidates: per item and square colour the reachable empty square
   // that opens the most new squares, and the replacements of the least
   // useful buildings.
-  std::vector<Action> candidates(Sim& sim) const {
+  // The replacements of the least useful buildings: the demolition frees a
+  // worker and its square; the new building may go there or on an empty
+  // square.
+  std::vector<Action> replacements(Sim& sim) const {
     std::vector<Action> out;
-    const Planet& p = sim.planet;
-    if (sim.free_population() >= 1) {
-      // The empty squares a building may go on, with the access they open.
-      std::vector<std::uint16_t> reachable;
-      std::vector<std::int32_t> opened;
-      for (std::uint16_t i = 0; i < p.surface_squares; ++i) {
-        if (sim.empty(i) && sim.touches_built(i)) {
-          reachable.push_back(i);
-          opened.push_back(access(sim, i));
+    {
+      std::size_t tried = 0;
+      for (const std::uint16_t victim : victims(sim)) {
+        if (tried == kVictims) {
+          break;
         }
-      }
-      for (const std::uint8_t it : kEconomyItems) {
-        if (reachable.empty() || !sim.can_place(it, kNoSquare) || (is_boost(it) && sim.find(it) != kNoSquare)) {
-          continue;
+        const Square there = sim.squares[victim];
+        sim.clear(victim);
+        sim.recalc();
+        std::vector<Action> builds = new_buildings(sim);
+        // Not the same building again (elsewhere it would only move).
+        std::erase_if(builds, [&](const Action& a) { return a.item == there.item; });
+        for (Action& a : builds) {
+          a.victim = victim;
+          out.push_back(a);
         }
-        std::array<std::uint16_t, 5> best_square{};
-        std::array<std::int32_t, 5> best_access{};
-        best_square.fill(kNoSquare);
-        best_access.fill(-1);
-        for (std::size_t k = 0; k < reachable.size(); ++k) {
-          const std::uint16_t i = reachable[k];
-          const std::size_t colour = sim.squares[i].color & 7u;
-          if (colour < best_square.size() && opened[k] > best_access[colour] && sim.can_place(it, i)) {
-            best_access[colour] = opened[k];
-            best_square[colour] = i;
-          }
-        }
-        // The colours that give the item a bonus and white, black for the
-        // items that may go there (not white then); the others only without
-        // those.
-        const PlanItem& item = sim.item(it);
-        const bool any_square = (item.flags & kItemAnySquare) != 0;
-        const std::array<bool, 5> fitting{any_square, !any_square, item.industry > 0, item.prosperity > 0,
-                                          item.research > 0};
-        bool any_fitting = false;
-        for (std::size_t c = 0; c < best_square.size(); ++c) {
-          any_fitting = any_fitting || (fitting[c] && best_square[c] != kNoSquare);
-        }
-        for (std::size_t c = 0; c < best_square.size(); ++c) {
-          if (best_square[c] != kNoSquare && (fitting[c] || !any_fitting)) {
-            out.push_back({it, best_square[c], false});
-          }
-        }
+        tried += builds.empty() ? 0 : 1;
+        sim.squares[victim] = there;
+        sim.recalc();
       }
     }
-    if (replace_) {
-      // Stuck: no square for a new building, or housing full.
-      const bool stuck = sim.free_population() >= 1 ? out.empty() : sim.room() < 1;
-      for (const std::uint16_t victim : victims(sim, stuck)) {
-        const std::uint8_t there = sim.squares[victim].item;
-        sim.squares[victim] = Square{sim.squares[victim].color, kNoItem, 0};
-        sim.recalc();
-        for (const std::uint8_t it : kEconomyItems) {
-          if (it != there && sim.can_place(it, victim)) {
-            out.push_back({it, victim, true});
-          }
+    return out;
+  }
+
+  // The new buildings: per item and square colour the reachable empty
+  // square that opens the most new squares.
+  std::vector<Action> new_buildings(const Sim& sim) const {
+    std::vector<Action> out;
+    const Planet& p = sim.planet;
+    if (sim.free_population() < 1) {
+      return out;
+    }
+    // The empty squares a building may go on, with the access they open.
+    std::vector<std::uint16_t> reachable;
+    std::vector<std::int32_t> opened;
+    for (std::uint16_t i = 0; i < p.surface_squares; ++i) {
+      if (sim.empty(i) && sim.touches_built(i)) {
+        reachable.push_back(i);
+        opened.push_back(access(sim, i));
+      }
+    }
+    for (const std::uint8_t it : kEconomyItems) {
+      if (reachable.empty() || !sim.can_place(it, kNoSquare) || (is_boost(it) && sim.find(it) != kNoSquare)) {
+        continue;
+      }
+      // Transport Tubes only where they open new squares.
+      const bool tubes = it == kTransportTubes;
+      std::array<std::uint16_t, 5> best_square{};
+      std::array<std::int32_t, 5> best_access{};
+      best_square.fill(kNoSquare);
+      best_access.fill(-1);
+      for (std::size_t k = 0; k < reachable.size(); ++k) {
+        const std::uint16_t i = reachable[k];
+        const std::size_t colour = sim.squares[i].color & 7u;
+        if (colour < best_square.size() && opened[k] > best_access[colour] && (!tubes || opened[k] > 0) &&
+            sim.can_place(it, i)) {
+          best_access[colour] = opened[k];
+          best_square[colour] = i;
         }
-        sim.squares[victim].item = there;
-        sim.squares[victim].flags = kSquareBuilt;
-        sim.recalc();
+      }
+      // The colours that give the item a bonus and white, black for the
+      // items that may go there (not white then); the others only without
+      // those.
+      const PlanItem& item = sim.item(it);
+      const bool any_square = (item.flags & kItemAnySquare) != 0;
+      const std::array<bool, 5> fitting{any_square, !any_square, item.industry > 0, item.prosperity > 0,
+                                        item.research > 0};
+      bool any_fitting = false;
+      for (std::size_t c = 0; c < best_square.size(); ++c) {
+        any_fitting = any_fitting || (fitting[c] && best_square[c] != kNoSquare);
+      }
+      for (std::size_t c = 0; c < best_square.size(); ++c) {
+        if (best_square[c] != kNoSquare && (fitting[c] || !any_fitting)) {
+          out.push_back({it, best_square[c]});
+        }
       }
     }
     return out;
@@ -408,66 +521,75 @@ class Planner {
     return it == kItemHyperpowerPlant || it == kItemFertilizationPlant || it == kItemInternet || it == kCloningPlant;
   }
 
-  // The empty squares next to `square` that are not reachable yet (those
-  // that are not black count double).
+  // The empty squares (not black) next to `square` that are not reachable
+  // yet.
   static std::int32_t access(const Sim& sim, std::uint16_t square) {
     std::int32_t n = 0;
     for (const std::uint16_t s : sim.neighbours()[square]) {
-      if (s != kNoSquare && sim.empty(s) && !sim.touches_built(s)) {
-        n += sim.squares[s].color == 0 ? 1 : 2;
+      if (s != kNoSquare && sim.empty(s) && sim.squares[s].color != 0 && !sim.touches_built(s)) {
+        ++n;
       }
     }
     return n;
   }
 
-  // The buildings worth replacing: when nothing new can be built (`stuck`)
-  // the removable economy buildings whose loss costs the least, else those
-  // whose outputs the goal does not want (after a change of goal).
-  std::vector<std::uint16_t> victims(Sim& sim, bool stuck) const {
+  // The removable economy buildings (not the Transport Tubes, which link
+  // squares), the one whose loss costs the goal the least first (after a
+  // change of goal those whose outputs it does not want).
+  std::vector<std::uint16_t> victims(Sim& sim) const {
     struct Victim {
       std::uint16_t square;
       double loss;
     };
     std::vector<Victim> all;
-    const double rate = sim.rate(weights_);
-    const std::int32_t prosperity = u16(sim.planet.prosperity);
-    const std::int32_t housing = sim.planet.max_population;
+    // A building's worth a day: its outputs and the work of the inhabitants
+    // its prosperity and housing bring (as the quick estimate counts them).
+    const Look now = look(sim, weights_);
+    const auto worth = [&](const Look& l) { return l.rate + workers(l, kHorizon) * worker_output() / 2.0; };
     for (std::uint16_t i = 0; i < sim.planet.surface_squares; ++i) {
       const std::uint8_t it = sim.squares[i].item;
-      if (!sim.built(i) || std::ranges::find(kEconomyItems, it) == kEconomyItems.end() || !sim.removable(i)) {
+      if (!sim.built(i) || it == kTransportTubes || std::ranges::find(kEconomyItems, it) == kEconomyItems.end() ||
+          !sim.removable(i)) {
         continue;
       }
-      const PlanItem& item = sim.item(it);
-      const bool unwanted =
-          (item.industry > 0 || item.research > 0) && item.prosperity <= 0 && item.max_population <= 0 &&
-          weights_.industry * item.industry + weights_.research * item.research < 0.1 * (item.industry + item.research);
-      if (!stuck && !unwanted) {
-        continue;
-      }
-      const double loss = sim.with(Action{kNoItem, i, true}, [&](const Sim& s) {
-        return rate - s.rate(weights_) + 0.5 * (prosperity - u16(s.planet.prosperity)) +
-               (housing - s.planet.max_population);
-      });
+      const double loss =
+          worth(now) - sim.with(Action{kNoItem, i, i}, [&](const Sim& s) { return worth(look(s, weights_)); });
       all.push_back({i, loss});
     }
     std::ranges::stable_sort(all, [](const Victim& a, const Victim& b) { return a.loss < b.loss; });
     std::vector<std::uint16_t> out;
-    for (std::size_t i = 0; i < all.size() && i < kVictims; ++i) {
-      out.push_back(all[i].square);
+    for (const Victim& v : all) {
+      out.push_back(v.square);
     }
     return out;
   }
 
+  // A worker's output (a basic building on its colour).
+  double worker_output() const { return 1.5 * std::max(weights_.industry, weights_.research); }
+
   static Look look(const Sim& s, const Weights& w) {
-    return {s.rate(w), u16(s.planet.industry), u16(s.planet.prosperity), s.free_population(), s.room(), 0};
+    Look l{s.rate(w), u16(s.planet.industry), u16(s.planet.prosperity), s.free_population(), s.room()};
+    l.growth = s.planet.growth;
+    l.growth_rate = s.growth_rate();
+    l.per_growth = s.built(s.find(kCloningPlant)) ? 2 : 1;
+    for (std::uint16_t i = 0; i < s.planet.surface_squares; ++i) {
+      if (s.empty(i) && s.squares[i].color != 0) {
+        ++l.empty;
+        l.open += s.touches_built(i) ? 1 : 0;
+      }
+    }
+    return l;
   }
 
   // The workers the planet can put to work within `left` days: its free
-  // population and growth, up to the buildings its industry can build.
-  static double workers(const Look& l, double left) {
-    const double grown = std::clamp(left * l.prosperity / 50.0, 0.0, static_cast<double>(std::max(l.room, 0)));
+  // population and the inhabitants its growth brings (from the growth
+  // gathered so far, as `planet_daily_update` counts), up to the buildings
+  // its industry can build and its empty squares hold.
+  double workers(const Look& l, double left) const {
+    const double born = std::floor((l.growth + left * l.growth_rate) / start_.pop_growth()) * l.per_growth;
+    const double grown = std::clamp(born, 0.0, static_cast<double>(std::max(l.room, 0)));
     const double buildable = left * l.industry / kAverageCost;
-    return std::min(std::max(l.free, 0) + grown, buildable);
+    return std::min({std::max(l.free, 0) + grown, buildable, static_cast<double>(l.empty)});
   }
 
   // The goal's outputs a project adds up to the end of the horizon, per day
@@ -480,12 +602,11 @@ class Planner {
       return 0.0;
     }
     double lost = 0.0;
-    if (a.replace) {
-      lost = now.rate - sim.with(Action{kNoItem, a.square, true}, [&](const Sim& s) { return s.rate(weights_); });
+    if (a.victim != kNoSquare) {
+      lost = now.rate - sim.with(Action{kNoItem, a.victim, a.victim}, [&](const Sim& s) { return s.rate(weights_); });
     }
     const Look after = sim.with(a, [&](const Sim& s) { return look(s, weights_); });
-    // A worker's output (a basic building on its colour).
-    const double worker = 1.5 * std::max(weights_.industry, weights_.research);
+    const double worker = worker_output();
     double value = (after.rate - now.rate) * left - lost * days;
     value += (workers(after, left) - workers(now, left)) * worker * left / 2.0;
     // A coloured square used without its bonus loses a later building's.
@@ -507,22 +628,29 @@ class Planner {
   double rollout(const Action& first) const {
     Sim sim = start_;
     if (first.item != kNoItem) {
-      if (first.replace) {
-        sim.squares[first.square] = Square{sim.squares[first.square].color, kNoItem, 0};
+      if (first.victim != kNoSquare) {
+        sim.clear(first.victim);
       }
       sim.start(first);
     }
     double total = 0.0;
-    bool decide = true;
+    // Waiting means: until the population or the buildings change.
+    bool decide = first.item != kNoItem;
     for (std::int32_t t = 0; t < kHorizon; ++t) {
       if (sim.planet.project_item == kNoItem && decide) {
-        const std::vector<Scored> s = scored(sim, kHorizon - t);
-        const auto top = std::ranges::max_element(s, {}, &Scored::score);
-        if (top != s.end() && top->score > 0.0) {
-          if (top->action.replace) {
-            sim.squares[top->action.square] = Square{sim.squares[top->action.square].color, kNoItem, 0};
+        std::optional<Action> next = workforce(sim, kHorizon - t);
+        if (!next) {
+          const std::vector<Scored> s = scored(sim, kHorizon - t);
+          const auto top = std::ranges::max_element(s, {}, &Scored::score);
+          if (top != s.end() && top->score > 0.0) {
+            next = top->action;
           }
-          sim.start(top->action);
+        }
+        if (next) {
+          if (next->victim != kNoSquare) {
+            sim.clear(next->victim);
+          }
+          sim.start(*next);
         }
         decide = false;
       }
@@ -537,21 +665,20 @@ class Planner {
   Neighbours neighbours_;
   Sim start_;
   Weights weights_;
-  bool replace_;
 };
 
 // Starts `a` on the planet; returns whether it did.
-bool apply(Session& session, Planet& planet, const Action& a, SquareMode mode = SquareMode::kProject) {
+bool apply(Session& session, Planet& planet, const Action& a) {
   if (a.item == kNoItem) {
     return false;
   }
-  if (a.replace) {
-    const std::uint8_t there = planet_squares(session.game->cosmos, planet)[a.square].item;
-    if (!planet_set_square_item(session, planet, a.square, there, SquareMode::kRemove)) {
+  if (a.victim != kNoSquare) {
+    const std::uint8_t there = planet_squares(session.game->cosmos, planet)[a.victim].item;
+    if (!planet_set_square_item(session, planet, a.victim, there, SquareMode::kRemove)) {
       return false;
     }
   }
-  return planet_set_square_item(session, planet, a.square, a.item, mode);
+  return planet_set_square_item(session, planet, a.square, a.item, SquareMode::kProject);
 }
 
 std::uint16_t ruins_square(const Session& session, const Planet& planet) {
@@ -571,25 +698,50 @@ void hand_back(Session& session, Planet& planet) {
       PlanetGoal::kBalanced;
 }
 
-// Defence goal: orbital weapons and shields, then surface shields, once the
-// planet builds them in reasonable time.
-bool defence_project(Session& session, Race& race, Planet& planet) {
-  if (u16(planet.industry) < kDefenceIndustry ||
-      static_cast<std::int32_t>(planet.population) - planet.used_population < 1) {
+// Defence goal, once the planet builds defences in reasonable time: orbital
+// weapons and shields in turn, then surface shields (against invasion) up
+// to a share of the surface, then better orbital defences instead of
+// weaker ones. Without a free worker for them the least useful building
+// makes way.
+bool defence_project(Session& session, Race& race, Planet& planet, Weights weights) {
+  if (u16(planet.industry) < kDefenceIndustry) {
     return false;
   }
-  if (pe_build_orbital_defence(session, race, planet)) {
-    return true;
+  const bool worker = static_cast<std::int32_t>(planet.population) - planet.used_population >= 1;
+  const bool orbit_due = planet.free_orbital > 0 && (planet_best_orbital_shield_item(session, planet) != kNoItem ||
+                                                     planet_best_orbital_weapon_item(session, planet) != kNoItem);
+  std::uint8_t shield = kNoItem;
+  for (const std::uint8_t it : {kSurfaceShield, kSurfaceMegaShield}) {
+    shield = race_knows_item(session, planet, it) ? it : shield;
   }
-  if (planet_surface_shield_strength(session.game->cosmos, planet) * kSurfaceShieldShare >= planet.surface_squares) {
-    return false;
+  const bool shield_due =
+      shield != kNoItem &&
+      planet_surface_shield_strength(session.game->cosmos, planet) * kSurfaceShieldShare < planet.surface_squares;
+  if (!orbit_due && !shield_due) {
+    // The orbit full: its weaker defences replaced.
+    return worker && pe_build_orbital_defence(session, race, planet);
   }
-  for (const std::uint8_t shield : {kSurfaceMegaShield, kSurfaceShield}) {
-    if (planet_can_place_item(session, planet, shield, kNoSquare)) {
-      return planet_auto_place_item(session, planet, shield, 0) != kNoSquare;
+  // Without a free worker, the least useful building makes way (a surface
+  // shield takes its square).
+  std::uint16_t victim = kNoSquare;
+  if (!worker) {
+    victim = Planner(session, planet, weights).least_useful();
+    const std::span<const Square> squares = planet_squares(session.game->cosmos, planet);
+    if (victim == kNoSquare ||
+        !planet_set_square_item(session, planet, victim, squares[victim].item, SquareMode::kRemove)) {
+      return false;
     }
   }
-  return false;
+  if (orbit_due && pe_build_orbital_defence(session, race, planet)) {
+    return true;
+  }
+  if (!shield_due) {
+    return false;
+  }
+  if (victim != kNoSquare && planet_can_place_item(session, planet, shield, victim)) {
+    return planet_set_square_item(session, planet, victim, shield, SquareMode::kProject);
+  }
+  return planet_auto_place_item(session, planet, shield, 0) != kNoSquare;
 }
 
 // Shipyard goal: more industry while it brings the Shipyard nearer, then the
@@ -604,7 +756,7 @@ bool shipyard_project(Session& session, Planet& planet, const Planner& planner) 
   std::int32_t best_days = build_days(cost, industry);
   Action faster;
   for (const Planner::Scored& c : planner.scored(sim, kHorizon)) {
-    if (c.action.replace) {
+    if (c.action.victim != kNoSquare) {
       continue;
     }
     const std::int32_t after = sim.with(c.action, [](const Sim& s) { return u16(s.planet.industry); });
@@ -720,12 +872,6 @@ void pe_manage_planet(Session& session, Race& race, Planet& planet) {
   const bool player = is_player_planet(session, planet);
   const PlanetGoal goal = planet_goal(session, planet);
   const Weights weights = goal_weights(goal, antag_race_research_complete(session, race));
-  // The first buildings, finished at once and for free (as the
-  // Antagonizer's management).
-  if (planet_count_buildings(session.game->cosmos, planet) < 3 &&
-      apply(session, planet, Planner(session, planet, weights, false).best(), SquareMode::kPlaceBuilt)) {
-    return;
-  }
   if (planet.industry == 0) {
     return;
   }
@@ -740,7 +886,7 @@ void pe_manage_planet(Session& session, Race& race, Planet& planet) {
   }
   switch (goal) {
     case PlanetGoal::kDefence:
-      if (defence_project(session, race, planet)) {
+      if (defence_project(session, race, planet, weights)) {
         return;
       }
       break;

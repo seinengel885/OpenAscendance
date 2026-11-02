@@ -34,8 +34,13 @@ std::uint16_t planet_init_surface(Session& session, Planet& planet, std::uint16_
 // player gets industry x1.3 (Neutral, Hostile) and research x1.3 (Hostile),
 // and the Tractor Beam counts as a shield.
 void planet_recalc_output(const Session& session, Planet& planet);
-// The same from `squares` (the planet's, or a planner's copy of them).
-void planet_recalc_output(const Session& session, Planet& planet, std::span<const Square> squares);
+// The same from `squares` (the planet's, or a planner's copy of them);
+// `industry_sum`, if given, gets the industry before the output curve.
+void planet_recalc_output(const Session& session, Planet& planet, std::span<const Square> squares,
+                          std::int32_t* industry_sum = nullptr);
+// The output curve of industry and prosperity before the rounding down:
+// `(sum + 1) ** 0.85`, 0 for 0.
+double planet_output_curve(std::int32_t sum);
 
 // Returns the first square holding `item`, `kNoSquare` if none
 // (`Planet_find_item` 0x34a1c).
