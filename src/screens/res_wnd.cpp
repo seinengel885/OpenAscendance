@@ -302,11 +302,9 @@ void ResWnd::update_hover() {
   const int x = wm_.input().x;
   const int y = wm_.input().y;
   const bool in_info = kInfoPane.contains(x, y);
-  std::uint16_t found = item_at(x, y);
+  const std::uint16_t found = item_at(x, y);
   if (found != kNone) {
     last_hovered_ = found;
-  } else if (in_info) {
-    found = last_hovered_;
   }
   if (!in_info && !contains(x, y)) {
     wm_.cancel_notify(id_, kEventMouseMove);
@@ -614,7 +612,7 @@ void ResWnd::draw_info() {
   vfx_pane_wipe(screen, kInfoPane, 0);
   info_entries_.clear();
   const std::uint16_t project = project_of(session);
-  const std::uint16_t shown = hovered_ != kNone ? hovered_ : project;
+  const std::uint16_t shown = last_hovered_ != kNone ? last_hovered_ : project;
   if (shown == kNone) {
     return;
   }

@@ -65,8 +65,9 @@ namespace {
 using namespace plan_detail;
 
 // The items the rules build: the output and housing buildings, the
-// planet-wide boosts and the Outpost (`planitem.txt` order).
-constexpr std::array<std::uint8_t, 16> kBuildings{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, kOutpost};
+// planet-wide boosts and the Outpost (`planitem.txt` order; not the Colony
+// Base, which only founds a colony).
+constexpr std::array<std::uint8_t, 15> kBuildings{0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 12, 13, 14, 15, kOutpost};
 
 // A day count for "never".
 constexpr std::int32_t kNever = 1000000;
@@ -277,11 +278,6 @@ class Rules {
       if (c != own) {
         out[n++] = c;
       }
-    }
-    // Black (Colony Base) for housing first: it takes no usable square.
-    if (role == Role::kHousing && (it.flags & kItemAnySquare) != 0) {
-      std::rotate(out.begin(), out.begin() + 4, out.end());
-      out[0] = 0;
     }
     return out;
   }

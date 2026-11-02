@@ -355,6 +355,11 @@ struct Research {
 // peCustom: a day per pair of races (`Game::last_attack_days`).
 using RaceDays = std::array<std::array<std::int32_t, kMaxRaces>, kMaxRaces>;
 inline constexpr std::int32_t kNoAttackDay = -100000;
+constexpr std::array<std::int32_t, kMaxRaces> no_peace_offer_days() {
+  std::array<std::int32_t, kMaxRaces> days{};
+  days.fill(kNoAttackDay);
+  return days;
+}
 constexpr RaceDays no_attack_days() {
   RaceDays days{};
   for (auto& row : days) {
@@ -435,6 +440,9 @@ struct Game {
   // peCustom: [victim][aggressor] the day of the aggressor's last attack on
   // the victim or of their declaration of war (`kNoAttackDay` never).
   RaceDays last_attack_days = no_attack_days();
+  // peCustom: per race the day the player last offered it peace (once a
+  // day; `kNoAttackDay` never).
+  std::array<std::int32_t, kMaxRaces> peace_offer_days = no_peace_offer_days();
   // peCustom: the goal of each planet's self-management (the player's
   // planets; the AI picks its own).
   std::array<PlanetGoal, kMaxPlanets> planet_goals{};

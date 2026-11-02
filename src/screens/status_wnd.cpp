@@ -439,12 +439,24 @@ void StatusWnd::draw_row(const Pane& row, game::PlanetIndex index, bool hilite) 
   small.draw_wrapped(screen, 0x78, 0x12, game::name_view(star.name), 0, star_color, 0xff, 0);
   const std::string_view name = game::name_view(planet.name);
   large.draw_wrapped(screen, 0x113, 0xf, name, 0, planet_color, 0xff, 0);
+  int kind_x = large.string_width(name) + 0x127;
+  const bool managed = management_shown(*session, planet);
+  if (managed) {
+    // peCustom: the label symbol and labels right after the name.
+    const int tag_x = large.string_width(name) + 0x11d;
+    draw_label_icon(screen, row.x0 + tag_x, row.y0 + 0x11, static_cast<std::uint8_t>(planet_color));
+    const std::string labels = planet_labels_text(*session, planet);
+    small.draw_wrapped(screen, tag_x + 20, 0x10, labels, 0, planet_color, 0xff, 0);
+    label_areas_[index] = Pane{row.x0 + tag_x - 2, row.y0 + 0xe, row.x0 + tag_x + 22 + small.string_width(labels),
+                               row.y0 + 0x10 + small.font().height};
+    kind_x = label_areas_[index].x1 - row.x0 + 10;
+  }
   const std::string kind =
       c_format(wm_.static_string(kStringPlanetKind), wm_.static_string(kStringSizes + planet.size).c_str(),
                     wm_.static_string(kStringTypes + planet.type).c_str());
-  small.draw_wrapped(screen, large.string_width(name) + 0x127, 0x10, kind, 0, planet_color, 0xff, 0);
+  small.draw_wrapped(screen, kind_x, 0x10, kind, 0, planet_color, 0xff, 0);
   int y = 0x1e;
-  if (management_shown(*session, planet)) {
+  if (managed) {
     // peCustom: the management, always shown; a click opens its menu.
     const std::string label = management_label(wm_, *session, planet);
     const bool hot =
@@ -453,7 +465,7 @@ void StatusWnd::draw_row(const Pane& row, game::PlanetIndex index, bool hilite) 
     const int label_x1 = 0x113 + small.string_width(label);
     management_areas_[index] = Pane{row.x0 + 0x113, row.y0 + 0x1e, row.x0 + label_x1, row.y0 + 0x1e + small.font().height};
     y = 0x27;
-    // The mark box, the label symbol and labels, the bell and its reason.
+    // The mark box, the bell and its reason.
     const Pane mark{row.x0 + kMarkX, row.y0 + kMarkY, row.x0 + kMarkX + kMarkSize, row.y0 + kMarkY + kMarkSize};
     vfx_pane_wipe(screen, mark, 0);
     draw_frame(screen, mark, kFrameColor);
@@ -464,19 +476,12 @@ void StatusWnd::draw_row(const Pane& row, game::PlanetIndex index, bool hilite) 
       }
     }
     mark_areas_[index] = Pane{mark.x0 - 3, mark.y0 - 3, mark.x1 + 3, mark.y1 + 3};
-    const int tag_x = label_x1 + 10;
-    draw_label_icon(screen, row.x0 + tag_x, row.y0 + 0x1f, static_cast<std::uint8_t>(planet_color));
-    const std::string labels = planet_labels_text(*session, planet);
-    small.draw_wrapped(screen, tag_x + 20, 0x1e, labels, 0, planet_color, 0xff, 0);
-    label_areas_[index] = Pane{row.x0 + tag_x - 2, row.y0 + 0x1c, row.x0 + tag_x + 22 + small.string_width(labels),
-                               row.y0 + 0x1e + small.font().height};
     if (const game::PlanetAlarm alarm = game::planet_alarm(*session, planet); alarm != game::PlanetAlarm::kNone) {
       const std::uint8_t color = alarm == game::PlanetAlarm::kDanger ? kDangerColor : kBellColor;
       draw_bell(screen, row, kBellX, kBellY, color);
-      // The reason after the labels.
+      // The reason after the management.
       const std::string reason = wm_.remake_text(game::planet_alarm_text(alarm));
-      const int reason_x = label_areas_[index].x1 - row.x0 + 10;
-      small.draw_wrapped(screen, reason_x, 0x1e, reason, 0, color, 0xff, 0);
+      small.draw_wrapped(screen, label_x1 + 10, 0x1e, reason, 0, color, 0xff, 0);
     }
   } else if (planet.self_managed == -1) {
     small.draw_wrapped(screen, 0x113, 0x1e, wm_.static_string(kStringSelfManaged), 0, planet_color, 0xff, 0);

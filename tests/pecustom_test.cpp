@@ -98,6 +98,7 @@ TEST_CASE("a peCustom game saves and loads as peCustom", "[game][content][pecust
   management.counts[PlanetManagement::kOrbitalShields] = 3;  // format 5 on
   management.labels = 1;
   session.game->planet_labels = {"Heimat"};
+  session.game->peace_offer_days[1] = 29;  // format 6 on
   const std::vector<std::uint8_t> bytes = serialize_save(save_game(session));
   if (const char* out = std::getenv("OA_WRITE_PECUSTOM_FIXTURE"); out != nullptr && *out != '\0') {
     std::ofstream(out, std::ios::binary)
@@ -121,6 +122,8 @@ TEST_CASE("a peCustom game saves and loads as peCustom", "[game][content][pecust
   CHECK(m.counts[PlanetManagement::kOrbitalShields] == 3);
   CHECK(m.labels == 1);
   CHECK(loaded.game->planet_labels == std::vector<std::string>{"Heimat"});
+  CHECK(loaded.game->peace_offer_days[1] == 29);
+  CHECK(loaded.game->peace_offer_days[2] == kNoAttackDay);
   // Saved again: the same file but for what loading resets (the AI target
   // counts, the clusters), as for the original's saves.
   SaveImage expected = image;
@@ -263,6 +266,25 @@ TEST_CASE("the version-5 peCustom saves still load", "[game][content][pecustom]"
   // The orbital shields count the save was written with.
   const PlanetManagement& m = session.game->planet_management.at(static_cast<std::size_t>(player_planet(session)));
   CHECK(m.counts[PlanetManagement::kOrbitalShields] == 3);
+  // Saved before the peace offers were counted.
+  CHECK(session.game->peace_offer_days[1] == kNoAttackDay);
+  cosmos_next_turn(session);
+  session.events.take();
+  CHECK(session.game->cosmos.day == 31);
+}
+
+TEST_CASE("the version-6 peCustom saves still load", "[game][content][pecustom]") {
+  OA_REQUIRE_TABLES(t);
+  const auto saved = versioned_save(6);
+  if (!saved) {
+    SKIP("OA_PECUSTOM_SAVES is not set to the folder of pecustom_v6.sav");
+  }
+  const SaveImage image = parse_save(*saved);
+  CHECK(image.pe_custom_version == 6);
+  Session session(*t);
+  load_game(session, image);
+  // The day of the peace offer the save was written with.
+  CHECK(session.game->peace_offer_days[1] == 29);
   cosmos_next_turn(session);
   session.events.take();
   CHECK(session.game->cosmos.day == 31);

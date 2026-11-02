@@ -317,7 +317,10 @@ std::vector<std::uint8_t> race_list_actions(const Session& session, const Race& 
       }
       break;
     case kWar:
-      actions.push_back(kDipOfferPeace);
+      // peCustom: once a day (each offer raises the attitude).
+      if (game.variant != Variant::kPeCustom || game.peace_offer_days.at(alien) != day) {
+        actions.push_back(kDipOfferPeace);
+      }
       break;
     case kAlliance:
       actions.push_back(kDipBreakAlliance);
@@ -845,6 +848,7 @@ void race_apply_diplomatic_action(Session& session, Race& actor, RaceIndex targe
     case kDipOfferPeace:
       if (by_player) {
         add_attitude(b, session.player_race, 3);
+        game.peace_offer_days[target] = cosmos.day;
       }
       if (response != 27) {
         add_attitude(actor, target, -25);

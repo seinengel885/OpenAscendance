@@ -17,6 +17,9 @@ namespace oa {
 
 namespace {
 
+// The negotiation screen a click on a race's row calls it on.
+constexpr int kScreenNegotiation = 13;
+
 // The static strings.
 constexpr int kStringFleet = 0x14;
 constexpr int kStringColonies = 0x15;
@@ -94,20 +97,30 @@ bool IntelWnd::handle_event(int type, int a, int b) {
       throw DataError("windows.txt: no INTELLIST list box");
     }
     list_->set_line_height(kRowHeight);
-    // The rows' press picks nothing here: the mouse may drag the list.
-    list_->set_mouse_drag(true);
     list_->set_draw_item([this](const Pane& row, const ListBox::Item& item, bool /*hilite*/) {
       draw_row(row, static_cast<game::RaceIndex>(item.text.at(0)));
     });
     list_help_ = list_->help();
   }
   const game::Session* core = wm_.services().game.core();
-  const bool mood = core != nullptr && core->game->variant == game::Variant::kPeCustom;
+  const bool pe_custom = core != nullptr && core->game->variant == game::Variant::kPeCustom;
   if (type == kEventActivate) {
     // peCustom: a help-mode click on a row comes here (kEventListHelp).
-    list_->set_help(mood ? "0" : list_help_);
+    list_->set_help(pe_custom ? "0" : list_help_);
+    // The rows' press picks nothing in the original: the mouse may drag the
+    // list (not in peCustom, whose press calls the race).
+    list_->set_mouse_drag(!pe_custom);
   }
-  if (type == kEventListHelp && mood) {
+  if (type == kEventListPick && pe_custom) {
+    // peCustom: a click on another race's row calls it (as on the diplomacy
+    // screen).
+    if (const game::RaceIndex race = row_race(a); race != core->player_race) {
+      wm_.set_target_race(race);
+      wm_.post_message(kMessageChangeScreen, kScreenNegotiation, 1);
+    }
+    return true;
+  }
+  if (type == kEventListHelp && pe_custom) {
     // The mood's help on its bar, else the list's.
     const int x = wm_.input().x - list_->pane().x0;
     if (row_race(a) != core->player_race && x >= kMoodX - 1 && x <= kMoodX + kMoodWidth) {

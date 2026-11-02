@@ -49,7 +49,8 @@ inline constexpr RawAddress kAntagCosmosAddress = 0x219f6c;
 // 3: `Game::planet_goals` (a byte per planet).
 // 4: `Game::planet_management` (per planet) and `Game::planet_labels`.
 // 5: the orbital shields count of each planet's management.
-inline constexpr std::uint32_t kPeCustomSaveVersion = 5;
+// 6: `Game::peace_offer_days`.
+inline constexpr std::uint32_t kPeCustomSaveVersion = 6;
 
 // Size of the window state of the v1.6.5 window table (`COSMOSWnd` 0xbe,
 // 4 values, a 7-entry list box, 1 value, `BatModeWnd` 0x1a08, 2 values, the
@@ -90,6 +91,8 @@ struct SaveImage {
   // peCustom version 4 on (standards before): per planet, and the labels.
   std::vector<PlanetManagement> planet_management;
   std::vector<std::string> planet_labels;
+  // peCustom version 6 on (never before).
+  std::array<std::int32_t, kMaxRaces> peace_offer_days = no_peace_offer_days();
 };
 
 // Parses a save file. Throws `DataError` on a record-size mismatch, a count

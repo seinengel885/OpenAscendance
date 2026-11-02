@@ -636,6 +636,11 @@ SaveImage parse_save(std::span<const std::uint8_t> data, std::optional<RawAddres
           m.counts[PlanetManagement::kOrbitalShields] = in.i16();
         }
       }
+      if (image.pe_custom_version >= 6) {
+        for (std::int32_t& day : image.peace_offer_days) {
+          day = in.i32();
+        }
+      }
     }
     if (!in.at_end()) {
       in.fail("data after the variant trailer");
@@ -744,6 +749,9 @@ std::vector<std::uint8_t> serialize_save(const SaveImage& image) {
       w.i16(i < image.planet_management.size() ? image.planet_management[i].counts[PlanetManagement::kOrbitalShields]
                                                : std::int16_t{-1});
     }
+    for (const std::int32_t day : image.peace_offer_days) {
+      w.i32(day);
+    }
   }
   return std::move(out);
 }
@@ -817,6 +825,7 @@ SaveImage save_game(const Session& session) {
     image.planet_management.assign(game.planet_management.begin(),
                                    game.planet_management.begin() + cosmos.planet_count);
     image.planet_labels = game.planet_labels;
+    image.peace_offer_days = game.peace_offer_days;
   }
   return image;
 }
@@ -841,6 +850,7 @@ void load_game(Session& session, const SaveImage& image) {
   game.planet_management.fill(PlanetManagement{});
   std::ranges::copy(image.planet_management, game.planet_management.begin());
   game.planet_labels = image.planet_labels;
+  game.peace_offer_days = image.peace_offer_days;
   // Research_serialize reads the tree once through Research_load first.
   game.research = image.research;
   session.research_tree_loaded = true;

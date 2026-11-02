@@ -36,6 +36,7 @@ void race_init(Session& session, Race& race, std::uint8_t index, std::uint8_t sp
     row[index] = kNoAttackDay;
   }
   session.game->last_attack_days[index].fill(kNoAttackDay);
+  session.game->peace_offer_days[index] = kNoAttackDay;
   if (race.species != species) {
     race.species = species;
     race_load_dip_values(session, race);
