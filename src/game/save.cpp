@@ -592,6 +592,16 @@ SaveImage parse_save(std::span<const std::uint8_t> data, std::optional<RawAddres
           }
         }
       }
+      if (image.pe_custom_version >= 3) {
+        image.planet_goals.resize(image.planets.size());
+        for (PlanetGoal& goal : image.planet_goals) {
+          const std::uint8_t g = in.u8();
+          if (g >= kPlanetGoalCount) {
+            in.fail(std::format("unknown planet goal {}", g));
+          }
+          goal = static_cast<PlanetGoal>(g);
+        }
+      }
     }
     if (!in.at_end()) {
       in.fail("data after the variant trailer");
@@ -671,6 +681,9 @@ std::vector<std::uint8_t> serialize_save(const SaveImage& image) {
         w.i32(day);
       }
     }
+    for (std::size_t i = 0; i < image.planets.size(); ++i) {
+      w.u8(static_cast<std::uint8_t>(i < image.planet_goals.size() ? image.planet_goals[i] : PlanetGoal::kBalanced));
+    }
   }
   return std::move(out);
 }
@@ -740,6 +753,7 @@ SaveImage save_game(const Session& session) {
   if (game.variant == Variant::kPeCustom) {
     image.pe_custom_version = kPeCustomSaveVersion;
     image.last_attack_days = game.last_attack_days;
+    image.planet_goals.assign(game.planet_goals.begin(), game.planet_goals.begin() + cosmos.planet_count);
   }
   return image;
 }
@@ -759,6 +773,8 @@ void load_game(Session& session, const SaveImage& image) {
   cosmos.score = image.score;
   game.last_trade_days = image.last_trade_days;
   game.last_attack_days = image.last_attack_days;
+  game.planet_goals.fill(PlanetGoal::kBalanced);
+  std::ranges::copy(image.planet_goals, game.planet_goals.begin());
   // Research_serialize reads the tree once through Research_load first.
   game.research = image.research;
   session.research_tree_loaded = true;

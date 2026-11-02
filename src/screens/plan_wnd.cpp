@@ -17,6 +17,7 @@
 #include "game/research.h"
 #include "game/ship.h"
 #include "game/ship_design.h"
+#include "screens/management_menu.h"
 #include "screens/ship_des_wnd.h"
 #include "ui/help_wnd.h"
 
@@ -50,6 +51,10 @@ constexpr std::size_t kHazeWhite02 = 13;
 constexpr std::size_t kHazeHilite = 21;
 
 constexpr std::uint8_t kHotColor = 0x96;
+
+// peCustom: the bottom right corner of the management label.
+constexpr int kManagementRight = 628;
+constexpr int kManagementBottom = 466;
 
 // static.txt.
 constexpr int kStringNone = 0x1c;
@@ -248,6 +253,11 @@ bool PlanWnd::handle_event(int type, int a, int b) {
       if (!shown_) {
         return false;
       }
+      if (management_hot(a, b)) {
+        run_management_menu(wm_, *session(), *planet());
+        draw(kDrawNormal);
+        return false;
+      }
       left_click();
       if (design_square_ != kNoSquare) {
         ship_design(design_square_, false);
@@ -330,6 +340,22 @@ void PlanWnd::load_state(std::span<const std::uint8_t> in) {
   if (!in.empty()) {
     flags_ = in[0];
   }
+}
+
+Pane PlanWnd::management_pane() const {
+  const game::Session* s = session();
+  const game::Planet* p = planet();
+  if (s == nullptr || p == nullptr || !management_shown(*s, *p)) {
+    return Pane{0, 0, -1, -1};
+  }
+  GameFont& font = wm_.large_font();
+  const int width = font.string_width(management_label(wm_, *s, *p));
+  const int height = font.font().height;
+  return Pane{kManagementRight - width, kManagementBottom - height, kManagementRight, kManagementBottom};
+}
+
+bool PlanWnd::management_hot(int x, int y) const {
+  return !list().shown() && !dialog().shown() && selection_ == kNoSelection && management_pane().contains(x, y);
 }
 
 void PlanWnd::hover(int x, int y) {
@@ -605,6 +631,16 @@ void PlanWnd::draw(int /*mode*/) {
     draw_surface(*s, *p);
   }
   draw_orbit(*s, *p);
+  if (management_shown(*s, *p)) {
+    // peCustom: the planet's management, a click opens its menu.
+    GameFont& font = wm_.large_font();
+    font.pane() = GSystem::kScreenPane;
+    const Pane area = management_pane();
+    const int color = management_hot(wm_.input().x, wm_.input().y)
+                          ? kHotColor
+                          : s->game->cosmos.races.at(s->player_race).color * 4 + 0x13;
+    font.draw_wrapped(screen, area.x0, area.y0, management_label(wm_, *s, *p), 0, color, 0xff, 0);
+  }
   if (list().shown()) {
     vfx_shape_draw(screen, Pane{0x70, 0x70, 0x210, 0x1ac}, np.at(kListBorder), 0, 0);
   }

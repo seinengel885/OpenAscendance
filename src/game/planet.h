@@ -34,6 +34,8 @@ std::uint16_t planet_init_surface(Session& session, Planet& planet, std::uint16_
 // player gets industry x1.3 (Neutral, Hostile) and research x1.3 (Hostile),
 // and the Tractor Beam counts as a shield.
 void planet_recalc_output(const Session& session, Planet& planet);
+// The same from `squares` (the planet's, or a planner's copy of them).
+void planet_recalc_output(const Session& session, Planet& planet, std::span<const Square> squares);
 
 // Returns the first square holding `item`, `kNoSquare` if none
 // (`Planet_find_item` 0x34a1c).
@@ -49,6 +51,9 @@ std::int32_t planet_square_rowcol(const PlanItemTable& items, const Planet& plan
 // research, the free population, the square's kind, colour and ruins, and the
 // adjacency of surface buildings): `Planet_can_place_item` 0x3379c.
 bool planet_can_place_item(const Session& session, const Planet& planet, std::uint8_t item, std::uint16_t square);
+// The same on `squares` (the planet's, or a planner's copy of them).
+bool planet_can_place_item(const Session& session, const Planet& planet, std::span<const Square> squares,
+                           std::uint8_t item, std::uint16_t square);
 
 // Returns whether the planet's owner can start a ship here: a built Shipyard
 // and a positive ship allowance (`Planet_can_build_ship` 0x34f2c).

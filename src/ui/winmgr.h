@@ -349,6 +349,10 @@ class WinMgr final : public WindowStateIo {
   // most `max_length` characters), run modally; returns the result (3 for
   // Enter, 201 for OK, 0 for Esc).
   int input_box(std::string_view title, std::string& buffer, int max_length);
+  // A remake addition: `title` over a column of buttons, one per choice
+  // (`current` marked), run modally; returns the index of the choice
+  // clicked, -1 for none (Esc, Back).
+  int choice_box(std::string_view title, const std::vector<std::string>& choices, int current);
 
   // Arms the pending palette fade (`0x122034`): `fade_to_palette_step` 0..64,
   // one per refresh.

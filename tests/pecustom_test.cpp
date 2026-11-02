@@ -7,6 +7,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <cstdlib>
 #include <filesystem>
 #include <format>
@@ -44,6 +45,18 @@ void play(Session& session, Variant variant, int days) {
   }
 }
 
+// Returns the player's first planet.
+PlanetIndex player_planet(const Session& session) {
+  const Cosmos& cosmos = session.game->cosmos;
+  for (PlanetIndex i = 0; i < cosmos.planet_count; ++i) {
+    if (cosmos.planets[static_cast<std::size_t>(i)].owner == session.player_race) {
+      return i;
+    }
+  }
+  FAIL("the player has no planet");
+  return kNone;
+}
+
 // Returns the save of format `version` (`pecustom_v<version>.sav`), nothing
 // when OA_PECUSTOM_SAVES is unset.
 std::optional<std::vector<std::uint8_t>> versioned_save(int version) {
@@ -74,6 +87,9 @@ TEST_CASE("a peCustom game saves and loads as peCustom", "[game][content][pecust
   OA_REQUIRE_TABLES(t);
   Session session(*t);
   play(session, Variant::kPeCustom, 30);
+  // A goal for the player's planet's self-management (format 3 on).
+  const PlanetIndex home = player_planet(session);
+  session.game->planet_goals.at(static_cast<std::size_t>(home)) = PlanetGoal::kResearch;
   const std::vector<std::uint8_t> bytes = serialize_save(save_game(session));
   if (const char* out = std::getenv("OA_WRITE_PECUSTOM_FIXTURE"); out != nullptr && *out != '\0') {
     std::ofstream(out, std::ios::binary)
@@ -88,6 +104,7 @@ TEST_CASE("a peCustom game saves and loads as peCustom", "[game][content][pecust
   load_game(loaded, image);
   CHECK(loaded.game->variant == Variant::kPeCustom);
   CHECK(loaded.game->cosmos.day == 30);
+  CHECK(loaded.game->planet_goals.at(static_cast<std::size_t>(home)) == PlanetGoal::kResearch);
   // Saved again: the same file but for what loading resets (the AI target
   // counts, the clusters), as for the original's saves.
   SaveImage expected = image;
@@ -164,6 +181,28 @@ TEST_CASE("the version-2 peCustom saves still load", "[game][content][pecustom]"
   Session session(*t);
   load_game(session, image);
   CHECK(session.game->cosmos.day == 30);
+  // Saved before the planets' goals: all balanced.
+  CHECK(std::ranges::all_of(session.game->planet_goals, [](PlanetGoal g) { return g == PlanetGoal::kBalanced; }));
+  cosmos_next_turn(session);
+  session.events.take();
+  CHECK(session.game->cosmos.day == 31);
+}
+
+TEST_CASE("the version-3 peCustom saves still load", "[game][content][pecustom]") {
+  OA_REQUIRE_TABLES(t);
+  const auto saved = versioned_save(3);
+  if (!saved) {
+    SKIP("OA_PECUSTOM_SAVES is not set to the folder of pecustom_v3.sav");
+  }
+  const SaveImage image = parse_save(*saved);
+  CHECK(image.variant == Variant::kPeCustom);
+  CHECK(image.pe_custom_version == 3);
+  CHECK(image.day == 30);
+  Session session(*t);
+  load_game(session, image);
+  CHECK(session.game->cosmos.day == 30);
+  // The goal the save was written with.
+  CHECK(session.game->planet_goals.at(static_cast<std::size_t>(player_planet(session))) == PlanetGoal::kResearch);
   cosmos_next_turn(session);
   session.events.take();
   CHECK(session.game->cosmos.day == 31);

@@ -124,6 +124,10 @@ class PlanWnd final : public GWindow {
   // The mouse move (event 8): the hovered square, then the redraw.
   void hover(int x, int y);
   void left_click();
+  // peCustom: the screen area of the management label (empty when not
+  // shown), and whether (x, y) is on it while nothing else is open.
+  Pane management_pane() const;
+  bool management_hot(int x, int y) const;
   // The remake greys the panels that do nothing on another species' planet
   // (all but PLPOP's planet dialog): on entering the screen and after the
   // planet may have changed hands (a colony founded, an invasion).

@@ -8,6 +8,7 @@
 #include "game/cosmos.h"
 #include "game/float_math.h"
 #include "game/planet.h"
+#include "game/planet_plan.h"
 #include "game/race.h"
 #include "game/race_ai.h"
 #include "game/raceneg.h"
@@ -964,7 +965,11 @@ void antag_race_ai_turn(Session& session, Race& race) {
     if (planet.owner == race.index &&
         (race.index != session.player_race || planet.self_managed != 0 || session.autoplay) &&
         planet.project_item == kNoItem) {
-      antag_race_ai_manage_planet(session, race, planet);
+      if (session.game->variant == Variant::kPeCustom) {
+        pe_manage_planet(session, race, planet);
+      } else {
+        antag_race_ai_manage_planet(session, race, planet);
+      }
     }
   }
 }

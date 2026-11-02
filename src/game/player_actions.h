@@ -6,6 +6,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string_view>
 
 #include "game/address.h"
@@ -30,6 +31,9 @@ void ship_abandon(Session& session, Ship& ship);
 
 // The planet screen's M key: toggles `planet.self_managed` (0 / -1).
 void planet_toggle_self_managed(Planet& planet);
+// peCustom's management menu (planet screen, planet list): turns the
+// planet's self-management off (no goal) or on with `goal`.
+void planet_set_management(Session& session, Planet& planet, std::optional<PlanetGoal> goal);
 
 // What `planet_colonize` did, for its report (help topic `colonize`, or
 // `maxcolonize` when `best_race` is the player): the player's colony count

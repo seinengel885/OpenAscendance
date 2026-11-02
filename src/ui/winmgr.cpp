@@ -1489,6 +1489,46 @@ void WinMgr::message_box(std::string text) {
   release_window(box_id);
 }
 
+int WinMgr::choice_box(std::string_view title, const std::vector<std::string>& choices, int current) {
+  GameFont& font = large_font();
+  const int line = font.font().height + 8;
+  int width = font.string_width(title);
+  for (const std::string& c : choices) {
+    width = std::max(width, font.string_width("> " + c));
+  }
+  width += 40;
+  const int n = static_cast<int>(choices.size());
+  const int h = line * (n + 1) + 10;
+  const int x0 = (kScreenWidth - width) / 2;
+  const int y0 = (kScreenHeight - h) / 2;
+  auto box = std::make_unique<GWindow>(*this, std::string(title), Pane{x0, y0, x0 + width, y0 + h});
+  box->set_text_pos(-1, 5);
+  box->set_border(true);
+  GWindow& box_ref = *box;
+  const int box_id = register_window(std::move(box));
+  std::vector<int> buttons;
+  for (int i = 0; i < n; ++i) {
+    const std::string& c = choices[static_cast<std::size_t>(i)];
+    const int y = y0 + line * (i + 1) + 4;
+    auto button =
+        std::make_unique<GWindow>(*this, i == current ? "> " + c : c, Pane{x0 + 10, y, x0 + width - 10, y + line - 3});
+    button->set_text_pos(-1, 3);
+    button->set_mouse_focus(true);
+    button->set_border(true);
+    button->set_message(kMessageToWinMgr, kMessageEndModal, i + 1);
+    button->set_parent(box_id);
+    GWindow& button_ref = *button;
+    buttons.push_back(register_window(std::move(button)));
+    box_ref.add_child(&button_ref);
+  }
+  const int result = do_modal(box_ref, true);
+  for (const int id : buttons) {
+    release_window(id);
+  }
+  release_window(box_id);
+  return result >= 1 && result <= n ? result - 1 : -1;
+}
+
 int WinMgr::input_box(std::string_view title, std::string& buffer, int max_length) {
   const int font_height = large_font().font().height;
   const int h = font_height * 5 + 5;

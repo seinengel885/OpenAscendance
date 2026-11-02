@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <stdexcept>
 
+#include "game/address.h"
 #include "game/planet.h"
 #include "game/race.h"
 #include "game/ship.h"
@@ -38,6 +39,13 @@ void ship_abandon(Session& session, Ship& ship) {
 }
 
 void planet_toggle_self_managed(Planet& planet) { planet.self_managed = ~planet.self_managed; }
+
+void planet_set_management(Session& session, Planet& planet, std::optional<PlanetGoal> goal) {
+  planet.self_managed = goal ? -1 : 0;
+  if (goal) {
+    session.game->planet_goals.at(static_cast<std::size_t>(planet_index(session.game->cosmos, planet))) = *goal;
+  }
+}
 
 ColonizeResult planet_colonize(Session& session, Planet& planet, std::uint16_t ship_square, std::uint16_t square,
                                std::string_view name) {

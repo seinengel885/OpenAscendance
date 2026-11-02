@@ -7,6 +7,7 @@
 #pragma once
 
 #include <cstdint>
+#include <map>
 
 #include "game/state.h"
 #include "ui/gwindow.h"
@@ -33,7 +34,8 @@ class StatusWnd final : public GWindow {
   // ties in its order), scrolled to the row kept at the last deactivation
   // (2); 0x1c01 (a row picked) selects the planet and pushes screen 17, or
   // selects its star and pushes screen 16 when the pointer is left of
-  // `kStarClickLimit`.
+  // `kStarClickLimit`. peCustom: a click on a row's management label opens
+  // its menu instead.
   bool handle_event(int type, int a, int b) override;
   // `StatusWnd_draw` (0x4caf0): the title "<species>  (N Planets
   // Occupied, M Systems Controlled)" in the player's colour with its flag,
@@ -57,6 +59,9 @@ class StatusWnd final : public GWindow {
 
   ListBox* list_ = nullptr;  // +0xab
   int top_ = 0;              // +0xaf, the list's top row kept between visits
+  // peCustom: where each planet's management label was last drawn (a click
+  // there opens its menu).
+  std::map<game::PlanetIndex, Pane> management_areas_;
 };
 
 // Adds `StatusWnd` (TYPE 16) to `factory`.

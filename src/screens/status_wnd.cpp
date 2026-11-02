@@ -13,6 +13,7 @@
 #include "game/session.h"
 #include "game/tables.h"
 #include "gfx/vfx_poly.h"
+#include "screens/management_menu.h"
 
 namespace oa {
 
@@ -128,6 +129,12 @@ bool StatusWnd::handle_event(int type, int a, int b) {
       if (session != nullptr && list_ != nullptr && a >= 0 && a < list_->count()) {
         game::Cosmos& cosmos = session->game->cosmos;
         const game::PlanetIndex planet = row_planet(a);
+        if (const auto area = management_areas_.find(planet);
+            area != management_areas_.end() && area->second.contains(wm_.input().x, wm_.input().y)) {
+          run_management_menu(wm_, *session, cosmos.planets.at(static_cast<std::size_t>(planet)));
+          list_->draw(kDrawNormal);
+          return false;
+        }
         if (wm_.input().x < kStarClickLimit) {
           cosmos.selected_star = cosmos.planets.at(static_cast<std::size_t>(planet)).star;
           wm_.post_message(kMessageChangeScreen, kScreenStarSystem, 1);
@@ -204,7 +211,16 @@ void StatusWnd::draw_row(const Pane& row, game::PlanetIndex index, bool hilite) 
                     wm_.static_string(kStringTypes + planet.type).c_str());
   small.draw_wrapped(screen, large.string_width(name) + 0x127, 0x10, kind, 0, planet_color, 0xff, 0);
   int y = 0x1e;
-  if (planet.self_managed == -1) {
+  if (management_shown(*session, planet)) {
+    // peCustom: the management, always shown; a click opens its menu.
+    const std::string label = management_label(wm_, *session, planet);
+    const bool hot =
+        hilite && management_areas_.contains(index) && management_areas_[index].contains(wm_.input().x, wm_.input().y);
+    small.draw_wrapped(screen, 0x113, 0x1e, label, 0, hot ? kTextColor : planet_color, 0xff, 0);
+    management_areas_[index] = Pane{row.x0 + 0x113, row.y0 + 0x1e, row.x0 + 0x113 + small.string_width(label),
+                                    row.y0 + 0x1e + small.font().height};
+    y = 0x27;
+  } else if (planet.self_managed == -1) {
     small.draw_wrapped(screen, 0x113, 0x1e, wm_.static_string(kStringSelfManaged), 0, planet_color, 0xff, 0);
     y = 0x27;
   }

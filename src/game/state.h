@@ -361,6 +361,19 @@ constexpr RaceDays no_attack_days() {
   return days;
 }
 
+// peCustom: what a self-managed planet of the player builds for
+// (`Game::planet_goals`, `game/planet_plan.h`). The values are saved: never
+// change them, append new goals.
+enum class PlanetGoal : std::uint8_t {
+  kBalanced = 0,     // industry and research
+  kIndustry = 1,     // industry (and so ships)
+  kResearch = 2,     // research
+  kDefence = 3,      // planetary shields and weapons on a sound economy
+  kShipyard = 4,     // a Shipyard as soon as possible, then hands back
+  kArchaeology = 5,  // a dig on the ruins as soon as possible, then hands back
+};
+inline constexpr std::size_t kPlanetGoalCount = 6;
+
 // Everything a save holds about the game: the cosmos, the research state
 // and the saved globals.
 struct Game {
@@ -373,6 +386,9 @@ struct Game {
   // peCustom: [victim][aggressor] the day of the aggressor's last attack on
   // the victim or of their declaration of war (`kNoAttackDay` never).
   RaceDays last_attack_days = no_attack_days();
+  // peCustom: the goal of each planet's self-management (the player's
+  // planets; the AI picks its own).
+  std::array<PlanetGoal, kMaxPlanets> planet_goals{};
 };
 
 // The save header (0x74 bytes, `Game_save` 0x4f458): the load-list summary,

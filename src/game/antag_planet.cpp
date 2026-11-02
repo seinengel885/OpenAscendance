@@ -354,16 +354,10 @@ std::int32_t antag_race_ai_choose_orbital_project(Session& session, Race& race, 
   const std::int32_t weapons = planet_orbital_weapon_strength(cosmos, planet);
   const std::uint8_t best_shield = planet_best_orbital_shield_item(session, planet);
   const std::uint8_t best_weapon = planet_best_orbital_weapon_item(session, planet);
-  // peCustom: under a lingering danger the planetary defences come first,
-  // weapons and shields in turn.
-  if (session.game->variant == Variant::kPeCustom &&
-      race_danger_lingers_at(session, race, cosmos.stars[static_cast<std::size_t>(planet.star)], kDangerDays)) {
-    const std::uint8_t item =
-        best_weapon != kNoItem && (weapons <= shields || best_shield == kNoItem) ? best_weapon : best_shield;
-    if (item != kNoItem && (planet_auto_place_item(session, planet, item, 0) != kNoSquare ||
-                            antag_race_ai_replace_orbital_defence(session, race, planet, item))) {
-      return 1;
-    }
+  // peCustom: under a lingering danger the planetary defences come first.
+  if (session.game->variant == Variant::kPeCustom && pe_danger_at(session, race, planet) &&
+      pe_build_orbital_defence(session, race, planet)) {
+    return 1;
   }
   if (planet_count_buildings(cosmos, planet) < 5) {
     return 0;
@@ -425,6 +419,23 @@ std::int32_t antag_race_ai_choose_orbital_project(Session& session, Race& race, 
     return 1;
   }
   return 0;
+}
+
+bool pe_build_orbital_defence(Session& session, Race& race, Planet& planet) {
+  const Cosmos& cosmos = session.game->cosmos;
+  const std::int32_t shields = planet_orbital_shield_strength(cosmos, planet);
+  const std::int32_t weapons = planet_orbital_weapon_strength(cosmos, planet);
+  const std::uint8_t best_shield = planet_best_orbital_shield_item(session, planet);
+  const std::uint8_t best_weapon = planet_best_orbital_weapon_item(session, planet);
+  const std::uint8_t item =
+      best_weapon != kNoItem && (weapons <= shields || best_shield == kNoItem) ? best_weapon : best_shield;
+  return item != kNoItem && (planet_auto_place_item(session, planet, item, 0) != kNoSquare ||
+                             antag_race_ai_replace_orbital_defence(session, race, planet, item));
+}
+
+bool pe_danger_at(const Session& session, const Race& race, const Planet& planet) {
+  return race_danger_lingers_at(session, race, session.game->cosmos.stars[static_cast<std::size_t>(planet.star)],
+                                kDangerDays);
 }
 
 // 0x3e020

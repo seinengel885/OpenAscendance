@@ -31,6 +31,13 @@ std::int32_t antag_race_ai_choose_orbital_project(Session& session, Race& race, 
 // as the project; returns whether it did (`Race_ai_replace_orbital_defence`
 // 0x3e020).
 bool antag_race_ai_replace_orbital_defence(Session& session, Race& race, Planet& planet, std::uint8_t item);
+// peCustom: starts the planet's best orbital weapon or shield, whichever
+// is weaker (on a free square, else replacing a weaker defence); returns
+// whether it did.
+bool pe_build_orbital_defence(Session& session, Race& race, Planet& planet);
+// peCustom: whether ships of races `race` sees as a danger have stayed at
+// the planet's star long enough for its planets to build defences first.
+bool pe_danger_at(const Session& session, const Race& race, const Planet& planet);
 // Starts a special building; returns whether it did (or claims it did, see
 // the code) (`Race_ai_planet_specials` 0x3e520).
 bool antag_race_ai_planet_specials(Session& session, Race& race, Planet& planet);

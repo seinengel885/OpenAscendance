@@ -51,6 +51,16 @@ void set_weapon_shots(const GameTables& tables, Square& sq, std::uint8_t item) {
 // output curve of industry and prosperity (pow 0x73f30, `__CHP`).
 std::int32_t curve(std::int32_t sum) { return sum == 0 ? 0 : chop(std::pow(static_cast<double>(sum + 1), 0.85)); }
 
+// The first square of `squares` holding `item`, `kNoSquare` if none.
+std::uint16_t find_item(std::span<const Square> squares, std::uint8_t item) {
+  for (std::size_t i = 0; i < squares.size(); ++i) {
+    if (squares[i].item == item) {
+      return static_cast<std::uint16_t>(i);
+    }
+  }
+  return kNoSquare;
+}
+
 bool square_built(std::span<const Square> squares, std::uint16_t square) {
   return square != kNoSquare && (squares[square].flags & kSquareBuilt) != 0;
 }
@@ -169,10 +179,13 @@ std::uint16_t planet_init_surface(Session& session, Planet& planet, std::uint16_
 }
 
 void planet_recalc_output(const Session& session, Planet& planet) {
+  planet_recalc_output(session, planet, planet_squares(session.game->cosmos, planet));
+}
+
+void planet_recalc_output(const Session& session, Planet& planet, std::span<const Square> squares) {
   const GameTables& tables = *session.tables;
   const Cosmos& cosmos = session.game->cosmos;
   const bool antagonizer = antagonizer_rules(session.game->variant);
-  const std::span<const Square> squares = planet_squares(cosmos, planet);
   std::int32_t industry = 0;
   std::int32_t research = 0;
   std::int32_t prosperity = 0;
@@ -222,13 +235,13 @@ void planet_recalc_output(const Session& session, Planet& planet) {
       used += item.used_population;
     }
   }
-  if (square_built(squares, planet_find_item(cosmos, planet, kItemHyperpowerPlant))) {
+  if (square_built(squares, find_item(squares, kItemHyperpowerPlant))) {
     industry += industry >> 1;
   }
-  if (square_built(squares, planet_find_item(cosmos, planet, kItemFertilizationPlant))) {
+  if (square_built(squares, find_item(squares, kItemFertilizationPlant))) {
     prosperity += prosperity >> 1;
   }
-  if (square_built(squares, planet_find_item(cosmos, planet, kItemInternet))) {
+  if (square_built(squares, find_item(squares, kItemInternet))) {
     research += research >> 1;
   }
   switch (planet.project_item) {
@@ -282,13 +295,7 @@ void planet_recalc_output(const Session& session, Planet& planet) {
 }
 
 std::uint16_t planet_find_item(const Cosmos& cosmos, const Planet& planet, std::uint8_t item) {
-  const std::span<const Square> squares = planet_squares(cosmos, planet);
-  for (std::size_t i = 0; i < squares.size(); ++i) {
-    if (squares[i].item == item) {
-      return static_cast<std::uint16_t>(i);
-    }
-  }
-  return kNoSquare;
+  return find_item(planet_squares(cosmos, planet), item);
 }
 
 std::uint16_t planet_square_at(const PlanItemTable& items, const Planet& planet, std::int32_t row,
@@ -336,6 +343,11 @@ bool planet_can_build_ship(const Session& session, const Planet& planet) {
 }
 
 bool planet_can_place_item(const Session& session, const Planet& planet, std::uint8_t item, std::uint16_t square) {
+  return planet_can_place_item(session, planet, planet_squares(session.game->cosmos, planet), item, square);
+}
+
+bool planet_can_place_item(const Session& session, const Planet& planet, std::span<const Square> squares,
+                           std::uint8_t item, std::uint16_t square) {
   const GameTables& tables = *session.tables;
   const Cosmos& cosmos = session.game->cosmos;
   const Research& research = session.game->research;
@@ -370,7 +382,6 @@ bool planet_can_place_item(const Session& session, const Planet& planet, std::ui
   bool square_ok = true;
   if (square < planet.square_count) {
     square_ok = false;
-    const std::span<const Square> squares = planet_squares(cosmos, planet);
     const Square& sq = squares[square];
     const std::uint16_t flags = item < PlanItemTable::kItems ? item_of(tables, item).flags : 0;
     if (item < PlanItemTable::kItems && ((flags & kItemAnySquare) || cosmos.races.at(planet.owner).ability == 2)) {
