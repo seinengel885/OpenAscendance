@@ -111,13 +111,7 @@ class ManagementBox final : public GWindow {
       const auto index = static_cast<std::size_t>(game::planet_index(session.game->cosmos, *p));
       targets_.push_back({p, session.game->planet_management.at(index), game::planet_management_standard(session, *p),
                           p->self_managed != 0 ? std::optional(game::planet_goal(session, *p)) : std::nullopt});
-      ruins = ruins || game::planet_goal_available(session, *p, game::PlanetGoal::kArchaeology);
-    }
-    // The goals every planet may take.
-    for (const game::PlanetGoal goal : game::kPlanetGoals) {
-      if (std::ranges::all_of(planets, [&](const game::Planet* p) { return game::planet_goal_available(session, *p, goal); })) {
-        goals_.push_back(goal);
-      }
+      ruins = ruins || game::planet_has_ruins(session, *p);
     }
     const std::vector<BuildLevel> surface(kSurfaceLevels.begin(), kSurfaceLevels.end());
     const std::vector<BuildLevel> orbital(kOrbitalLevels.begin(), kOrbitalLevels.end());
@@ -412,18 +406,9 @@ class ManagementBox final : public GWindow {
   void step(const Row& row, int delta) {
     Target& t = targets_[0];
     switch (row.kind) {
-      case Kind::kStrategy: {
-        // Off, then the goals.
-        const int n = static_cast<int>(goals_.size()) + 1;
-        int at = 0;
-        if (t.strategy) {
-          at = static_cast<int>(std::ranges::find(goals_, *t.strategy) - goals_.begin()) + 1;
-          at = at > static_cast<int>(goals_.size()) ? 0 : at;
-        }
-        at = (at + delta + n) % n;
-        t.strategy = at == 0 ? std::nullopt : std::optional(goals_[static_cast<std::size_t>(at - 1)]);
+      case Kind::kStrategy:
+        t.strategy = game::planet_next_strategy(t.strategy, delta);
         break;
-      }
       case Kind::kLevel: {
         const auto i = static_cast<std::size_t>(row.index);
         BuildLevel& own = t.own.levels[i];
@@ -503,7 +488,6 @@ class ManagementBox final : public GWindow {
 
   game::Session& session_;
   std::vector<Target> targets_;
-  std::vector<game::PlanetGoal> goals_;
   std::vector<Row> rows_;
   bool strategy_changed_ = false;
   int editing_ = -1;

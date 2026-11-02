@@ -2,8 +2,8 @@
 // size 0x9dd, vtable 0x85e98), the research tree as rings in 3D around a
 // vertical axis, the info column of the hovered item (or of the current
 // project; the remake keeps the last hovered item until another one is
-// hovered, so the column's planet items and gizmos can show their help) and
-// the title bar; its children RESROTLEFT/RIGHT and
+// hovered or a click hits no item, so the column's planet items and gizmos
+// can show their help) and the title bar; its children RESROTLEFT/RIGHT and
 // RESMOVEUP/DOWN are plain buttons sending messages 50..53
 // (`docs/11-screens.md`, "Research screen").
 #pragma once

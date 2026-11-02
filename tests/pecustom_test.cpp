@@ -221,7 +221,8 @@ TEST_CASE("the version-3 peCustom saves still load", "[game][content][pecustom]"
   load_game(session, image);
   CHECK(session.game->cosmos.day == 30);
   // The goal the save was written with.
-  CHECK(session.game->planet_goals.at(static_cast<std::size_t>(player_planet(session))) == PlanetGoal::kResearch);
+  // Saved with a goal of the former planner (research, 2): balanced now.
+  CHECK(session.game->planet_goals.at(static_cast<std::size_t>(player_planet(session))) == PlanetGoal::kBalanced);
   // Saved before the planets' management: all standard, no labels.
   CHECK(std::ranges::all_of(session.game->planet_management,
                             [](const PlanetManagement& m) { return m.min_industry == -1 && m.labels == 0; }));

@@ -380,6 +380,13 @@ bool ResWnd::handle_event(int type, int a, int b) {
       if (active_ && session != nullptr) {
         update_hover();
         game::Research& research = session->game->research;
+        if (hovered_ == kNone && contains(wm_.input().x, wm_.input().y) &&
+            !kInfoPane.contains(wm_.input().x, wm_.input().y) && last_hovered_ != kNone) {
+          // A click on no item: the column back to the current project.
+          last_hovered_ = kNone;
+          redraw_info_ = true;
+          redraw_tree_ = true;
+        }
         // Not the item the info column keeps.
         if (hovered_ != kNone && hovered_ == item_at(wm_.input().x, wm_.input().y) &&
             !knows(research, hovered_, session->player_race) &&

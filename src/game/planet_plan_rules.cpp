@@ -1,5 +1,5 @@
-// peCustom's rule-based planet management ("V2" strategies, the settings of
-// `PlanetManagement`): the next project of an idle planet is decided by a
+// peCustom's rule-based planet management (the strategies `PlanetGoal`, the
+// settings of `PlanetManagement`): the next project of an idle planet is decided by a
 // few rules in a fixed order, each looking only at the planet as it is and
 // at the project's direct effects (the game's own rules on a copy,
 // `plan_detail::Sim`):
@@ -100,12 +100,13 @@ constexpr std::uint8_t kOrbitalMegaShield = 27;
 bool orbital_weapon(std::uint8_t it) { return it == kItemMissileBase || it == kItemWhopper || it == kItemMegaWhopper; }
 bool orbital_shield(std::uint8_t it) { return it == kOrbitalShield || it == kOrbitalMegaShield; }
 
+constexpr std::uint8_t kBlack = 0;
 constexpr std::uint8_t kWhite = 1;
 constexpr std::uint8_t kRed = 2;
 constexpr std::uint8_t kGreen = 3;
 constexpr std::uint8_t kBlue = 4;
 
-Weights v2_weights(PlanetGoal goal, bool research_complete, bool research_boost) {
+Weights goal_weights(PlanetGoal goal, bool research_complete, bool research_boost) {
   if (research_complete) {
     return {1.0, 0.0};
   }
@@ -113,9 +114,9 @@ Weights v2_weights(PlanetGoal goal, bool research_complete, bool research_boost)
     return {0.0, 1.0};
   }
   switch (goal) {
-    case PlanetGoal::kIndustryV2:
+    case PlanetGoal::kIndustry:
       return {1.0, 0.05};
-    case PlanetGoal::kResearchV2:
+    case PlanetGoal::kResearch:
       // Industry only for the planet's building (rule 4) and its minimum.
       return {0.0, 1.0};
     default:
@@ -132,7 +133,8 @@ class Rules {
         session_(&session),
         goal_(goal),
         m_(management),
-        weights_(v2_weights(goal, research_complete, management.research_boost > 0)) {
+        weights_(goal_weights(goal, research_complete, management.research_boost > 0)),
+        black_usable_(session.game->cosmos.races.at(planet.owner).ability == 2) {
     shipyard_ = b_.find(kItemShipyard) != kNoSquare;
     std::int32_t built = 0;
     for (std::uint16_t i = 0; i < planet.surface_squares; ++i) {
@@ -161,8 +163,11 @@ class Rules {
   }
 
  private:
-  // An empty square a building may go on (not black, not ruins).
-  bool usable(std::uint16_t square) const { return b_.empty(square) && b_.squares[square].color != 0; }
+  // An empty square a building may go on (not ruins; black only for the
+  // race that builds there).
+  bool usable(std::uint16_t square) const {
+    return b_.empty(square) && (b_.squares[square].color != 0 || black_usable_);
+  }
 
   std::int32_t industry() const { return u16(b_.planet.industry); }
   std::int32_t days(std::uint8_t item) const { return build_days(b_.item(item).cost, industry()); }
@@ -272,8 +277,17 @@ class Rules {
     std::array<std::pair<double, std::uint8_t>, 3> rest{
         {{weights_.industry, kRed}, {0.5, kGreen}, {weights_.research, kBlue}}};
     std::ranges::stable_sort(rest);
-    std::array<std::uint8_t, 5> out{own, kWhite, 0, 0, 0};
-    std::size_t n = own == kWhite ? 1 : 2;
+    // Black gives no bonus either: as good as white for the race that builds
+    // there, last for the others (only buildings for any square go there).
+    std::array<std::uint8_t, 5> out{};
+    std::size_t n = 0;
+    out[n++] = own;
+    if (own != kWhite) {
+      out[n++] = kWhite;
+    }
+    if (black_usable_) {
+      out[n++] = kBlack;
+    }
     for (const auto& [w, c] : rest) {
       if (c != own) {
         out[n++] = c;
@@ -316,7 +330,7 @@ class Rules {
       std::int32_t best_d = kNever + 1;
       for (std::uint16_t i = 0; i < b_.planet.surface_squares; ++i) {
         if (b_.empty(i) && (b_.squares[i].color & 7u) == colour && b_.can_place(item, i)) {
-          const std::int32_t d = colour == 0 ? 0 : distances(colour)[i];
+          const std::int32_t d = distances(colour)[i];
           if (d < best_d) {
             best_d = d;
             best = i;
@@ -713,7 +727,7 @@ class Rules {
       // Transport Tubes on the way to the nearest unreached square.
       std::uint16_t best = kNoSquare;
       std::int32_t best_d = kNever;
-      for (const std::uint8_t colour : {kWhite, kRed, kGreen, kBlue}) {
+      for (const std::uint8_t colour : {kBlack, kWhite, kRed, kGreen, kBlue}) {
         const std::vector<std::int32_t>& d = distances(colour);
         for (std::uint16_t i = 0; i < b_.planet.surface_squares; ++i) {
           if (d[i] < best_d && b_.empty(i) && b_.can_place(kTransportTubes, i)) {
@@ -753,7 +767,7 @@ class Rules {
   std::optional<Action> productivity() {
     // The research boost: only up to the industry kept.
     const bool boost = m_.research_boost > 0;
-    if (goal_ == PlanetGoal::kIndustryV2 || reachable_ == 0 || (boost && industry() >= m_.min_industry)) {
+    if (goal_ == PlanetGoal::kIndustry || reachable_ == 0 || (boost && industry() >= m_.min_industry)) {
       return std::nullopt;
     }
     const std::optional<Action> next = best_goal_building(candidates(Role::kGoal, [](const PlanItem&) { return true; }));
@@ -905,6 +919,8 @@ class Rules {
   // The share of the usable surface built.
   double fill_ = 0.0;
   bool shipyard_ = false;
+  // The owner builds on black squares too (Orfa's ability).
+  bool black_usable_ = false;
   // The empty usable squares, and those reachable now.
   std::int32_t empty_ = 0;
   std::int32_t reachable_ = 0;
@@ -913,11 +929,7 @@ class Rules {
 
 }  // namespace
 
-bool planet_goal_v2(PlanetGoal goal) {
-  return goal == PlanetGoal::kBalancedV2 || goal == PlanetGoal::kIndustryV2 || goal == PlanetGoal::kResearchV2;
-}
-
-void pe_manage_planet_v2(Session& session, Planet& planet, PlanetGoal goal, const PlanetManagement& management) {
+void pe_manage_planet_rules(Session& session, Planet& planet, PlanetGoal goal, const PlanetManagement& management) {
   const bool complete = antag_race_research_complete(session, session.game->cosmos.races.at(planet.owner));
   Rules rules(session, planet, goal, management, complete);
   const Action a = rules.decide();

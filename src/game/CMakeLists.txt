@@ -19,7 +19,7 @@ oa_add_module(oa_game
     planet.cpp
     # peCustom's planet management by goal (the economy planned ahead).
     planet_plan.cpp
-    planet_plan_v2.cpp
+    planet_plan_rules.cpp
     # The player actions of the planet, research and planet-list screens.
     player_actions.cpp
     race.cpp

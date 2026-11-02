@@ -370,20 +370,22 @@ constexpr RaceDays no_attack_days() {
 
 // peCustom: what a self-managed planet of the player builds for
 // (`Game::planet_goals`, `game/planet_plan.h`). The values are saved: never
-// change them, append new goals.
+// change them, append new goals. 0..5 were the goals of a former planner,
+// never played: saves holding them load as balanced.
 enum class PlanetGoal : std::uint8_t {
-  kBalanced = 0,     // industry and research
-  kIndustry = 1,     // industry (and so ships)
-  kResearch = 2,     // research
-  kDefence = 3,      // planetary shields and weapons on a sound economy
-  kShipyard = 4,     // a Shipyard as soon as possible, then hands back
-  kArchaeology = 5,  // a dig on the ruins as soon as possible, then hands back
-  // The goals of the rule-based planner (`planet_plan_v2.cpp`).
-  kBalancedV2 = 6,
-  kIndustryV2 = 7,
-  kResearchV2 = 8,
+  kBalanced = 6,  // industry and research
+  kIndustry = 7,  // industry (and so ships)
+  kResearch = 8,  // research
 };
-inline constexpr std::size_t kPlanetGoalCount = 9;
+// The first value of a goal, and the end of the values.
+inline constexpr std::uint8_t kPlanetGoalFirst = 6;
+inline constexpr std::uint8_t kPlanetGoalEnd = 9;
+
+constexpr std::array<PlanetGoal, kMaxPlanets> balanced_goals() {
+  std::array<PlanetGoal, kMaxPlanets> goals{};
+  goals.fill(PlanetGoal::kBalanced);
+  return goals;
+}
 
 // peCustom: how a managed planet treats a kind of building
 // (`PlanetManagement::levels`). The values are saved: never change them.
@@ -445,7 +447,7 @@ struct Game {
   std::array<std::int32_t, kMaxRaces> peace_offer_days = no_peace_offer_days();
   // peCustom: the goal of each planet's self-management (the player's
   // planets; the AI picks its own).
-  std::array<PlanetGoal, kMaxPlanets> planet_goals{};
+  std::array<PlanetGoal, kMaxPlanets> planet_goals = balanced_goals();
   // peCustom: the rest of each planet's management, and the player's planet
   // labels (at most `kMaxPlanetLabels`).
   std::array<PlanetManagement, kMaxPlanets> planet_management{};

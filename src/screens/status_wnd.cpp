@@ -302,11 +302,14 @@ void StatusWnd::pe_click(int button) {
     }
     case kSameStrategy: {
       // The strategy of the first marked planet shown (else the first one).
+      int first = 0;
+      while (first < row_count() && !marked_.contains(row_planet(first))) {
+        ++first;
+      }
       std::optional<int> key;
-      for (int r = 0; r < row_count() && !key; ++r) {
-        if (marked_.contains(row_planet(r)) || r == row_count() - 1) {
-          key = strategy_key(session, cosmos.planets.at(static_cast<std::size_t>(row_planet(r))));
-        }
+      if (row_count() > 0) {
+        first = first < row_count() ? first : 0;
+        key = strategy_key(session, cosmos.planets.at(static_cast<std::size_t>(row_planet(first))));
       }
       marked_.clear();
       for (int r = 0; key && r < row_count(); ++r) {

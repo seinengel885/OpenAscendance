@@ -596,10 +596,11 @@ SaveImage parse_save(std::span<const std::uint8_t> data, std::optional<RawAddres
         image.planet_goals.resize(image.planets.size());
         for (PlanetGoal& goal : image.planet_goals) {
           const std::uint8_t g = in.u8();
-          if (g >= kPlanetGoalCount) {
+          if (g >= kPlanetGoalEnd) {
             in.fail(std::format("unknown planet goal {}", g));
           }
-          goal = static_cast<PlanetGoal>(g);
+          // The former planner's goals: balanced.
+          goal = g < kPlanetGoalFirst ? PlanetGoal::kBalanced : static_cast<PlanetGoal>(g);
         }
       }
       if (image.pe_custom_version >= 4) {

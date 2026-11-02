@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <format>
+#include <optional>
 #include <span>
 #include <stdexcept>
 
@@ -11,6 +12,7 @@
 #include "game/address.h"
 #include "game/float_math.h"
 #include "game/planet.h"
+#include "game/planet_plan.h"
 #include "game/player_actions.h"
 #include "game/race.h"
 #include "game/race_ai.h"
@@ -629,7 +631,14 @@ void PlanWnd::key(int scan) {
     case kScanM:
       // Shift+M is a developer key (`nougat.lf`).
       if (!wm_.input().shift) {
-        if (game::Planet* p = planet()) {
+        game::Session* s = wm_.services().game.core();
+        if (game::Planet* p = planet(); p != nullptr && s != nullptr && management_shown(*s, *p)) {
+          // peCustom: the strategies in turn (off, then each one).
+          game::planet_set_management(
+              *s, *p,
+              game::planet_next_strategy(p->self_managed != 0 ? std::optional(game::planet_goal(*s, *p)) : std::nullopt,
+                                         1));
+        } else if (p != nullptr) {
           game::planet_toggle_self_managed(*p);
         }
       }

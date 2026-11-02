@@ -1,6 +1,6 @@
-// peCustom's planet management, shared by its two planners (`planet_plan.cpp`,
-// `planet_plan_v2.cpp`): a planet's copy whose buildings and days can be
-// tried out with the game's own rules. Internal to those files.
+// peCustom's planet management (`planet_plan.cpp`, `planet_plan_rules.cpp`):
+// a planet's copy whose buildings and days can be tried out with the game's
+// own rules. Internal to those files.
 #pragma once
 
 #include <algorithm>
