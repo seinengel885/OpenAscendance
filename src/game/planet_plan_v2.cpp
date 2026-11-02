@@ -1,40 +1,55 @@
-// peCustom's rule-based planet management ("V2" goals): the next project of
-// an idle planet is decided by a few rules in a fixed order, each looking
-// only at the planet as it is and at the project's direct effects (the
-// game's own rules on a copy, `plan_detail::Sim`):
-// 1. Housing: while the planet needs more workers than it has room for,
-//    housing in time (when the room left fills before housing is built).
+// peCustom's rule-based planet management ("V2" strategies, the settings of
+// `PlanetManagement`): the next project of an idle planet is decided by a
+// few rules in a fixed order, each looking only at the planet as it is and
+// at the project's direct effects (the game's own rules on a copy,
+// `plan_detail::Sim`):
+// 1. Housing: while the planet needs more workers than it has room for and
+//    no worker waits for a building, housing in time (when the room left
+//    fills before housing is built).
 // 2. Growth: when workers come slower than the goal's buildings are done
-//    (or as slow), or too slow for a Shipyard's ships, the growth building that brings inhabitants soonest; without
-//    a worker, the least needed building makes way for one if that is
-//    sooner than waiting, its rebuilding counted (always when growth has
-//    stopped).
-// 3. Access: Transport Tubes toward squares not reachable yet, Terraforming
+//    (or as slow), or too slow for a Shipyard's ships or the growth kept,
+//    the growth building that brings inhabitants soonest; without a worker,
+//    the least needed building makes way for one if that is sooner than
+//    waiting, its rebuilding counted (always when growth has stopped).
+// 3. First: the buildings set to come first (defences up to their counts,
+//    Shipyard, Orbital Dock, the dig), making way if need be.
+// 4. Access: Transport Tubes toward squares not reachable yet, Terraforming
 //    once no usable square is left.
-// 4. Industry: while workers come faster than the goal's buildings are
+// 5. Along: the buildings set to come along with the growth: defences in
+//    the share of the planet built, single buildings once half of it is.
+// 6. Industry: while workers come faster than the goal's buildings are
 //    done, a factory when it saves more days on the buildings still to come
-//    than it takes itself.
-// 5. Goal: the building that adds most of the goal's outputs per day of
+//    than it takes itself (with the research boost: only up to the
+//    industry kept).
+// 7. Goal: the building that adds most of the goal's outputs per day of
 //    building, on the square of its colour.
-// 6. Replacement (no empty square left): the building whose replacement
+// 8. Replacement (no empty square left): the building whose replacement
 //    gains the goal most, if the gain makes up for the loss while
-//    rebuilding; the prosperity a Shipyard needs (an inhabitant within a
-//    ship's building time; two workers stay free for ships), a minimum of
-//    industry and the housing in use stay. Each replacement raises the goal's outputs,
-//    so buildings never replace each other back and forth.
-// Squares: an item goes on the colour of its role (housing white), else
-// white, else the colour the goal needs least; among those the square
-// nearest to the unreached squares of its colour.
+//    rebuilding; the prosperity needed (a Shipyard's: an inhabitant within a
+//    ship's building time, two workers free for ships; the growth kept), the
+//    industry and research kept and the housing in use stay. Each
+//    replacement raises the goal's outputs, so buildings never replace each
+//    other back and forth.
+// Orbital squares: one each for the Shipyard, a ship and the Orbital Dock
+// unless set to never, the rest for the orbital defence (up to its count);
+// the workers for
+// those still to come are wanted from growth (so "reserve" keeps them).
+// Squares: an item goes on the colour of its role (housing and defences
+// white), else white, else the colour the goal needs least; among those
+// the square nearest to the unreached squares of its colour.
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <initializer_list>
 #include <limits>
 #include <optional>
 #include <vector>
 
+#include "game/address.h"
 #include "game/antag_planet.h"
+#include "game/events.h"
 #include "game/planet.h"
 #include "game/planet_plan.h"
 #include "game/planet_plan_sim.h"
@@ -58,9 +73,9 @@ constexpr std::int32_t kTypicalCost = 50;
 // A replacement must make up for the outputs lost while rebuilding within
 // these days.
 constexpr std::int32_t kPayback = 100;
-// The industry kept when buildings make way: a Surface Shield within these
-// days.
-constexpr std::int32_t kShieldDays = 20;
+// The share of the planet built from which single buildings set to come
+// along are built.
+constexpr double kAlongShare = 0.5;
 // The cost of a well equipped ship per hull (hull and slots full of
 // gizmos): a planet with a Shipyard keeps the growth for one in its time.
 constexpr std::array<std::int32_t, 4> kShipCost{320, 670, 1000, 1650};
@@ -70,16 +85,30 @@ constexpr std::array<std::int32_t, 4> kShipCost{320, 670, 1000, 1650};
 constexpr std::int32_t kShipWorkers = 2;
 
 // What a building is put up for (its square's colour follows from it).
-enum class Role : std::uint8_t { kHousing, kGrowth, kIndustry, kGoal };
+enum class Role : std::uint8_t { kHousing, kGrowth, kIndustry, kGoal, kDefence };
+
+// Planet items of the defences and orbital buildings (`planitem.txt`).
+constexpr std::uint8_t kSurfaceCloaker = 11;
+constexpr std::uint8_t kObservation = 16;
+constexpr std::uint8_t kOrbitalDocks = 24;
+constexpr std::uint8_t kOrbitalCloaker = 25;
+constexpr std::uint8_t kOrbitalShield = 26;
+constexpr std::uint8_t kOrbitalMegaShield = 27;
+
+bool orbital_weapon(std::uint8_t it) { return it == kItemMissileBase || it == kItemWhopper || it == kItemMegaWhopper; }
+bool orbital_shield(std::uint8_t it) { return it == kOrbitalShield || it == kOrbitalMegaShield; }
 
 constexpr std::uint8_t kWhite = 1;
 constexpr std::uint8_t kRed = 2;
 constexpr std::uint8_t kGreen = 3;
 constexpr std::uint8_t kBlue = 4;
 
-Weights v2_weights(PlanetGoal goal, bool research_complete) {
+Weights v2_weights(PlanetGoal goal, bool research_complete, bool research_boost) {
   if (research_complete) {
     return {1.0, 0.0};
+  }
+  if (research_boost) {
+    return {0.0, 1.0};
   }
   switch (goal) {
     case PlanetGoal::kIndustryV2:
@@ -94,24 +123,34 @@ Weights v2_weights(PlanetGoal goal, bool research_complete) {
 
 class Rules {
  public:
-  Rules(const Session& session, const Planet& planet, PlanetGoal goal, bool research_complete)
+  Rules(const Session& session, const Planet& planet, PlanetGoal goal, const PlanetManagement& management,
+        bool research_complete)
       : neighbours_(surface_neighbours(session.tables->planitems, planet)),
         b_(session, planet, neighbours_),
         session_(&session),
         goal_(goal),
-        weights_(v2_weights(goal, research_complete)) {
+        m_(management),
+        weights_(v2_weights(goal, research_complete, management.research_boost > 0)) {
     shipyard_ = b_.find(kItemShipyard) != kNoSquare;
+    std::int32_t built = 0;
     for (std::uint16_t i = 0; i < planet.surface_squares; ++i) {
       if (usable(i)) {
         ++empty_;
         reachable_ += b_.touches_built(i) ? 1 : 0;
+      } else if (b_.squares[i].item != kNoItem && b_.squares[i].item != kTransportTubes) {
+        ++built;
       }
     }
+    fill_ = built + empty_ > 0 ? static_cast<double>(built) / (built + empty_) : 1.0;
   }
 
+  // Whether no usable square is left empty.
+  bool built_up() const { return empty_ == 0; }
+
+  // The project, none to wait.
   Action decide() {
-    for (auto rule : {&Rules::housing, &Rules::growth, &Rules::access, &Rules::productivity, &Rules::goal,
-                      &Rules::replacement}) {
+    for (auto rule : {&Rules::housing, &Rules::growth, &Rules::first, &Rules::access, &Rules::along,
+                      &Rules::productivity, &Rules::goal, &Rules::replacement}) {
       if (const std::optional<Action> a = (this->*rule)()) {
         return *a;
       }
@@ -125,12 +164,10 @@ class Rules {
 
   std::int32_t industry() const { return u16(b_.planet.industry); }
   std::int32_t days(std::uint8_t item) const { return build_days(b_.item(item).cost, industry()); }
-  // The goal's outputs a day. Balanced: both, the one lagging behind
-  // counting more.
+  // The goal's outputs a day (balanced: both alike, so each square gets the
+  // building of its colour).
   double value(const Sim& s) const {
-    const double i = weights_.industry * s.exact_industry();
-    const double r = weights_.research * u16(s.planet.research);
-    return goal_ == PlanetGoal::kBalancedV2 ? i + r - 0.5 * std::abs(i - r) : i + r;
+    return weights_.industry * s.exact_industry() + weights_.research * u16(s.planet.research);
   }
 
   // The workers kept for ships by a planet with a Shipyard (`kShipWorkers`).
@@ -138,7 +175,8 @@ class Rules {
   // The workers the planet wants: one per empty usable square more, and
   // those kept for ships.
   std::int32_t wanted_population() const {
-    return std::min(100, static_cast<std::int32_t>(b_.planet.used_population) + empty_ + ship_workers());
+    return std::min(100, static_cast<std::int32_t>(b_.planet.used_population) + empty_ + ship_workers() +
+                             orbital_workers());
   }
   // Free workers for a new building (a Shipyard's planet keeps its ship
   // workers once it is full).
@@ -210,6 +248,7 @@ class Rules {
     std::uint8_t own = kWhite;
     switch (role) {
       case Role::kHousing:
+      case Role::kDefence:
         own = kWhite;
         break;
       case Role::kGrowth:
@@ -317,9 +356,230 @@ class Rules {
     return it == kItemHyperpowerPlant || it == kItemFertilizationPlant || it == kItemInternet || it == kCloningPlant;
   }
 
+  using PM = PlanetManagement;
+
+  std::int32_t count(std::initializer_list<std::uint8_t> items) const {
+    std::int32_t n = 0;
+    for (const Square& sq : b_.squares) {
+      n += std::ranges::find(items, sq.item) != items.end() ? 1 : 0;
+    }
+    return n;
+  }
+  bool has(std::uint8_t item) const { return b_.find(item) != kNoSquare; }
+  bool wanted(PM::Building building) const { return m_.levels[building] != BuildLevel::kNo; }
+
+  // The orbital squares the orbital defence may take: all but one each for
+  // the Shipyard, a ship and the Orbital Dock unless never wanted; and of
+  // those, the Orbital Cloakers.
+  std::int32_t orbital_defence_room() const {
+    const std::int32_t orbit = b_.planet.square_count - b_.planet.surface_squares;
+    const std::int32_t kept = (shipyard_ || wanted(PM::kShipyard) ? 2 : 0) + (has(kOrbitalDocks) || wanted(PM::kOrbitalDock) ? 1 : 0);
+    return std::max(0, orbit - kept);
+  }
+  std::int32_t orbital_cloakers() const {
+    return std::min<std::int32_t>(m_.counts[PM::kOrbitalCloaker], orbital_defence_room());
+  }
+  // The orbital weapons and shields wanted, room left.
+  std::int32_t orbital_defences() const {
+    return std::min<std::int32_t>(m_.counts[PM::kOrbitalDefences], orbital_defence_room() - orbital_cloakers());
+  }
+  // The workers for the orbital buildings still to come (not set to never).
+  std::int32_t orbital_workers() const {
+    std::int32_t n = 0;
+    if (wanted(PM::kOrbitalDefence)) {
+      n += std::max(0, orbital_defences() + orbital_cloakers() -
+                           count({kItemMissileBase, kItemWhopper, kItemMegaWhopper, kOrbitalShield, kOrbitalMegaShield,
+                                  kOrbitalCloaker}));
+    }
+    n += wanted(PM::kShipyard) && !shipyard_ ? 1 : 0;
+    n += wanted(PM::kOrbitalDock) && !has(kOrbitalDocks) ? 1 : 0;
+    return n;
+  }
+
+  // How many of `n` are due at `level`: all coming first, the share of the
+  // planet built coming along.
+  std::int32_t due(std::int32_t n, BuildLevel level) const {
+    return level == BuildLevel::kFirst ? n : static_cast<std::int32_t>(n * fill_);
+  }
+  bool single_due(BuildLevel level) const { return level == BuildLevel::kFirst || fill_ >= kAlongShare; }
+
+  // Whether a building due may take another's square or worker: no square
+  // left, or no worker and none to come.
+  bool may_make_way() const {
+    return reachable_ == 0 || (free_workers() < 1 && next_inhabitant(b_) == kNever);
+  }
+
+  // `item` (a defence) on the surface: on a square of its own, else where a
+  // building makes way.
+  std::optional<Action> surface(std::uint8_t item) {
+    if (!race_knows_item(*session_, b_.planet, item)) {
+      return std::nullopt;
+    }
+    if (free_workers() >= 1 && reachable_ > 0) {
+      if (const std::uint16_t square = place(item, Role::kDefence); square != kNoSquare) {
+        return Action{item, square};
+      }
+    }
+    if (!may_make_way()) {
+      return std::nullopt;
+    }
+    for (const std::uint16_t victim : victims()) {
+      const bool fits = b_.with(Action{kNoItem, victim, victim}, [&](const Sim& s) { return s.can_place(item, victim); });
+      if (fits) {
+        return Action{item, victim, victim};
+      }
+    }
+    return std::nullopt;
+  }
+
+  // `item` in orbit: on a free orbital square, a building making way for
+  // its worker if need be.
+  std::optional<Action> orbital(std::uint8_t item) {
+    if (item == kNoItem || !race_knows_item(*session_, b_.planet, item)) {
+      return std::nullopt;
+    }
+    std::uint16_t square = kNoSquare;
+    for (std::uint16_t i = b_.planet.surface_squares; i < b_.planet.square_count && square == kNoSquare; ++i) {
+      square = b_.squares[i].item == kNoItem ? i : square;
+    }
+    if (square == kNoSquare) {
+      return std::nullopt;
+    }
+    if (free_workers() >= 1 && b_.can_place(item, square)) {
+      return Action{item, square};
+    }
+    if (!may_make_way()) {
+      return std::nullopt;
+    }
+    for (const std::uint16_t victim : victims()) {
+      if (b_.with(Action{kNoItem, victim, victim}, [&](const Sim& s) { return s.can_place(item, square); })) {
+        return Action{item, square, victim};
+      }
+    }
+    return std::nullopt;
+  }
+
+  // The next orbital weapon or shield: the best one known of the kind there
+  // are fewer of (weapons on a tie).
+  std::uint8_t next_orbital_defence() const {
+    const std::uint8_t shield = planet_best_orbital_shield_item(*session_, b_.planet);
+    const std::uint8_t weapon = planet_best_orbital_weapon_item(*session_, b_.planet);
+    const std::int32_t weapons = count({kItemMissileBase, kItemWhopper, kItemMegaWhopper});
+    const std::int32_t shields = count({kOrbitalShield, kOrbitalMegaShield});
+    return weapon != kNoItem && (weapons <= shields || shield == kNoItem) ? weapon : shield;
+  }
+
+  // The orbit's defences complete: the cheapest one of which a better one
+  // of its kind is known makes way for it.
+  std::optional<Action> orbital_upgrade() const {
+    const std::uint8_t shield = planet_best_orbital_shield_item(*session_, b_.planet);
+    const std::uint8_t weapon = planet_best_orbital_weapon_item(*session_, b_.planet);
+    std::optional<Action> best;
+    for (std::uint16_t i = b_.planet.surface_squares; i < b_.planet.square_count; ++i) {
+      const std::uint8_t it = b_.squares[i].item;
+      const std::uint8_t better = orbital_weapon(it) ? weapon : orbital_shield(it) ? shield : kNoItem;
+      if (better != kNoItem && b_.item(better).cost > b_.item(it).cost &&
+          (!best || b_.item(it).cost < b_.item(b_.squares[best->square].item).cost)) {
+        best = Action{better, i, i};
+      }
+    }
+    return best;
+  }
+
+  // The dig: Transport Tubes to the ruins, then the dig itself.
+  std::optional<Action> dig() {
+    std::uint16_t ruins = kNoSquare;
+    for (std::uint16_t i = 0; i < b_.planet.surface_squares; ++i) {
+      ruins = (b_.squares[i].color & kSquareRuins) != 0 && b_.squares[i].item == kNoItem ? i : ruins;
+    }
+    if (ruins == kNoSquare || !race_knows_item(*session_, b_.planet, kItemXenoDig)) {
+      return std::nullopt;
+    }
+    if (b_.touches_built(ruins)) {
+      return free_workers() >= 1 && b_.can_place(kItemXenoDig, ruins) ? std::optional<Action>(Action{kItemXenoDig, ruins})
+                                                                     : std::nullopt;
+    }
+    // Breadth first from the ruins over empty squares to the nearest one
+    // Transport Tubes may go on now.
+    std::vector<std::uint16_t> queue{ruins};
+    std::vector<bool> seen(b_.planet.surface_squares, false);
+    seen[ruins] = true;
+    for (std::size_t q = 0; q < queue.size(); ++q) {
+      for (const std::uint16_t n : neighbours_[queue[q]]) {
+        if (n == kNoSquare || seen[n] || !b_.empty(n)) {
+          continue;
+        }
+        seen[n] = true;
+        if (b_.can_place(kTransportTubes, n)) {
+          return Action{kTransportTubes, n};
+        }
+        queue.push_back(n);
+      }
+    }
+    return std::nullopt;
+  }
+
+  // The buildings set to `level` that are due, in this order: planetary
+  // defences, orbital defences, Shipyard, Orbital Dock, dig.
+  std::optional<Action> due_buildings(BuildLevel level) {
+    if (m_.levels[PM::kPlanetaryDefence] == level) {
+      const std::uint8_t shield = race_knows_item(*session_, b_.planet, kSurfaceMegaShield) ? kSurfaceMegaShield
+                                                                                            : kSurfaceShield;
+      const std::array<std::pair<PM::Count, std::uint8_t>, 4> defences{
+          {{PM::kSurfaceShields, shield}, {PM::kObservation, kObservation}, {PM::kSurfaceCloaker, kSurfaceCloaker},
+           {PM::kTractorBeam, kItemTractorBeam}}};
+      for (const auto& [kind, item] : defences) {
+        const std::int32_t built = kind == PM::kSurfaceShields ? count({kSurfaceShield, kSurfaceMegaShield}) : count({item});
+        if (built < due(m_.counts[kind], level)) {
+          if (const std::optional<Action> a = surface(item)) {
+            return a;
+          }
+        }
+      }
+    }
+    if (m_.levels[PM::kOrbitalDefence] == level) {
+      const std::int32_t cloakers = orbital_cloakers();
+      if (count({kOrbitalCloaker}) < due(cloakers, level)) {
+        if (const std::optional<Action> a = orbital(kOrbitalCloaker)) {
+          return a;
+        }
+      }
+      const std::int32_t room = orbital_defences();
+      const std::int32_t built = count({kItemMissileBase, kItemWhopper, kItemMegaWhopper, kOrbitalShield, kOrbitalMegaShield});
+      if (built < due(room, level)) {
+        if (const std::optional<Action> a = orbital(next_orbital_defence())) {
+          return a;
+        }
+      } else if (room > 0 && due(room, level) == room) {
+        if (const std::optional<Action> a = orbital_upgrade()) {
+          return a;
+        }
+      }
+    }
+    if (m_.levels[PM::kShipyard] == level && !shipyard_ && single_due(level)) {
+      if (const std::optional<Action> a = orbital(kItemShipyard)) {
+        return a;
+      }
+    }
+    if (m_.levels[PM::kOrbitalDock] == level && !has(kOrbitalDocks) && single_due(level)) {
+      if (const std::optional<Action> a = orbital(kOrbitalDocks)) {
+        return a;
+      }
+    }
+    if (m_.levels[PM::kDig] == level && single_due(level)) {
+      return dig();
+    }
+    return std::nullopt;
+  }
+
+  // 3. and 5.: the buildings coming first, those coming along.
+  std::optional<Action> first() { return due_buildings(BuildLevel::kFirst); }
+  std::optional<Action> along() { return due_buildings(BuildLevel::kAlong); }
+
   // 1. Housing in time.
   std::optional<Action> housing() {
-    if (wanted_population() <= b_.planet.max_population) {
+    // Only while the workers do not wait for buildings.
+    if (wanted_population() <= b_.planet.max_population || b_.free_population() > 1) {
       return std::nullopt;
     }
     std::optional<Action> best;
@@ -344,15 +604,15 @@ class Rules {
 
   // 2. Growth before the workers run out.
   std::optional<Action> growth() {
-    // Growth for workers still wanted, or for the ships of a Shipyard.
+    // Growth for workers still wanted, or the growth kept.
     const bool workers = b_.planet.population < wanted_population() && b_.room() > 0;
-    const bool ships = b_.free_population() <= ship_workers() && b_.growth_rate() < ship_growth();
-    if (!workers && !ships) {
+    const bool kept = b_.growth_rate() < kept_growth();
+    if (!workers && !kept) {
       return std::nullopt;
     }
     const std::int32_t free = free_workers();
     // Workers: only when they come slower than the buildings are done.
-    if (!ships && (free >= 2 || (free == 1 && interval(b_) < next_days()))) {
+    if (!kept && (free >= 2 || (free == 1 && interval(b_) < next_days()))) {
       return std::nullopt;
     }
     const std::int32_t wait = next_inhabitant(b_);
@@ -382,8 +642,8 @@ class Rules {
       }
     }
     std::optional<Action> best;
-    if (ships || wait == kNever) {
-      // Growth too slow for ships or stopped: the most prosperity, even if
+    if (kept || wait == kNever) {
+      // Growth slower than kept or stopped: the most prosperity, even if
       // more buildings must follow (they make way again once not needed).
       std::int32_t most = prosperity_sum(b_);
       for (const Action& a : options) {
@@ -455,7 +715,9 @@ class Rules {
 
   // 4. Industry while it speeds up the buildings still to come.
   std::optional<Action> productivity() {
-    if (goal_ == PlanetGoal::kIndustryV2 || reachable_ == 0) {
+    // The research boost: only up to the industry kept.
+    const bool boost = m_.research_boost > 0;
+    if (goal_ == PlanetGoal::kIndustryV2 || reachable_ == 0 || (boost && industry() >= m_.min_industry)) {
       return std::nullopt;
     }
     const std::optional<Action> next = best_goal_building(candidates(Role::kGoal, [](const PlanItem&) { return true; }));
@@ -464,7 +726,7 @@ class Rules {
     }
     // Only while industry holds the planet back: workers come faster than
     // its buildings are done.
-    if (b_.free_population() < 2 && interval(b_) >= days(next->item)) {
+    if (!boost && b_.free_population() < 2 && interval(b_) >= days(next->item)) {
       return std::nullopt;
     }
     const double cost = b_.item(next->item).cost;
@@ -480,7 +742,8 @@ class Rules {
       // The factory takes a square of the goal's buildings, for good if the
       // goal wants industry, else until it makes way for one.
       const double later = weights_.industry > 0.0 ? remaining - cost : remaining;
-      const double saved = remaining / now - (b_.item(a.item).cost / now + later / after);
+      const double saved = boost ? (after - now) / days(a.item)
+                                 : remaining / now - (b_.item(a.item).cost / now + later / after);
       if (saved > best_saved) {
         best = a;
         best_saved = saved;
@@ -497,7 +760,16 @@ class Rules {
   // The prosperity a day the planet needs: its growth while it wants more
   // workers, with a Shipyard an inhabitant within a ship's building time.
   std::int32_t needed_growth() const {
-    return b_.planet.population < wanted_population() ? std::numeric_limits<std::int32_t>::max() : ship_growth();
+    return b_.planet.population < wanted_population() ? std::numeric_limits<std::int32_t>::max() : kept_growth();
+  }
+  // The prosperity a day kept: a Shipyard's (while no more workers than
+  // those for ships are free) and that of the growth kept.
+  std::int32_t kept_growth() const {
+    std::int32_t need = b_.free_population() <= ship_workers() ? ship_growth() : 0;
+    if (m_.growth_days > 0) {
+      need = std::max(need, (b_.pop_growth() + m_.growth_days - 1) / m_.growth_days);
+    }
+    return need;
   }
   // The prosperity a day for an inhabitant within a ship's building time
   // (0 without a Shipyard).
@@ -514,13 +786,10 @@ class Rules {
     const std::int32_t d = build_days(cost, industry());
     return (b_.pop_growth() + d - 1) / d;
   }
-  std::int32_t minimum_industry() const {
-    return build_days(b_.item(kSurfaceShield).cost, kShieldDays);
-  }
 
   // The buildings that may make way, the one whose loss costs the goal the
   // least first: not the Transport Tubes, not housing in use, not the
-  // prosperity needed (`needed_growth`) nor the minimum industry.
+  // prosperity needed (`needed_growth`) nor the industry and research kept.
   std::vector<std::uint16_t> victims() {
     struct Victim {
       std::uint16_t square;
@@ -529,7 +798,8 @@ class Rules {
     std::vector<Victim> all;
     const std::int32_t need = needed_growth();
     const std::int32_t rate = b_.growth_rate();
-    const std::int32_t min_industry = std::min(minimum_industry(), industry());
+    const std::int32_t min_industry = std::min<std::int32_t>(m_.min_industry, industry());
+    const std::int32_t min_research = std::min<std::int32_t>(m_.min_research, u16(b_.planet.research));
     const double now = value(b_);
     for (std::uint16_t i = 0; i < b_.planet.surface_squares; ++i) {
       const std::uint8_t it = b_.squares[i].item;
@@ -538,7 +808,8 @@ class Rules {
       }
       const auto [loss, ok] = b_.with(Action{kNoItem, i, i}, [&](const Sim& s) {
         const bool keeps = (b_.item(it).prosperity <= 0 || s.growth_rate() >= std::min(need, rate)) &&
-                           (b_.item(it).industry <= 0 || u16(s.planet.industry) >= min_industry);
+                           (b_.item(it).industry <= 0 || u16(s.planet.industry) >= min_industry) &&
+                           (b_.item(it).research <= 0 || u16(s.planet.research) >= min_research);
         return std::pair{now - value(s), keeps};
       });
       if (ok) {
@@ -593,7 +864,10 @@ class Rules {
   Sim b_;
   const Session* session_;
   PlanetGoal goal_;
+  PlanetManagement m_;
   Weights weights_;
+  // The share of the usable surface built.
+  double fill_ = 0.0;
   bool shipyard_ = false;
   // The empty usable squares, and those reachable now.
   std::int32_t empty_ = 0;
@@ -609,10 +883,20 @@ bool planet_goal_v2(PlanetGoal goal) {
 
 void pe_manage_planet_v2(Session& session, Planet& planet, PlanetGoal goal) {
   const bool complete = antag_race_research_complete(session, session.game->cosmos.races.at(planet.owner));
-  const Action a = Rules(session, planet, goal, complete).decide();
+  Rules rules(session, planet, goal, planet_management(session, planet), complete);
+  const Action a = rules.decide();
+  // The player hears once when the planet is built up (nothing left to
+  // build or replace), again after it built anew.
+  const auto index = planet_index(session.game->cosmos, planet);
+  std::uint8_t& reported = session.game->planet_management.at(static_cast<std::size_t>(index)).reported;
   if (a.item == kNoItem) {
+    if (rules.built_up() && reported == 0 && planet.owner == session.player_race && !session.autoplay) {
+      reported = 1;
+      session.post_event(EventCode::kPlanetBuiltUp, index);
+    }
     return;
   }
+  reported = 0;
   if (a.victim != kNoSquare) {
     const std::uint8_t there = planet_squares(session.game->cosmos, planet)[a.victim].item;
     if (!planet_set_square_item(session, planet, a.victim, there, SquareMode::kRemove)) {

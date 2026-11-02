@@ -51,6 +51,16 @@ bool planet_goal_available(const Session& session, const Planet& planet, PlanetG
 // balanced goal when that is no longer available), or the AI's own.
 PlanetGoal planet_goal(const Session& session, const Planet& planet);
 
+// The management of `planet` with its standards filled in
+// (`PlanetManagement`, no -1 / `BuildLevel::kStandard` left).
+PlanetManagement planet_management(const Session& session, const Planet& planet);
+// The standards of `planet`: planetary and orbital defence along with the
+// growth, a Shipyard along on the owner's first planet, the dig along where
+// there are ruins; Surface Shields and orbital weapons and shields
+// 2 / 3 / 4 / 6 / 8 each and an industry of
+// 3 / 4 / 5 / 6 / 8 kept by size (tiny .. enormous).
+PlanetManagement planet_management_standard(const Session& session, const Planet& planet);
+
 // Whether `goal` is one of the rule-based planner's (`planet_plan_v2.cpp`).
 bool planet_goal_v2(PlanetGoal goal);
 

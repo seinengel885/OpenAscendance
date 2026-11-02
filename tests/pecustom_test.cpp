@@ -90,6 +90,13 @@ TEST_CASE("a peCustom game saves and loads as peCustom", "[game][content][pecust
   // A goal for the player's planet's self-management (format 3 on).
   const PlanetIndex home = player_planet(session);
   session.game->planet_goals.at(static_cast<std::size_t>(home)) = PlanetGoal::kResearch;
+  // Its management and a label (format 4 on).
+  PlanetManagement& management = session.game->planet_management.at(static_cast<std::size_t>(home));
+  management.levels[PlanetManagement::kShipyard] = BuildLevel::kFirst;
+  management.counts[PlanetManagement::kSurfaceShields] = 5;
+  management.min_industry = 7;
+  management.labels = 1;
+  session.game->planet_labels = {"Heimat"};
   const std::vector<std::uint8_t> bytes = serialize_save(save_game(session));
   if (const char* out = std::getenv("OA_WRITE_PECUSTOM_FIXTURE"); out != nullptr && *out != '\0') {
     std::ofstream(out, std::ios::binary)
@@ -105,6 +112,13 @@ TEST_CASE("a peCustom game saves and loads as peCustom", "[game][content][pecust
   CHECK(loaded.game->variant == Variant::kPeCustom);
   CHECK(loaded.game->cosmos.day == 30);
   CHECK(loaded.game->planet_goals.at(static_cast<std::size_t>(home)) == PlanetGoal::kResearch);
+  const PlanetManagement& m = loaded.game->planet_management.at(static_cast<std::size_t>(home));
+  CHECK(m.levels[PlanetManagement::kShipyard] == BuildLevel::kFirst);
+  CHECK(m.levels[PlanetManagement::kDig] == BuildLevel::kStandard);
+  CHECK(m.counts[PlanetManagement::kSurfaceShields] == 5);
+  CHECK(m.min_industry == 7);
+  CHECK(m.labels == 1);
+  CHECK(loaded.game->planet_labels == std::vector<std::string>{"Heimat"});
   // Saved again: the same file but for what loading resets (the AI target
   // counts, the clusters), as for the original's saves.
   SaveImage expected = image;
@@ -203,6 +217,30 @@ TEST_CASE("the version-3 peCustom saves still load", "[game][content][pecustom]"
   CHECK(session.game->cosmos.day == 30);
   // The goal the save was written with.
   CHECK(session.game->planet_goals.at(static_cast<std::size_t>(player_planet(session))) == PlanetGoal::kResearch);
+  // Saved before the planets' management: all standard, no labels.
+  CHECK(std::ranges::all_of(session.game->planet_management,
+                            [](const PlanetManagement& m) { return m.min_industry == -1 && m.labels == 0; }));
+  CHECK(session.game->planet_labels.empty());
+  cosmos_next_turn(session);
+  session.events.take();
+  CHECK(session.game->cosmos.day == 31);
+}
+
+TEST_CASE("the version-4 peCustom saves still load", "[game][content][pecustom]") {
+  OA_REQUIRE_TABLES(t);
+  const auto saved = versioned_save(4);
+  if (!saved) {
+    SKIP("OA_PECUSTOM_SAVES is not set to the folder of pecustom_v4.sav");
+  }
+  const SaveImage image = parse_save(*saved);
+  CHECK(image.pe_custom_version == 4);
+  Session session(*t);
+  load_game(session, image);
+  // The management and label the save was written with.
+  const PlanetManagement& m = session.game->planet_management.at(static_cast<std::size_t>(player_planet(session)));
+  CHECK(m.levels[PlanetManagement::kShipyard] == BuildLevel::kFirst);
+  CHECK(m.min_industry == 7);
+  CHECK(session.game->planet_labels == std::vector<std::string>{"Heimat"});
   cosmos_next_turn(session);
   session.events.take();
   CHECK(session.game->cosmos.day == 31);

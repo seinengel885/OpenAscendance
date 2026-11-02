@@ -5,7 +5,9 @@
 
 #include "core/c_format.h"
 #include "core/error.h"
+#include "game/planet_plan.h"
 #include "game/session.h"
+#include "ui/remake_help.h"
 #include "ui/winmgr.h"
 
 namespace oa {
@@ -42,7 +44,11 @@ EventWnd::EventWnd(WinMgr& wm, const WindowRecord& record, const ShapeTable* sha
 
 void EventWnd::set_event(const game::GameEvent& event) {
   event_ = event;
-  open_topic(kHelpFile, std::format("event{:02d}", static_cast<int>(event.code)));
+  if (event.code == EventCode::kPlanetBuiltUp) {
+    open_remake_topic(wm_, *this, "oa_event_built_up");
+  } else {
+    open_topic(kHelpFile, std::format("event{:02d}", static_cast<int>(event.code)));
+  }
   game::Session* session = wm_.services().game.core();
   if (session == nullptr) {
     throw std::logic_error("game event without a game core");
@@ -168,6 +174,14 @@ void EventWnd::set_event(const game::GameEvent& event) {
       // picture's `gwshare.txt` index: the same number, the gwshare files
       // taking the cache slots 0..44 in order at start-up.
       set_picture(picture, kPlanetShapes, planet_frame(p));
+      break;
+    }
+    case EventCode::kPlanetBuiltUp: {
+      const game::Planet& p = planet(event.a);
+      const std::string strategy = wm_.remake_text(game::planet_goal_name(game::planet_goal(*session, p)));
+      text.text = c_format(format, name_of(p.name).c_str(), strategy.c_str());
+      set_picture(picture, kPlanetShapes, planet_frame(p));
+      set_picture(second, kPlanetScreenShapes, kFreePopulationFrame);
       break;
     }
     case EventCode::kFreePopulation: {

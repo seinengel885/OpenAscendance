@@ -202,20 +202,33 @@ button
 title OK
 msg 0
 
+help oa_event_built_up
+text
+%s is built up for its strategy %s.
+endtext
+pos 10 120
+
+shape 0 0 100 50
+shape 0 0 150 45
+
+button
+title Go^to^Planet
+msg 1
+
+button
+title OK
+msg 0
+
 help end
 )";
 #undef OA_KEY_HINT
 
 }  // namespace
 
-void show_remake_help(WinMgr& wm, std::string_view topic) {
-  auto* help = dynamic_cast<HelpWnd*>(wm.find_window("HELPWINDOW"));
-  if (help == nullptr) {
-    throw DataError("windows.txt: no HELPWINDOW");
-  }
-  help->open_topic(kHelpFile, std::span(reinterpret_cast<const std::uint8_t*>(kHelpText.data()), kHelpText.size()),
-                   topic);
-  HelpTopic& content = help->content();
+void open_remake_topic(WinMgr& wm, HelpWnd& help, std::string_view topic) {
+  help.open_topic(kHelpFile, std::span(reinterpret_cast<const std::uint8_t*>(kHelpText.data()), kHelpText.size()),
+                  topic);
+  HelpTopic& content = help.content();
   for (HelpElement& element : content.elements) {
     // The parser ends a text with its last line end, a space, and joins its
     // lines with one; the translation table's English texts are the lines
@@ -231,6 +244,14 @@ void show_remake_help(WinMgr& wm, std::string_view topic) {
       button.title = wm.remake_text(*button.title);
     }
   }
+}
+
+void show_remake_help(WinMgr& wm, std::string_view topic) {
+  auto* help = dynamic_cast<HelpWnd*>(wm.find_window("HELPWINDOW"));
+  if (help == nullptr) {
+    throw DataError("windows.txt: no HELPWINDOW");
+  }
+  open_remake_topic(wm, *help, topic);
   if (!wm.in_modal()) {
     wm.do_modal(*help, true);
   }

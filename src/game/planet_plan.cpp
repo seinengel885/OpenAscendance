@@ -653,6 +653,46 @@ std::string_view planet_goal_name(PlanetGoal goal) {
   return "Balanced";
 }
 
+PlanetManagement planet_management_standard(const Session& session, const Planet& planet) {
+  constexpr std::array<std::int16_t, 5> kShields{2, 3, 4, 6, 8};
+  constexpr std::array<std::int16_t, 5> kIndustry{3, 4, 5, 6, 8};
+  const Cosmos& cosmos = session.game->cosmos;
+  const std::size_t size = std::min<std::size_t>(planet.size, 4);
+  // The owner's first planet: the oldest of its home star.
+  bool first = planet.owner < cosmos.race_count && planet.star == cosmos.races.at(planet.owner).home;
+  for (PlanetIndex i = 0; first && i < cosmos.planet_count; ++i) {
+    const Planet& other = cosmos.planets[static_cast<std::size_t>(i)];
+    first = other.owner != planet.owner || other.star != planet.star || other.acquired_day > planet.acquired_day ||
+            (other.acquired_day == planet.acquired_day && &other >= &planet);
+  }
+  PlanetManagement m;
+  m.levels = {BuildLevel::kAlong, BuildLevel::kAlong, first ? BuildLevel::kAlong : BuildLevel::kNo, BuildLevel::kNo,
+              ruins_square(session, planet) != kNoSquare ? BuildLevel::kAlong : BuildLevel::kNo};
+  m.counts = {kShields[size], 0, 0, 0, kShields[size], 0};
+  m.min_industry = kIndustry[size];
+  m.min_research = 0;
+  m.growth_days = 0;
+  m.research_boost = 0;
+  return m;
+}
+
+PlanetManagement planet_management(const Session& session, const Planet& planet) {
+  const PlanetManagement standard = planet_management_standard(session, planet);
+  PlanetManagement m =
+      session.game->planet_management.at(static_cast<std::size_t>(planet_index(session.game->cosmos, planet)));
+  for (std::size_t i = 0; i < m.levels.size(); ++i) {
+    m.levels[i] = m.levels[i] == BuildLevel::kStandard ? standard.levels[i] : m.levels[i];
+  }
+  for (std::size_t i = 0; i < m.counts.size(); ++i) {
+    m.counts[i] = m.counts[i] < 0 ? standard.counts[i] : m.counts[i];
+  }
+  m.min_industry = m.min_industry < 0 ? standard.min_industry : m.min_industry;
+  m.min_research = m.min_research < 0 ? standard.min_research : m.min_research;
+  m.growth_days = m.growth_days < 0 ? standard.growth_days : m.growth_days;
+  m.research_boost = m.research_boost < 0 ? standard.research_boost : m.research_boost;
+  return m;
+}
+
 bool planet_goal_available(const Session& session, const Planet& planet, PlanetGoal goal) {
   switch (goal) {
     case PlanetGoal::kShipyard:
@@ -682,7 +722,10 @@ void pe_manage_planet(Session& session, Race& race, Planet& planet) {
     return;
   }
   if (player) {
-    if (pe_danger_at(session, race, planet) && pe_build_orbital_defence(session, race, planet)) {
+    // Under a lingering danger the orbital defences come first (unless the
+    // planet's management never wants them).
+    const bool defence = !planet_goal_v2(goal) || planet_management(session, planet).levels[PlanetManagement::kOrbitalDefence] != BuildLevel::kNo;
+    if (defence && pe_danger_at(session, race, planet) && pe_build_orbital_defence(session, race, planet)) {
       return;
     }
   } else if (antag_race_ai_choose_orbital_project(session, race, planet) == 1 ||

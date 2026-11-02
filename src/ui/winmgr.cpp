@@ -1174,6 +1174,7 @@ int WinMgr::game_event_screen(const game::GameEvent& event, int result) {
       return kScreenResearch;
     case EventCode::kBuildingComplete:
     case EventCode::kFreePopulation:
+    case EventCode::kPlanetBuiltUp:
       cosmos.selected_planet = static_cast<game::PlanetIndex>(event.a);
       return kScreenPlanet;
     case EventCode::kEnteredOrbit:

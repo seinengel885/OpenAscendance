@@ -39,6 +39,8 @@ enum class EventCode : std::int16_t {
   kLaneTransmission = 23,    // a, b: see the poster
   kAbilityCharged = 24,      // no argument
   kLabWithoutResearch = 25,  // a = planet
+  // peCustom: a managed planet built up for its strategy (a = planet).
+  kPlanetBuiltUp = 26,
 };
 
 struct GameEvent {

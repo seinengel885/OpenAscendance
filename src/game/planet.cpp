@@ -610,8 +610,10 @@ void planet_daily_update(Session& session, Planet& planet) {
             research_race_rate(session, session.player_race) == 0) {
           session.post_event(EventCode::kLabWithoutResearch, index);
         }
+        // peCustom: a Shipyard is reported also on a managed planet (its
+        // ships are the player's to build).
         if (planet.owner == session.player_race && session.screen != 17 && item != kItemShip &&
-            planet.self_managed == 0) {
+            (planet.self_managed == 0 || (item == kItemShipyard && session.game->variant == Variant::kPeCustom))) {
           completed = true;
           session.post_event(EventCode::kBuildingComplete, index, item);
         }

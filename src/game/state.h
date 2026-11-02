@@ -16,7 +16,9 @@
 
 #include <array>
 #include <cstdint>
+#include <string>
 #include <string_view>
+#include <vector>
 
 #include "game/float_math.h"
 #include "game/variant.h"
@@ -378,6 +380,46 @@ enum class PlanetGoal : std::uint8_t {
 };
 inline constexpr std::size_t kPlanetGoalCount = 9;
 
+// peCustom: how a managed planet treats a kind of building
+// (`PlanetManagement::levels`). The values are saved: never change them.
+enum class BuildLevel : std::uint8_t {
+  kNo = 0,       // never
+  kReserve = 1,  // room and workers kept, nothing built (orbital only)
+  kAlong = 2,    // built as the planet grows
+  kFirst = 3,    // built first (after housing and growth)
+  kStandard = 0xff,  // the planet's standard (`planet_plan.h`)
+};
+
+// peCustom (save format 4): a planet's management beyond its strategy
+// (`Game::planet_goals`), read by `planet_plan_v2.cpp`. -1 / kStandard: the
+// standard for the planet (`planet_plan.h`).
+struct PlanetManagement {
+  enum Building : std::uint8_t { kPlanetaryDefence, kOrbitalDefence, kShipyard, kOrbitalDock, kDig, kBuildings };
+  enum Count : std::uint8_t {
+    kSurfaceShields,
+    kObservation,
+    kSurfaceCloaker,
+    kTractorBeam,
+    kOrbitalDefences,  // orbital weapons and shields
+    kOrbitalCloaker,
+    kCounts
+  };
+  std::array<BuildLevel, kBuildings> levels{BuildLevel::kStandard, BuildLevel::kStandard, BuildLevel::kStandard,
+                                            BuildLevel::kStandard, BuildLevel::kStandard};
+  // The defences of the planetary and orbital defence.
+  std::array<std::int16_t, kCounts> counts{-1, -1, -1, -1, -1, -1};
+  std::int16_t min_industry = -1;  // kept when buildings make way
+  std::int16_t min_research = -1;
+  std::int16_t growth_days = -1;   // an inhabitant within these days (0 off)
+  std::int8_t research_boost = -1;  // 0 / 1
+  // The labels of `Game::planet_labels` the planet has (bit i: label i).
+  std::uint32_t labels = 0;
+  // Whether the planet's completion was reported (cleared when it builds
+  // again).
+  std::uint8_t reported = 0;
+};
+inline constexpr std::size_t kMaxPlanetLabels = 32;
+
 // Everything a save holds about the game: the cosmos, the research state
 // and the saved globals.
 struct Game {
@@ -393,6 +435,10 @@ struct Game {
   // peCustom: the goal of each planet's self-management (the player's
   // planets; the AI picks its own).
   std::array<PlanetGoal, kMaxPlanets> planet_goals{};
+  // peCustom: the rest of each planet's management, and the player's planet
+  // labels (at most `kMaxPlanetLabels`).
+  std::array<PlanetManagement, kMaxPlanets> planet_management{};
+  std::vector<std::string> planet_labels;
 };
 
 // The save header (0x74 bytes, `Game_save` 0x4f458): the load-list summary,

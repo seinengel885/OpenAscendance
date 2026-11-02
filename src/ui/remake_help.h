@@ -13,4 +13,9 @@ namespace oa {
 // the HELPWINDOW.
 void show_remake_help(WinMgr& wm, std::string_view topic);
 
+class HelpWnd;
+// Loads the remake's help topic `topic` into `help`, its texts in the
+// language played (without showing it).
+void open_remake_topic(WinMgr& wm, HelpWnd& help, std::string_view topic);
+
 }  // namespace oa

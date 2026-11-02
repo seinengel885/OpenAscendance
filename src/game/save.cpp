@@ -602,6 +602,35 @@ SaveImage parse_save(std::span<const std::uint8_t> data, std::optional<RawAddres
           goal = static_cast<PlanetGoal>(g);
         }
       }
+      if (image.pe_custom_version >= 4) {
+        image.planet_management.resize(image.planets.size());
+        for (PlanetManagement& m : image.planet_management) {
+          for (BuildLevel& level : m.levels) {
+            const std::uint8_t l = in.u8();
+            if (l > static_cast<std::uint8_t>(BuildLevel::kFirst) && l != static_cast<std::uint8_t>(BuildLevel::kStandard)) {
+              in.fail(std::format("unknown build level {}", l));
+            }
+            level = static_cast<BuildLevel>(l);
+          }
+          for (std::int16_t& c : m.counts) {
+            c = in.i16();
+          }
+          m.min_industry = in.i16();
+          m.min_research = in.i16();
+          m.growth_days = in.i16();
+          m.research_boost = in.i8();
+          m.labels = in.u32();
+          m.reported = in.u8();
+        }
+        const std::uint8_t labels = in.u8();
+        if (labels > kMaxPlanetLabels) {
+          in.fail(std::format("{} planet labels", labels));
+        }
+        for (std::uint8_t i = 0; i < labels; ++i) {
+          const auto text = in.bytes(in.u8());
+          image.planet_labels.emplace_back(text.begin(), text.end());
+        }
+      }
     }
     if (!in.at_end()) {
       in.fail("data after the variant trailer");
@@ -684,6 +713,28 @@ std::vector<std::uint8_t> serialize_save(const SaveImage& image) {
     for (std::size_t i = 0; i < image.planets.size(); ++i) {
       w.u8(static_cast<std::uint8_t>(i < image.planet_goals.size() ? image.planet_goals[i] : PlanetGoal::kBalanced));
     }
+    for (std::size_t i = 0; i < image.planets.size(); ++i) {
+      const PlanetManagement m = i < image.planet_management.size() ? image.planet_management[i] : PlanetManagement{};
+      for (const BuildLevel level : m.levels) {
+        w.u8(static_cast<std::uint8_t>(level));
+      }
+      for (const std::int16_t c : m.counts) {
+        w.i16(c);
+      }
+      w.i16(m.min_industry);
+      w.i16(m.min_research);
+      w.i16(m.growth_days);
+      w.i8(m.research_boost);
+      w.u32(m.labels);
+      w.u8(m.reported);
+    }
+    w.u8(static_cast<std::uint8_t>(image.planet_labels.size()));
+    for (const std::string& label : image.planet_labels) {
+      w.u8(static_cast<std::uint8_t>(label.size()));
+      for (const char c : label) {
+        w.u8(static_cast<std::uint8_t>(c));
+      }
+    }
   }
   return std::move(out);
 }
@@ -754,6 +805,9 @@ SaveImage save_game(const Session& session) {
     image.pe_custom_version = kPeCustomSaveVersion;
     image.last_attack_days = game.last_attack_days;
     image.planet_goals.assign(game.planet_goals.begin(), game.planet_goals.begin() + cosmos.planet_count);
+    image.planet_management.assign(game.planet_management.begin(),
+                                   game.planet_management.begin() + cosmos.planet_count);
+    image.planet_labels = game.planet_labels;
   }
   return image;
 }
@@ -775,6 +829,9 @@ void load_game(Session& session, const SaveImage& image) {
   game.last_attack_days = image.last_attack_days;
   game.planet_goals.fill(PlanetGoal::kBalanced);
   std::ranges::copy(image.planet_goals, game.planet_goals.begin());
+  game.planet_management.fill(PlanetManagement{});
+  std::ranges::copy(image.planet_management, game.planet_management.begin());
+  game.planet_labels = image.planet_labels;
   // Research_serialize reads the tree once through Research_load first.
   game.research = image.research;
   session.research_tree_loaded = true;
