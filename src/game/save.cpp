@@ -642,6 +642,11 @@ SaveImage parse_save(std::span<const std::uint8_t> data, std::optional<RawAddres
           day = in.i32();
         }
       }
+      if (image.pe_custom_version >= 7) {
+        for (PlanetManagement& m : image.planet_management) {
+          m.bell = in.u8();
+        }
+      }
     }
     if (!in.at_end()) {
       in.fail("data after the variant trailer");
@@ -752,6 +757,9 @@ std::vector<std::uint8_t> serialize_save(const SaveImage& image) {
     }
     for (const std::int32_t day : image.peace_offer_days) {
       w.i32(day);
+    }
+    for (std::size_t i = 0; i < image.planets.size(); ++i) {
+      w.u8(i < image.planet_management.size() ? image.planet_management[i].bell : std::uint8_t{0});
     }
   }
   return std::move(out);

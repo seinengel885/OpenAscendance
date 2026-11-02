@@ -621,7 +621,7 @@ void CosWnd::draw_items() {
             }
           }
         }
-        if (it.index == c.selected_star && !new_game) {
+        if (it.index == c.selected_star && !new_game && !wm_.selection_ring_hidden()) {
           vfx_ellipse_draw(screen, pane_, it.x, it.y, radius, radius, kSelectedColor);
         }
         if ((explored || new_game) && (star.owner_mask & 0x80) != 0 && flags_ == -1) {

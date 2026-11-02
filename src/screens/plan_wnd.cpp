@@ -638,6 +638,7 @@ void PlanWnd::key(int scan) {
               *s, *p,
               game::planet_next_strategy(p->self_managed != 0 ? std::optional(game::planet_goal(*s, *p)) : std::nullopt,
                                          1));
+          game::pe_manage_planet_now(*s, *p);
         } else if (p != nullptr) {
           game::planet_toggle_self_managed(*p);
         }
@@ -875,6 +876,14 @@ bool PlanStatButton::handle_event(int type, int a, int b) {
       return false;
     }
   }
+  if (type == kEventLeftClick && bell_shown() && a >= pane_.x0 + kBellX - 2 && a < pane_.x0 + kBellX + kBellSize + 2 &&
+      b >= pane_.y0 + kBellY - 2 && b < pane_.y0 + kBellY + kBellSize + 2) {
+    game::Session& s = *wm_.services().game.core();
+    std::uint8_t& bell = s.game->planet_management.at(static_cast<std::size_t>(s.game->cosmos.selected_planet)).bell;
+    bell = bell == 0 ? 1 : 0;
+    draw(kDrawHot);
+    return true;
+  }
   if (type == kEventMouseLeave) {
     draw(kDrawNotHot);
     return false;
@@ -884,6 +893,18 @@ bool PlanStatButton::handle_event(int type, int a, int b) {
     return false;
   }
   return GWindow::handle_event(type, a, b);
+}
+
+bool PlanStatButton::bell_shown() const {
+  const game::Session* s = wm_.services().game.core();
+  const auto* plan = dynamic_cast<const PlanWnd*>(wm_.find_window("PLANETALLOC"));
+  if (message_ != PlanWnd::kEventBuildList || s == nullptr || s->game->cosmos.selected_planet < 0 || plan == nullptr ||
+      plan->selection() != PlanWnd::kNoSelection) {
+    return false;
+  }
+  const game::Planet& p = s->game->cosmos.planets.at(static_cast<std::size_t>(s->game->cosmos.selected_planet));
+  return management_shown(*s, p) && p.self_managed != 0 && p.project_item != game::kNoItem &&
+         (s->tables->planitems.items[p.project_item].flags & game::kItemContinuous) == 0;
 }
 
 void PlanStatButton::draw(int mode) {
@@ -989,6 +1010,10 @@ void PlanStatButton::draw(int mode) {
       }
       font.pane() = pane_;
       font.draw_wrapped(screen, 0, 10, title, kFontCenterH, kDefault, 0xff, 0);
+      if (bell_shown()) {
+        const bool on = s->game->planet_management.at(static_cast<std::size_t>(s->game->cosmos.selected_planet)).bell != 0;
+        draw_bell(screen, pane_, kBellX, kBellY, on ? kBellColor : kBellOffColor);
+      }
       break;
     }
     default:

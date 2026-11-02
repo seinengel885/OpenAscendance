@@ -148,6 +148,7 @@ class ManagementBox final : public GWindow {
       }
       session_.game->planet_management.at(static_cast<std::size_t>(game::planet_index(session_.game->cosmos, *t.planet))) =
           t.own;
+      game::pe_manage_planet_now(session_, *t.planet);
     }
   }
 
@@ -687,6 +688,17 @@ void draw_label_icon(Image8& screen, int x, int y, std::uint8_t color) {
   }
   vfx_line_draw(screen, p, 5, 4, 6, 4, kBack);
   vfx_line_draw(screen, p, 5, 5, 6, 5, kBack);
+}
+
+void draw_bell(Image8& screen, const Pane& pane, int x, int y, std::uint8_t color) {
+  constexpr std::array<std::pair<int, int>, 11> kRows{
+      {{5, 7}, {4, 8}, {3, 9}, {3, 9}, {3, 9}, {3, 9}, {2, 10}, {2, 10}, {1, 11}, {0, 12}, {0, 12}}};
+  for (std::size_t r = 0; r < kRows.size(); ++r) {
+    const int yy = y + static_cast<int>(r);
+    vfx_line_draw(screen, pane, x + kRows[r].first, yy, x + kRows[r].second, yy, color);
+  }
+  vfx_line_draw(screen, pane, x + 5, y + 12, x + 7, y + 12, color);
+  vfx_line_draw(screen, pane, x + 6, y + 13, x + 6, y + 13, color);
 }
 
 bool run_label_menu(WinMgr& wm, game::Session& session, std::span<game::Planet* const> planets) {

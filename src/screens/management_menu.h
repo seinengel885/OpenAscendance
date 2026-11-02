@@ -34,6 +34,13 @@ std::string planet_labels_text(const game::Session& session, const game::Planet&
 // Draws the label symbol (a tag, 16 x 10 pixels) at (x, y) of the screen.
 void draw_label_icon(Image8& screen, int x, int y, std::uint8_t color);
 
+// The bell of the planet list (a planet needing the player) and of the
+// planet screen's project (its completion reported): 13 x 14 pixels, its
+// top left at (x, y) of `pane`; yellow when on, grey when off.
+inline constexpr std::uint8_t kBellColor = 0xf4;
+inline constexpr std::uint8_t kBellOffColor = 0xfe;
+void draw_bell(Image8& screen, const Pane& pane, int x, int y, std::uint8_t color);
+
 // Runs the label window of `planets` (check a label for all of them, type a
 // new one) and applies it on OK; returns whether OK was clicked.
 bool run_label_menu(WinMgr& wm, game::Session& session, std::span<game::Planet* const> planets);

@@ -177,6 +177,15 @@ class PlanStatButton final : public GWindow {
   // `PlanStatButton_draw` (0x38020).
   void draw(int mode) override;
   void draw_hilite(int mode) override { draw(mode); }
+
+ private:
+  // peCustom: the project panel's bell (window-relative), on a project of a
+  // managed planet that completes; a click turns it on or off
+  // (`PlanetManagement::bell`).
+  static constexpr int kBellX = 6;
+  static constexpr int kBellY = 6;
+  static constexpr int kBellSize = 14;
+  bool bell_shown() const;
 };
 
 // The square / info dialog (`psqwin.cpp`, TYPE 14, ctor 0x386b0).

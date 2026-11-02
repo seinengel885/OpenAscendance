@@ -62,8 +62,8 @@ int race_text_color(int color) { return color * 4 + 0x13; }
 
 // peCustom: the title bar's buttons (screen y range, the right end, the gap
 // and the padding of their captions), the mark box left of a row's planet
-// name, the bell at the row's right and its colours (yellow, red for a
-// danger), the frames' colour.
+// name, the bell at the row's right and its danger colour (red), the
+// frames' colour.
 constexpr Pane kTitleBar{40, 8, 630, 36};
 constexpr int kButtonY0 = 10;
 constexpr int kButtonY1 = 32;
@@ -76,7 +76,6 @@ constexpr int kMarkSize = 12;
 constexpr int kBellX = 0x22c;
 constexpr int kBellWidth = 16;
 constexpr int kBellY = 0x0c;
-constexpr std::uint8_t kBellColor = 0xf4;
 constexpr std::uint8_t kDangerColor = 0xe8;
 constexpr std::uint8_t kFrameColor = 0xfe;
 
@@ -87,18 +86,6 @@ void draw_frame(Image8& screen, const Pane& p, std::uint8_t color) {
   vfx_line_draw(screen, p, 0, 0, 0, h, color);
   vfx_line_draw(screen, p, w, h, 0, h, color);
   vfx_line_draw(screen, p, w, h, w, 0, color);
-}
-
-// A bell, 13 x 14 pixels, its top left at (x, y) of `pane`.
-void draw_bell(Image8& screen, const Pane& pane, int x, int y, std::uint8_t color) {
-  constexpr std::array<std::pair<int, int>, 11> kRows{
-      {{5, 7}, {4, 8}, {3, 9}, {3, 9}, {3, 9}, {3, 9}, {2, 10}, {2, 10}, {1, 11}, {0, 12}, {0, 12}}};
-  for (std::size_t r = 0; r < kRows.size(); ++r) {
-    const int yy = y + static_cast<int>(r);
-    vfx_line_draw(screen, pane, x + kRows[r].first, yy, x + kRows[r].second, yy, color);
-  }
-  vfx_line_draw(screen, pane, x + 5, y + 12, x + 7, y + 12, color);
-  vfx_line_draw(screen, pane, x + 6, y + 13, x + 6, y + 13, color);
 }
 
 // A planet's strategy as a key for comparing (-1 off).

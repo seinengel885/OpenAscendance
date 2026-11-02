@@ -70,4 +70,13 @@ void pe_manage_planet_rules(Session& session, Planet& planet, PlanetGoal goal, c
 // itself (`Planet::project_item` none).
 void pe_manage_planet(Session& session, Race& race, Planet& planet);
 
+// Whether the bell of `planet`'s project was on (`PlanetManagement::bell`,
+// turned off): called as its project completes.
+bool pe_take_project_bell(Session& session, const Planet& planet);
+
+// peCustom: a planet of the player whose management was just turned on or
+// changed starts its project now when idle (`pe_manage_planet`), not only
+// with the next day.
+void pe_manage_planet_now(Session& session, Planet& planet);
+
 }  // namespace oa::game

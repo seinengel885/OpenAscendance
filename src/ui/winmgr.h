@@ -255,6 +255,9 @@ class WinMgr final : public WindowStateIo {
   // The auto next turn (`+0x24d9c`, NEXTTURNCONT, message 8): a next day is
   // asked at each pass without game events.
   bool auto_turn() const { return auto_turn_; }
+  // peCustom: whether the star map leaves the selected star's ring out (the
+  // blink after a ship's game event, `blink_step`).
+  bool selection_ring_hidden() const { return blink_passes_ > 0 && (blink_passes_ - 1) / kBlinkPhasePasses % 2 == 1; }
   void set_auto_turn(bool on) { auto_turn_ = on; }
   // The species the player deals with (`0x8675d`: the diplomacy and
   // intelligence screens' race slot).
@@ -472,6 +475,12 @@ class WinMgr final : public WindowStateIo {
   // leads to, 0 for none, with the selections it makes (the star, planet
   // or species of the screen).
   int game_event_screen(const game::GameEvent& event, int result);
+  // peCustom: the star a game event of a ship (in a system or entering a
+  // planet's orbit) is at, -1 for none or another variant.
+  int event_star(const game::GameEvent& event) const;
+  // peCustom: a pass of the selected star's blink (the map redrawn when the
+  // ring shows or hides), at its end the screen the event's answer chose.
+  void blink_step();
   // `WinEvent_replay` (0x54f90): the input of a replayed pass.
   const InputState& replay_input();
   // `input_inject_event` (0x25cc8): one record into the replayed input.
@@ -549,6 +558,13 @@ class WinMgr final : public WindowStateIo {
   float saved_rotation_speed_ = 1.0F;
   // `0xfa340`: a game event box is being prepared.
   bool showing_event_ = false;
+  // peCustom: after a ship's game event the selected star's ring blinks
+  // (`kBlinkPhases` phases, shown, hidden, shown, ..., of `kBlinkPhasePasses`
+  // passes each) before the screen chosen by the answer (0 none) comes.
+  static constexpr int kBlinkPhasePasses = 8;
+  static constexpr int kBlinkPhases = 5;
+  int blink_passes_ = 0;
+  int blink_screen_ = 0;
   // The window a view gesture goes to (a remake addition), 0 for none.
   int gesture_window_ = 0;
   // The pointer's position given by the input, before `target_point` moves

@@ -427,6 +427,9 @@ struct PlanetManagement {
   // Whether the planet's completion was reported (cleared when it builds
   // again).
   std::uint8_t reported = 0;
+  // The bell of the planet screen's project (save format 7 on): the next
+  // completed project is reported also while the planet manages itself.
+  std::uint8_t bell = 0;
 };
 inline constexpr std::size_t kMaxPlanetLabels = 32;
 

@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <utility>
 #include <vector>
 
 #include "game/address.h"
@@ -274,6 +275,19 @@ void pe_manage_planet(Session& session, Race& race, Planet& planet) {
     return;
   }
   pe_manage_planet_rules(session, planet, planet_goal(session, planet), management);
+}
+
+bool pe_take_project_bell(Session& session, const Planet& planet) {
+  std::uint8_t& bell =
+      session.game->planet_management.at(static_cast<std::size_t>(planet_index(session.game->cosmos, planet))).bell;
+  return std::exchange(bell, std::uint8_t{0}) != 0;
+}
+
+void pe_manage_planet_now(Session& session, Planet& planet) {
+  if (session.game->variant == Variant::kPeCustom && is_player_planet(session, planet) && planet.self_managed != 0 &&
+      planet.project_item == kNoItem) {
+    pe_manage_planet(session, session.game->cosmos.races.at(planet.owner), planet);
+  }
 }
 
 }  // namespace oa::game

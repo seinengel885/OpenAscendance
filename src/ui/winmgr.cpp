@@ -1158,8 +1158,64 @@ void WinMgr::show_game_events() {
   // Esc (0) leaves every event without a jump.
   const int screen = result == 0 ? 0 : game_event_screen(event, result);
   core->events.pop();
+  if (const int star = event_star(event); star >= 0 && !core->autoplay) {
+    // peCustom: the ship's star selected, its ring blinking, then the jump.
+    core->game->cosmos.selected_star = static_cast<game::StarIndex>(star);
+    blink_passes_ = kBlinkPhases * kBlinkPhasePasses;
+    blink_screen_ = screen;
+    if (GWindow* map = find_window("COSMOSWnd")) {
+      send_event(map->id(), kEventRefresh, 0, 0);
+    }
+    return;
+  }
   if (screen != 0) {
     post_message(kMessageChangeScreen, screen, 1);
+  }
+}
+
+int WinMgr::event_star(const game::GameEvent& event) const {
+  using game::EventCode;
+  const game::Session& core = *services_.game.core();
+  if (core.game->variant != game::Variant::kPeCustom) {
+    return -1;
+  }
+  const game::Cosmos& cosmos = core.game->cosmos;
+  switch (event.code) {
+    case EventCode::kShipArrived:
+    case EventCode::kFirstContact:
+    case EventCode::kHostileShips:
+    case EventCode::kHostileColony:
+    case EventCode::kOthersAtWar:
+    case EventCode::kUnknownShipEntered:
+    case EventCode::kHostileShipEntered:
+    case EventCode::kSystemDiscovered: {
+      const game::Ship& ship = cosmos.ships.at(static_cast<std::size_t>(event.a));
+      return ship.location_kind == game::ShipLocation::kSystem ? ship.location : -1;
+    }
+    case EventCode::kEnteredOrbit:
+      return cosmos.planets.at(static_cast<std::size_t>(event.b)).star;
+    default:
+      return -1;
+  }
+}
+
+void WinMgr::blink_step() {
+  if (current_ != kScreenStarMap) {
+    // Left the map meanwhile: no jump.
+    blink_passes_ = 0;
+    blink_screen_ = 0;
+    return;
+  }
+  const bool hidden = selection_ring_hidden();
+  --blink_passes_;
+  if (hidden != selection_ring_hidden()) {
+    if (GWindow* map = find_window("COSMOSWnd")) {
+      map->draw(kDrawNormal);
+    }
+  }
+  if (blink_passes_ == 0 && blink_screen_ != 0) {
+    post_message(kMessageChangeScreen, blink_screen_, 1);
+    blink_screen_ = 0;
   }
 }
 
@@ -1706,7 +1762,10 @@ void WinMgr::process_input(const InputState& input) {
   while (!messages_.empty()) {
     dispatch_messages();
   }
-  if (current_ == kScreenStarMap && services_.game.has_game_events() && !modal_) {
+  if (blink_passes_ > 0) {
+    blink_step();
+  }
+  if (current_ == kScreenStarMap && services_.game.has_game_events() && !modal_ && blink_passes_ == 0) {
     show_game_events();
   }
   // The auto next turn waits for the game events.

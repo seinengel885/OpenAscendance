@@ -11,6 +11,7 @@
 #include "game/cosmos.h"
 #include "game/float_math.h"
 #include "game/mood_log.h"
+#include "game/planet_plan.h"
 #include "game/race.h"
 #include "game/research.h"
 #include "game/ship.h"
@@ -611,9 +612,11 @@ void planet_daily_update(Session& session, Planet& planet) {
           session.post_event(EventCode::kLabWithoutResearch, index);
         }
         // peCustom: a Shipyard is reported also on a managed planet (its
-        // ships are the player's to build).
+        // ships are the player's to build), as is a project with its bell on.
+        const bool bell = pe_take_project_bell(session, planet);
         if (planet.owner == session.player_race && session.screen != 17 && item != kItemShip &&
-            (planet.self_managed == 0 || (item == kItemShipyard && session.game->variant == Variant::kPeCustom))) {
+            (planet.self_managed == 0 || bell ||
+             (item == kItemShipyard && session.game->variant == Variant::kPeCustom))) {
           completed = true;
           session.post_event(EventCode::kBuildingComplete, index, item);
         }

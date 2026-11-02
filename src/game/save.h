@@ -50,7 +50,8 @@ inline constexpr RawAddress kAntagCosmosAddress = 0x219f6c;
 // 4: `Game::planet_management` (per planet) and `Game::planet_labels`.
 // 5: the orbital shields count of each planet's management.
 // 6: `Game::peace_offer_days`.
-inline constexpr std::uint32_t kPeCustomSaveVersion = 6;
+// 7: the project bell of each planet's management.
+inline constexpr std::uint32_t kPeCustomSaveVersion = 7;
 
 // Size of the window state of the v1.6.5 window table (`COSMOSWnd` 0xbe,
 // 4 values, a 7-entry list box, 1 value, `BatModeWnd` 0x1a08, 2 values, the
