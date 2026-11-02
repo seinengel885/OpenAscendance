@@ -260,7 +260,8 @@ bool PlanWnd::handle_event(int type, int a, int b) {
         return false;
       }
       if (management_hot(a, b)) {
-        run_management_menu(wm_, *session(), *planet());
+        game::Planet* const planets[] = {planet()};
+        run_management_menu(wm_, *session(), planets);
         draw(kDrawNormal);
         return false;
       }

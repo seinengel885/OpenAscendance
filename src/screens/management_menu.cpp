@@ -86,25 +86,36 @@ std::string_view level_name(BuildLevel level) {
   }
 }
 
-// The management window of one planet: its strategy (self-management off
-// or a goal) and its `PlanetManagement`, each value with arrows (a click on
-// a number types it), a standard value grey, an own one white with a
-// button back to the standard; OK applies, Cancel and Esc do not.
+// One planet of the management window: its settings as edited, its
+// standards, its strategy (none: self-management off).
+struct Target {
+  game::Planet* planet;
+  PlanetManagement own;
+  PlanetManagement standard;
+  std::optional<game::PlanetGoal> strategy;
+};
+
+// The management window of one or more planets: the strategy
+// (self-management off or a goal) and the `PlanetManagement`, each value
+// with arrows (a click on a number types it), a standard value grey, an
+// own one white with a button back to the standard. A row the planets
+// differ in shows "-"; a change sets the row on all of them, the rows not
+// changed stay each planet's own. OK applies, Cancel and Esc do not.
 class ManagementBox final : public GWindow {
  public:
-  ManagementBox(WinMgr& wm, game::Session& session, game::Planet& planet)
-      : GWindow(wm, "MANAGEMENTBOX", kBox),
-        session_(session),
-        planet_(planet),
-        index_(static_cast<std::size_t>(game::planet_index(session.game->cosmos, planet))),
-        management_(session.game->planet_management.at(index_)),
-        standard_(game::planet_management_standard(session, planet)) {
+  ManagementBox(WinMgr& wm, game::Session& session, std::span<game::Planet* const> planets)
+      : GWindow(wm, "MANAGEMENTBOX", kBox), session_(session) {
     mouse_focus_ = true;
-    if (planet.self_managed != 0) {
-      strategy_ = game::planet_goal(session, planet);
+    bool ruins = false;
+    for (game::Planet* p : planets) {
+      const auto index = static_cast<std::size_t>(game::planet_index(session.game->cosmos, *p));
+      targets_.push_back({p, session.game->planet_management.at(index), game::planet_management_standard(session, *p),
+                          p->self_managed != 0 ? std::optional(game::planet_goal(session, *p)) : std::nullopt});
+      ruins = ruins || game::planet_goal_available(session, *p, game::PlanetGoal::kArchaeology);
     }
+    // The goals every planet may take.
     for (const game::PlanetGoal goal : game::kPlanetGoals) {
-      if (game::planet_goal_available(session, planet, goal)) {
+      if (std::ranges::all_of(planets, [&](const game::Planet* p) { return game::planet_goal_available(session, *p, goal); })) {
         goals_.push_back(goal);
       }
     }
@@ -124,7 +135,7 @@ class ManagementBox final : public GWindow {
              {Kind::kCount, "Orbital Cloaker", PlanetManagement::kOrbitalCloaker, true},
              {Kind::kLevel, "Shipyard", PlanetManagement::kShipyard, false, orbital},
              {Kind::kLevel, "Orbital Dock", PlanetManagement::kOrbitalDock, false, orbital}};
-    if (game::planet_goal_available(session, planet, game::PlanetGoal::kArchaeology)) {
+    if (ruins) {
       rows_.push_back({Kind::kLevel, "Xeno Archeological Dig", PlanetManagement::kDig, false, surface});
     }
     rows_.push_back({Kind::kHead, "Keep (0: off)"});
@@ -135,10 +146,15 @@ class ManagementBox final : public GWindow {
 
   bool ok() const { return ok_; }
 
-  // Applies the settings to the planet.
+  // Applies the settings to the planets (the strategy only when changed).
   void apply() {
-    game::planet_set_management(session_, planet_, strategy_);
-    session_.game->planet_management.at(index_) = management_;
+    for (const Target& t : targets_) {
+      if (strategy_changed_) {
+        game::planet_set_management(session_, *t.planet, t.strategy);
+      }
+      session_.game->planet_management.at(static_cast<std::size_t>(game::planet_index(session_.game->cosmos, *t.planet))) =
+          t.own;
+    }
   }
 
   void press_areas(std::vector<PressArea>& out) const override { out.push_back({pane_, true}); }
@@ -172,8 +188,10 @@ class ManagementBox final : public GWindow {
     draw_border(kFrame);
     GameFont& font = wm_.large_font();
     font.pane() = pane_;
-    const std::string title = c_format(wm_.remake_text("Management of %s"),
-                                       std::string(game::name_view(planet_.name)).c_str());
+    const std::string title =
+        targets_.size() == 1
+            ? c_format(wm_.remake_text("Management of %s"), std::string(game::name_view(targets_[0].planet->name)).c_str())
+            : c_format(wm_.remake_text("Management of %d planets"), static_cast<int>(targets_.size()));
     font.draw_string(screen, (width() - font.string_width(title)) / 2, 6, title, 0, kWhite, 0xff);
     for (std::size_t r = 0; r < rows_.size(); ++r) {
       draw_row(r);
@@ -190,38 +208,40 @@ class ManagementBox final : public GWindow {
   Pane ok_pane() const { return {width() - 2 * kButtonWidth - 24, 418, width() - kButtonWidth - 24, 440}; }
   Pane cancel_pane() const { return {width() - kButtonWidth - 12, 418, width() - 12, 440}; }
 
-  // The value shown for row `r` and whether it is the planet's standard.
-  std::pair<std::string, bool> value(const Row& row) {
+  // The value of `row` for planet `t` and whether it is the standard.
+  std::pair<std::string, bool> value(const Target& t, const Row& row) {
+    const auto i = static_cast<std::size_t>(row.index);
     switch (row.kind) {
       case Kind::kStrategy:
-        return {strategy_ ? wm_.remake_text(game::planet_goal_name(*strategy_)) : wm_.remake_text("Off"), false};
+        return {t.strategy ? wm_.remake_text(game::planet_goal_name(*t.strategy)) : wm_.remake_text("Off"), false};
       case Kind::kLevel: {
-        const BuildLevel own = management_.levels[static_cast<std::size_t>(row.index)];
-        const bool standard = own == BuildLevel::kStandard;
-        return {wm_.remake_text(level_name(standard ? standard_.levels[static_cast<std::size_t>(row.index)] : own)),
+        const bool standard = t.own.levels[i] == BuildLevel::kStandard;
+        return {wm_.remake_text(level_name(standard ? t.standard.levels[i] : t.own.levels[i])), standard};
+      }
+      case Kind::kBoost: {
+        const bool standard = t.own.research_boost < 0;
+        return {wm_.remake_text((standard ? t.standard.research_boost : t.own.research_boost) > 0 ? "Yes" : "No"),
                 standard};
       }
-      case Kind::kCount:
-        return number(management_.counts[static_cast<std::size_t>(row.index)],
-                      standard_.counts[static_cast<std::size_t>(row.index)], "%d");
-      case Kind::kIndustry:
-        return number(management_.min_industry, standard_.min_industry, "%d");
-      case Kind::kResearch:
-        return number(management_.min_research, standard_.min_research, "%d");
-      case Kind::kGrowth:
-        return number(management_.growth_days, standard_.growth_days, wm_.remake_text("%d days"));
-      case Kind::kBoost: {
-        const bool standard = management_.research_boost < 0;
-        const bool on = (standard ? standard_.research_boost : management_.research_boost) > 0;
-        return {wm_.remake_text(on ? "Yes" : "No"), standard};
-      }
       case Kind::kHead:
-        break;
+        return {"", false};
+      default: {
+        const std::int16_t own = stored(const_cast<Target&>(t), row);
+        const std::string format = row.kind == Kind::kGrowth ? wm_.remake_text("%d days") : std::string("%d");
+        return {c_format(format, own < 0 ? standard_number(t, row) : own), own < 0};
+      }
     }
-    return {"", false};
   }
-  std::pair<std::string, bool> number(std::int32_t own, std::int32_t standard, const std::string& format) const {
-    return {c_format(format, own < 0 ? standard : own), own < 0};
+  // The value shown for `row`: the planets' common one, "-" where they
+  // differ; standard while it is every planet's standard.
+  std::pair<std::string, bool> value(const Row& row) {
+    auto [text, standard] = value(targets_[0], row);
+    for (const Target& t : targets_) {
+      const auto [other, other_standard] = value(t, row);
+      text = other == text ? text : "-";
+      standard = standard && other_standard;
+    }
+    return {text, standard};
   }
 
   void draw_row(std::size_t r) {
@@ -333,59 +353,81 @@ class ManagementBox final : public GWindow {
            row.kind == Kind::kGrowth;
   }
 
-  // The stored number of a numeric row.
-  std::int16_t& stored(const Row& row) {
+  // The stored number of a numeric row of planet `t`.
+  static std::int16_t& stored(Target& t, const Row& row) {
     switch (row.kind) {
       case Kind::kCount:
-        return management_.counts[static_cast<std::size_t>(row.index)];
+        return t.own.counts[static_cast<std::size_t>(row.index)];
       case Kind::kIndustry:
-        return management_.min_industry;
+        return t.own.min_industry;
       case Kind::kResearch:
-        return management_.min_research;
+        return t.own.min_research;
       default:
-        return management_.growth_days;
+        return t.own.growth_days;
     }
   }
-  std::int16_t standard_number(const Row& row) const {
-    switch (row.kind) {
-      case Kind::kCount:
-        return standard_.counts[static_cast<std::size_t>(row.index)];
-      case Kind::kIndustry:
-        return standard_.min_industry;
-      case Kind::kResearch:
-        return standard_.min_research;
-      default:
-        return standard_.growth_days;
+  static std::int16_t standard_number(const Target& t, const Row& row) {
+    Target copy{nullptr, t.standard, t.standard, std::nullopt};
+    return stored(copy, row);
+  }
+
+  // Sets `row` of every planet to that of the first one.
+  void spread(const Row& row) {
+    const Target& first = targets_[0];
+    for (Target& t : targets_) {
+      switch (row.kind) {
+        case Kind::kStrategy:
+          t.strategy = first.strategy;
+          strategy_changed_ = true;
+          break;
+        case Kind::kLevel:
+          t.own.levels[static_cast<std::size_t>(row.index)] = first.own.levels[static_cast<std::size_t>(row.index)];
+          break;
+        case Kind::kBoost:
+          t.own.research_boost = first.own.research_boost;
+          break;
+        case Kind::kHead:
+          break;
+        default:
+          stored(t, row) = stored(targets_[0], row);
+          break;
+      }
     }
   }
 
   void to_standard(const Row& row) {
+    Target& first = targets_[0];
     if (row.kind == Kind::kLevel) {
-      management_.levels[static_cast<std::size_t>(row.index)] = BuildLevel::kStandard;
+      first.own.levels[static_cast<std::size_t>(row.index)] = BuildLevel::kStandard;
     } else if (row.kind == Kind::kBoost) {
-      management_.research_boost = -1;
+      first.own.research_boost = -1;
     } else if (numeric(row)) {
-      stored(row) = -1;
+      stored(first, row) = -1;
     }
+    spread(row);
   }
 
-  // Steps the value of `row` by `delta` (choices wrap, numbers stop at 0).
+  // Steps the value of `row` by `delta` (choices wrap, numbers stop at 0),
+  // from the first planet's, for all.
   void step(const Row& row, int delta) {
+    Target& t = targets_[0];
     switch (row.kind) {
       case Kind::kStrategy: {
         // Off, then the goals.
         const int n = static_cast<int>(goals_.size()) + 1;
         int at = 0;
-        if (strategy_) {
-          at = static_cast<int>(std::ranges::find(goals_, *strategy_) - goals_.begin()) + 1;
+        if (t.strategy) {
+          at = static_cast<int>(std::ranges::find(goals_, *t.strategy) - goals_.begin()) + 1;
+          at = at > static_cast<int>(goals_.size()) ? 0 : at;
         }
         at = (at + delta + n) % n;
-        strategy_ = at == 0 ? std::nullopt : std::optional(goals_[static_cast<std::size_t>(at - 1)]);
+        t.strategy = at == 0 ? std::nullopt : std::optional(goals_[static_cast<std::size_t>(at - 1)]);
         break;
       }
       case Kind::kLevel: {
-        BuildLevel& own = management_.levels[static_cast<std::size_t>(row.index)];
-        const BuildLevel now = own == BuildLevel::kStandard ? standard_.levels[static_cast<std::size_t>(row.index)] : own;
+        const auto i = static_cast<std::size_t>(row.index);
+        BuildLevel& own = t.own.levels[i];
+        const BuildLevel now = own == BuildLevel::kStandard ? t.standard.levels[i] : own;
         const int n = static_cast<int>(row.levels.size());
         int at = static_cast<int>(std::ranges::find(row.levels, now) - row.levels.begin());
         at = at >= n ? 0 : (at + delta + n) % n;
@@ -393,18 +435,19 @@ class ManagementBox final : public GWindow {
         break;
       }
       case Kind::kBoost: {
-        const bool on = (management_.research_boost < 0 ? standard_.research_boost : management_.research_boost) > 0;
-        management_.research_boost = on ? 0 : 1;
+        const bool on = (t.own.research_boost < 0 ? t.standard.research_boost : t.own.research_boost) > 0;
+        t.own.research_boost = on ? 0 : 1;
         break;
       }
       default: {
-        std::int16_t& own = stored(row);
-        const int now = own < 0 ? standard_number(row) : own;
+        std::int16_t& own = stored(t, row);
+        const int now = own < 0 ? standard_number(t, row) : own;
         // No more than room is left for.
         own = static_cast<std::int16_t>(std::max(0, delta > 0 && now + delta > largest(row) ? now : now + delta));
         break;
       }
     }
+    spread(row);
   }
 
   void type_key(char c, std::uint16_t scan) {
@@ -422,44 +465,47 @@ class ManagementBox final : public GWindow {
     draw(kDrawNormal);
   }
 
-  // The largest number `row` may take: the orbit's room left by the other
-  // orbital defences for theirs (`planet_orbital_defence_room`).
+  // The largest number `row` may take on every planet: the orbit's room
+  // left by the other orbital defences for theirs
+  // (`planet_orbital_defence_room`).
   int largest(const Row& row) const {
     const std::array<PlanetManagement::Count, 3> orbital{PlanetManagement::kOrbitalWeapons, PlanetManagement::kOrbitalShields,
                                                          PlanetManagement::kOrbitalCloaker};
     if (row.kind != Kind::kCount || std::ranges::find(orbital, row.index) == orbital.end()) {
       return kMaxNumber;
     }
-    const PlanetManagement m = game::planet_management_resolved(management_, standard_);
-    int left = game::planet_orbital_defence_room(session_, planet_, m);
-    for (const PlanetManagement::Count c : orbital) {
-      left -= c == row.index ? 0 : m.counts[c];
+    int out = kMaxNumber;
+    for (const Target& t : targets_) {
+      const PlanetManagement m = game::planet_management_resolved(t.own, t.standard);
+      int left = game::planet_orbital_defence_room(session_, *t.planet, m);
+      for (const PlanetManagement::Count c : orbital) {
+        left -= c == row.index ? 0 : m.counts[c];
+      }
+      out = std::min(out, left);
     }
-    return std::max(0, left);
+    return std::max(0, out);
   }
 
-  // Ends the typing of a number, the value typed kept (nothing typed: the
-  // value stays).
+  // Ends the typing of a number, the value typed kept for all (nothing
+  // typed: the values stay).
   void commit_typing() {
     if (editing_ < 0) {
       return;
     }
     if (!typed_.empty()) {
       const Row& row = rows_[static_cast<std::size_t>(editing_)];
-      stored(row) = static_cast<std::int16_t>(std::min(std::stoi(typed_), largest(row)));
+      stored(targets_[0], row) = static_cast<std::int16_t>(std::min(std::stoi(typed_), largest(row)));
+      spread(row);
     }
     editing_ = -1;
     typed_.clear();
   }
 
   game::Session& session_;
-  game::Planet& planet_;
-  std::size_t index_;
-  PlanetManagement management_;
-  PlanetManagement standard_;
-  std::optional<game::PlanetGoal> strategy_;
+  std::vector<Target> targets_;
   std::vector<game::PlanetGoal> goals_;
   std::vector<Row> rows_;
+  bool strategy_changed_ = false;
   int editing_ = -1;
   std::string typed_;
   bool ok_ = false;
@@ -616,8 +662,11 @@ std::string management_label(const WinMgr& wm, const game::Session& session, con
   return c_format(wm.remake_text("Management: %s"), state.c_str());
 }
 
-bool run_management_menu(WinMgr& wm, game::Session& session, game::Planet& planet) {
-  auto box = std::make_unique<ManagementBox>(wm, session, planet);
+bool run_management_menu(WinMgr& wm, game::Session& session, std::span<game::Planet* const> planets) {
+  if (planets.empty()) {
+    return false;
+  }
+  auto box = std::make_unique<ManagementBox>(wm, session, planets);
   ManagementBox& box_ref = *box;
   const int box_id = wm.register_window(std::move(box));
   wm.do_modal(box_ref, true);
@@ -627,27 +676,6 @@ bool run_management_menu(WinMgr& wm, game::Session& session, game::Planet& plane
   }
   wm.release_window(box_id);
   return ok;
-}
-
-bool run_strategy_menu(WinMgr& wm, game::Session& session, std::span<game::Planet* const> planets) {
-  std::vector<std::optional<game::PlanetGoal>> options{std::nullopt};
-  std::vector<std::string> names{wm.remake_text("Off")};
-  for (const game::PlanetGoal goal : game::kPlanetGoals) {
-    // The goals every planet may take.
-    if (std::ranges::all_of(planets, [&](const game::Planet* p) { return game::planet_goal_available(session, *p, goal); })) {
-      options.emplace_back(goal);
-      names.push_back(wm.remake_text(game::planet_goal_name(goal)));
-    }
-  }
-  const std::string title = c_format(wm.remake_text("Strategy of %d planets"), static_cast<int>(planets.size()));
-  const int pick = wm.choice_box(title, names, -1);
-  if (pick < 0) {
-    return false;
-  }
-  for (game::Planet* p : planets) {
-    game::planet_set_management(session, *p, options[static_cast<std::size_t>(pick)]);
-  }
-  return true;
 }
 
 }  // namespace oa

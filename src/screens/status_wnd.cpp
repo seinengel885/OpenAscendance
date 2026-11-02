@@ -209,7 +209,8 @@ bool StatusWnd::handle_event(int type, int a, int b) {
         }
         if (const auto area = management_areas_.find(planet);
             area != management_areas_.end() && area->second.contains(wm_.input().x, wm_.input().y)) {
-          run_management_menu(wm_, *session, cosmos.planets.at(static_cast<std::size_t>(planet)));
+          game::Planet* const planets[] = {&cosmos.planets.at(static_cast<std::size_t>(planet))};
+          run_management_menu(wm_, *session, planets);
           list_->draw(kDrawNormal);
           return false;
         }
@@ -257,7 +258,7 @@ std::vector<std::pair<std::string, Pane>> StatusWnd::pe_buttons() const {
   }
   const std::array<std::string, kPeButtons> captions{wm_.remake_text("All"), wm_.remake_text("Same strategy"), size,
                                                      label, wm_.remake_text("Only"),
-                                                     wm_.remake_text("Strategy ...")};
+                                                     wm_.remake_text("Management ...")};
   GameFont& font = const_cast<WinMgr&>(wm_).small_font();
   std::vector<std::pair<std::string, Pane>> out(kPeButtons);
   int x1 = kButtonsRight;
@@ -338,8 +339,8 @@ void StatusWnd::pe_click(int button) {
     case kBell:
       bell_filter_ = !bell_filter_;
       break;
-    case kStrategy:
-      run_strategy_menu(wm_, session, marked_or_shown());
+    case kManagement:
+      run_management_menu(wm_, session, marked_or_shown());
       break;
     default:
       break;

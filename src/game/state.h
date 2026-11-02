@@ -402,7 +402,7 @@ struct PlanetManagement {
     kTractorBeam,
     kOrbitalWeapons,
     kOrbitalCloaker,
-    kOrbitalShields,  // save format 5 on (before: half of the weapons')
+    kOrbitalShields,  // save format 5 on
     kCounts
   };
   // The counts of save format 4.

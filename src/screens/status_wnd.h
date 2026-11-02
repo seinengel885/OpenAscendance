@@ -60,7 +60,7 @@ class StatusWnd final : public GWindow {
   void fill();
   // peCustom: the title bar's buttons, their captions and panes (screen),
   // and a click on one.
-  enum PeButton : int { kAll, kSameStrategy, kSize, kLabel, kBell, kStrategy, kPeButtons };
+  enum PeButton : int { kAll, kSameStrategy, kSize, kLabel, kBell, kManagement, kPeButtons };
   bool pe_custom() const;
   std::vector<std::pair<std::string, Pane>> pe_buttons() const;
   void pe_click(int button);

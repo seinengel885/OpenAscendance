@@ -1,8 +1,8 @@
-// peCustom's management of a planet (planet screen, planet list): the label
+// peCustom's management of planets (planet screen, planet list): the label
 // "Management: <strategy or Off>", the window it opens (the strategy, which
-// turns the self-management off or on, and the rest of the planet's
-// `PlanetManagement`, `game/planet_plan.h`), and the strategy menu of the
-// planet list for several planets.
+// turns the self-management off or on, and the rest of the planets'
+// `PlanetManagement`, `game/planet_plan.h`) for one planet or the planet
+// list's marked ones, and their labels.
 #pragma once
 
 #include <span>
@@ -24,13 +24,9 @@ bool management_shown(const game::Session& session, const game::Planet& planet);
 // "Management: Off" or "Management: <goal>".
 std::string management_label(const WinMgr& wm, const game::Session& session, const game::Planet& planet);
 
-// Runs the management window of `planet` and applies it on OK; returns
-// whether OK was clicked.
-bool run_management_menu(WinMgr& wm, game::Session& session, game::Planet& planet);
-
-// Runs the strategy menu (Off and the goals every one of `planets` may
-// take) and sets the choice on all of them; returns whether one was made.
-bool run_strategy_menu(WinMgr& wm, game::Session& session, std::span<game::Planet* const> planets);
+// Runs the management window of `planets` (one or more: a change sets its
+// row on all of them) and applies it on OK; returns whether OK was clicked.
+bool run_management_menu(WinMgr& wm, game::Session& session, std::span<game::Planet* const> planets);
 
 // The labels of `planet`, comma separated ("" without).
 std::string planet_labels_text(const game::Session& session, const game::Planet& planet);
