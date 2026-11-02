@@ -612,8 +612,8 @@ SaveImage parse_save(std::span<const std::uint8_t> data, std::optional<RawAddres
             }
             level = static_cast<BuildLevel>(l);
           }
-          for (std::int16_t& c : m.counts) {
-            c = in.i16();
+          for (std::size_t c = 0; c < PlanetManagement::kCountsV4; ++c) {
+            m.counts[c] = in.i16();
           }
           m.min_industry = in.i16();
           m.min_research = in.i16();
@@ -629,6 +629,17 @@ SaveImage parse_save(std::span<const std::uint8_t> data, std::optional<RawAddres
         for (std::uint8_t i = 0; i < labels; ++i) {
           const auto text = in.bytes(in.u8());
           image.planet_labels.emplace_back(text.begin(), text.end());
+        }
+      }
+      for (PlanetManagement& m : image.planet_management) {
+        std::int16_t& weapons = m.counts[PlanetManagement::kOrbitalWeapons];
+        std::int16_t& shields = m.counts[PlanetManagement::kOrbitalShields];
+        if (image.pe_custom_version >= 5) {
+          shields = in.i16();
+        } else if (weapons >= 0) {
+          // Format 4 counted orbital weapons and shields together.
+          shields = static_cast<std::int16_t>(weapons / 2);
+          weapons = static_cast<std::int16_t>(weapons - shields);
         }
       }
     }
@@ -718,8 +729,8 @@ std::vector<std::uint8_t> serialize_save(const SaveImage& image) {
       for (const BuildLevel level : m.levels) {
         w.u8(static_cast<std::uint8_t>(level));
       }
-      for (const std::int16_t c : m.counts) {
-        w.i16(c);
+      for (std::size_t c = 0; c < PlanetManagement::kCountsV4; ++c) {
+        w.i16(m.counts[c]);
       }
       w.i16(m.min_industry);
       w.i16(m.min_research);
@@ -734,6 +745,10 @@ std::vector<std::uint8_t> serialize_save(const SaveImage& image) {
       for (const char c : label) {
         w.u8(static_cast<std::uint8_t>(c));
       }
+    }
+    for (std::size_t i = 0; i < image.planets.size(); ++i) {
+      w.i16(i < image.planet_management.size() ? image.planet_management[i].counts[PlanetManagement::kOrbitalShields]
+                                               : std::int16_t{-1});
     }
   }
   return std::move(out);

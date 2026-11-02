@@ -54,11 +54,13 @@ PlanetGoal planet_goal(const Session& session, const Planet& planet);
 // The management of `planet` with its standards filled in
 // (`PlanetManagement`, no -1 / `BuildLevel::kStandard` left).
 PlanetManagement planet_management(const Session& session, const Planet& planet);
+// `own` (a planet's settings) with `standard` filled in where it has none.
+PlanetManagement planet_management_resolved(PlanetManagement own, const PlanetManagement& standard);
 // The standards of `planet`: planetary and orbital defence along with the
-// growth, a Shipyard along on the owner's first planet, the dig along where
-// there are ruins; Surface Shields and orbital weapons and shields
-// 2 / 3 / 4 / 6 / 8 each and an industry of
-// 3 / 4 / 5 / 6 / 8 kept by size (tiny .. enormous).
+// growth, a Shipyard first on the owner's first planet, the dig along where
+// there are ruins; by size (tiny .. enormous) Surface Shields
+// 2 / 3 / 4 / 6 / 8, orbital weapons 1 / 1 / 2 / 3 / 4 and shields
+// 1 / 2 / 2 / 3 / 4, an industry of 3 / 4 / 5 / 6 / 8 kept.
 PlanetManagement planet_management_standard(const Session& session, const Planet& planet);
 
 // Why a planet of the player needs the player (the planet list's bell), in
@@ -69,6 +71,13 @@ enum class PlanetAlarm : std::uint8_t { kNone, kDanger, kGrowthStopped, kIdle };
 PlanetAlarm planet_alarm(const Session& session, const Planet& planet);
 // The alarm's English text (the remake text's key), "" for none.
 std::string_view planet_alarm_text(PlanetAlarm alarm);
+
+// The orbital squares the orbital weapons, shields and cloakers of
+// `planet` may take with `management` (resolved): all but one each for a
+// Shipyard and an Orbital Dock (built or not set to never) and one for a
+// ship with either.
+std::int32_t planet_orbital_defence_room(const Session& session, const Planet& planet,
+                                         const PlanetManagement& management);
 
 // Whether `goal` is one of the rule-based planner's (`planet_plan_v2.cpp`).
 bool planet_goal_v2(PlanetGoal goal);

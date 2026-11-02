@@ -16,6 +16,7 @@
 #include "game/session.h"
 #include "game/variant.h"
 #include "gfx/font.h"
+#include "screens/options_wnd.h"
 
 namespace oa {
 
@@ -110,6 +111,7 @@ class ManagementBox final : public GWindow {
     const std::vector<BuildLevel> surface(kSurfaceLevels.begin(), kSurfaceLevels.end());
     const std::vector<BuildLevel> orbital(kOrbitalLevels.begin(), kOrbitalLevels.end());
     rows_ = {{Kind::kStrategy, "Strategy"},
+             {Kind::kBoost, "Short-term research boost"},
              {Kind::kHead, "Buildings (Never / Reserve / Along / First)"},
              {Kind::kLevel, "Planetary defence", PlanetManagement::kPlanetaryDefence, false, surface},
              {Kind::kCount, "Surface Shields", PlanetManagement::kSurfaceShields, true},
@@ -117,7 +119,8 @@ class ManagementBox final : public GWindow {
              {Kind::kCount, "Surface Cloaker", PlanetManagement::kSurfaceCloaker, true},
              {Kind::kCount, "Tractor Beam", PlanetManagement::kTractorBeam, true},
              {Kind::kLevel, "Orbital defence", PlanetManagement::kOrbitalDefence, false, orbital},
-             {Kind::kCount, "Orbital weapons and shields", PlanetManagement::kOrbitalDefences, true},
+             {Kind::kCount, "Orbital weapons", PlanetManagement::kOrbitalWeapons, true},
+             {Kind::kCount, "Orbital shields", PlanetManagement::kOrbitalShields, true},
              {Kind::kCount, "Orbital Cloaker", PlanetManagement::kOrbitalCloaker, true},
              {Kind::kLevel, "Shipyard", PlanetManagement::kShipyard, false, orbital},
              {Kind::kLevel, "Orbital Dock", PlanetManagement::kOrbitalDock, false, orbital}};
@@ -128,7 +131,6 @@ class ManagementBox final : public GWindow {
     rows_.push_back({Kind::kIndustry, "Industry at least"});
     rows_.push_back({Kind::kResearch, "Research at least"});
     rows_.push_back({Kind::kGrowth, "Growth: an inhabitant within"});
-    rows_.push_back({Kind::kBoost, "Research boost"});
   }
 
   bool ok() const { return ok_; }
@@ -211,7 +213,7 @@ class ManagementBox final : public GWindow {
       case Kind::kBoost: {
         const bool standard = management_.research_boost < 0;
         const bool on = (standard ? standard_.research_boost : management_.research_boost) > 0;
-        return {wm_.remake_text(on ? "On" : "Off"), standard};
+        return {wm_.remake_text(on ? "Yes" : "No"), standard};
       }
       case Kind::kHead:
         break;
@@ -398,7 +400,8 @@ class ManagementBox final : public GWindow {
       default: {
         std::int16_t& own = stored(row);
         const int now = own < 0 ? standard_number(row) : own;
-        own = static_cast<std::int16_t>(std::clamp(now + delta, 0, kMaxNumber));
+        // No more than room is left for.
+        own = static_cast<std::int16_t>(std::max(0, delta > 0 && now + delta > largest(row) ? now : now + delta));
         break;
       }
     }
@@ -419,6 +422,22 @@ class ManagementBox final : public GWindow {
     draw(kDrawNormal);
   }
 
+  // The largest number `row` may take: the orbit's room left by the other
+  // orbital defences for theirs (`planet_orbital_defence_room`).
+  int largest(const Row& row) const {
+    const std::array<PlanetManagement::Count, 3> orbital{PlanetManagement::kOrbitalWeapons, PlanetManagement::kOrbitalShields,
+                                                         PlanetManagement::kOrbitalCloaker};
+    if (row.kind != Kind::kCount || std::ranges::find(orbital, row.index) == orbital.end()) {
+      return kMaxNumber;
+    }
+    const PlanetManagement m = game::planet_management_resolved(management_, standard_);
+    int left = game::planet_orbital_defence_room(session_, planet_, m);
+    for (const PlanetManagement::Count c : orbital) {
+      left -= c == row.index ? 0 : m.counts[c];
+    }
+    return std::max(0, left);
+  }
+
   // Ends the typing of a number, the value typed kept (nothing typed: the
   // value stays).
   void commit_typing() {
@@ -426,7 +445,8 @@ class ManagementBox final : public GWindow {
       return;
     }
     if (!typed_.empty()) {
-      stored(rows_[static_cast<std::size_t>(editing_)]) = static_cast<std::int16_t>(std::stoi(typed_));
+      const Row& row = rows_[static_cast<std::size_t>(editing_)];
+      stored(row) = static_cast<std::int16_t>(std::min(std::stoi(typed_), largest(row)));
     }
     editing_ = -1;
     typed_.clear();
@@ -445,186 +465,140 @@ class ManagementBox final : public GWindow {
   bool ok_ = false;
 };
 
-// The label window of planets: a check box per label (set on all of
-// them, on some: grey, on none), a last row to type a new one; OK applies
-// and drops the labels no planet has any more.
-class LabelBox final : public GWindow {
+// The label dialog's state: per label (in `labels` order) whether all the
+// planets have it, some or none.
+enum class Mark : std::uint8_t { kNone, kSome, kAll };
+
+// A label of the label dialog: a text button of the toolkit, in the red of
+// the remake's selected choices while all the planets have the label
+// (darker while some have it); a click toggles it.
+class LabelButton final : public GWindow {
  public:
-  LabelBox(WinMgr& wm, game::Session& session, std::span<game::Planet* const> planets)
-      : GWindow(wm, "LABELBOX", kLabelBox), session_(session), labels_(session.game->planet_labels) {
+  LabelButton(WinMgr& wm, std::string caption, const Pane& pane, Mark& mark)
+      : GWindow(wm, std::move(caption), pane), mark_(mark) {
     mouse_focus_ = true;
-    for (game::Planet* p : planets) {
-      masks_.push_back(&session.game->planet_management.at(
-          static_cast<std::size_t>(game::planet_index(session.game->cosmos, *p))).labels);
-    }
-    for (std::size_t i = 0; i < labels_.size(); ++i) {
-      const auto has = [&](std::uint32_t* m) { return ((*m >> i) & 1u) != 0; };
-      states_.push_back(std::ranges::all_of(masks_, has) ? kOn : std::ranges::any_of(masks_, has) ? kSome : kOff);
-    }
+    border_ = true;
+    set_text_pos(-1, 3);
   }
-
-  bool ok() const { return ok_; }
-
-  void apply() {
-    for (std::size_t i = 0; i < states_.size(); ++i) {
-      for (std::uint32_t* m : masks_) {
-        if (states_[i] == kOn) {
-          *m |= 1u << i;
-        } else if (states_[i] == kOff) {
-          *m &= ~(1u << i);
-        }
-      }
-    }
-    // The labels no planet has: dropped, the bits above moved down.
-    auto& all = session_.game->planet_management;
-    for (std::size_t i = labels_.size(); i-- > 0;) {
-      if (std::ranges::none_of(all, [&](const PlanetManagement& m) { return ((m.labels >> i) & 1u) != 0; })) {
-        labels_.erase(labels_.begin() + static_cast<std::ptrdiff_t>(i));
-        const std::uint32_t low = (1u << i) - 1u;
-        for (PlanetManagement& m : all) {
-          m.labels = (m.labels & low) | ((m.labels >> 1) & ~low);
-        }
-      }
-    }
-    session_.game->planet_labels = labels_;
-  }
-
-  void press_areas(std::vector<PressArea>& out) const override { out.push_back({pane_, true}); }
 
   bool handle_event(int type, int a, int b) override {
-    switch (type) {
-      case kEventLeftClick:
-      case kEventRightClick:
-        if (!contains(a, b)) {
-          return false;
-        }
-        click(a - pane_.x0, b - pane_.y0);
-        return true;
-      case kEventKey:
-        if (!typing_) {
-          return GWindow::handle_event(type, a, b);
-        }
-        type_key(static_cast<char>(a), static_cast<std::uint16_t>(b));
-        return true;
-      case kEventMouseEnter:
-      case kEventMouseLeave:
-        return true;
-      default:
-        return GWindow::handle_event(type, a, b);
+    if (type == kEventLeftClick && contains(a, b)) {
+      mark_ = mark_ == Mark::kAll ? Mark::kNone : Mark::kAll;
+      draw(kDrawHot);
+      return true;
     }
+    return GWindow::handle_event(type, a, b);
   }
-
-  void draw(int /*mode*/) override {
-    Image8& screen = wm_.screen();
-    vfx_pane_wipe(screen, pane_, kBack);
-    draw_border(kFrame);
-    GameFont& font = wm_.large_font();
-    font.pane() = pane_;
-    const std::string title = wm_.remake_text("Labels");
-    font.draw_string(screen, (width() - font.string_width(title)) / 2, 6, title, 0, kWhite, 0xff);
-    for (std::size_t i = 0; i <= labels_.size(); ++i) {
-      const int y = row_top(i);
-      if (i == labels_.size()) {
-        if (labels_.size() < game::kMaxPlanetLabels) {
-          const std::string text = typing_ ? typed_ + "_" : wm_.remake_text("New label ...");
-          font.draw_string(screen, 40, y + 3, text, 0, typing_ ? kWhite : kGreen, 0xff);
-        }
-        break;
-      }
-      const Pane box{pane_.x0 + 14, pane_.y0 + y + 2, pane_.x0 + 30, pane_.y0 + y + 18};
-      vfx_pane_wipe(screen, box, states_[i] == kSome ? kGrey : kBack);
-      frame(box);
-      if (states_[i] == kOn) {
-        for (int k = 0; k < 3; ++k) {
-          vfx_line_draw(screen, box, 3, 8 + k - 1, 6, 11 + k - 1, kWhite);
-          vfx_line_draw(screen, box, 6, 11 + k - 1, 13, 3 + k - 1, kWhite);
-        }
-      }
-      font.draw_string(screen, 40, y + 3, labels_[i], 0, kGreen, 0xff);
+  void draw(int mode) override {
+    const bool hot = mode == kDrawHot;
+    std::uint8_t back = hot ? kHotBack : kBack;
+    if (mark_ == Mark::kAll) {
+      back = hot ? kSelectedHotColor : kSelectedColor;
+    } else if (mark_ == Mark::kSome) {
+      back = kSomeColor;
     }
-    button(ok_pane(), wm_.remake_text("OK"));
-    button(cancel_pane(), wm_.remake_text("Cancel"));
+    draw_text(back);
   }
-  void draw_hilite(int /*mode*/) override {}
+  void draw_hilite(int mode) override { draw(mode); }
 
  private:
-  enum State : std::uint8_t { kOff, kOn, kSome };
-  static constexpr Pane kLabelBox{170, 40, 469, 439};
-  static constexpr int kRowPitch = 22;
+  // The red ramp's darker step: some of the planets have the label.
+  static constexpr std::uint8_t kSomeColor = 0x50;
+  Mark& mark_;
+};
 
-  int width() const { return pane_.x1 - pane_.x0 + 1; }
-  static int row_top(std::size_t i) { return 34 + static_cast<int>(i) * kRowPitch; }
-  Pane ok_pane() const { return {width() - 220, 370, width() - 116, 392}; }
-  Pane cancel_pane() const { return {width() - 108, 370, width() - 10, 392}; }
+// The longest label typed.
+constexpr int kMaxLabelLength = 16;
+// The label dialog's results.
+constexpr int kLabelsOk = 1;
+constexpr int kLabelsNew = 2;
+// The labels the dialog offers at most (its buttons are the children of
+// one window, with New, OK and Cancel).
+constexpr std::size_t kMaxLabels = 16;
 
-  void frame(const Pane& p) {
-    Image8& screen = wm_.screen();
-    const int w = p.x1 - p.x0;
-    const int h = p.y1 - p.y0;
-    vfx_line_draw(screen, p, 0, 0, w, 0, kFrame);
-    vfx_line_draw(screen, p, 0, 0, 0, h, kFrame);
-    vfx_line_draw(screen, p, w, h, 0, h, kFrame);
-    vfx_line_draw(screen, p, w, h, w, 0, kFrame);
+// Runs the dialog once over `labels` (sorted) and `marks`; returns its
+// result (0 cancel).
+int label_dialog(WinMgr& wm, std::string_view title, const std::vector<std::string>& labels, std::vector<Mark>& marks) {
+  GameFont& font = wm.large_font();
+  const int line = font.font().height + 8;
+  constexpr int kColumn = 150;
+  constexpr int kGap = 8;
+  const int rows = std::max<int>(1, (static_cast<int>(labels.size()) + 1) / 2);
+  const int width = 2 * kColumn + 3 * kGap;
+  const int height = line * (rows + 2) + 3 * kGap;
+  const int x0 = (kScreenWidth - width) / 2;
+  const int y0 = (kScreenHeight - height) / 2;
+  auto box = std::make_unique<GWindow>(wm, std::string(title), Pane{x0, y0, x0 + width, y0 + height});
+  box->set_text_pos(-1, 5);
+  box->set_border(true);
+  GWindow& box_ref = *box;
+  const int box_id = wm.register_window(std::move(box));
+  std::vector<int> ids;
+  const auto add = [&](std::unique_ptr<GWindow> w) {
+    w->set_parent(box_id);
+    box_ref.add_child(w.get());
+    ids.push_back(wm.register_window(std::move(w)));
+  };
+  for (std::size_t i = 0; i < labels.size(); ++i) {
+    const int col = static_cast<int>(i) / rows;
+    const int row = static_cast<int>(i) % rows;
+    const int x = x0 + kGap + col * (kColumn + kGap);
+    const int y = y0 + line + kGap + row * line;
+    add(std::make_unique<LabelButton>(wm, labels[i], Pane{x, y, x + kColumn, y + line - 3}, marks[i]));
   }
-  void button(const Pane& p, const std::string& caption) {
-    const Pane on_screen{pane_.x0 + p.x0, pane_.y0 + p.y0, pane_.x0 + p.x1, pane_.y0 + p.y1};
-    vfx_pane_wipe(wm_.screen(), on_screen, kBack);
-    frame(on_screen);
-    GameFont& font = wm_.large_font();
-    font.draw_string(wm_.screen(), p.x0 + (p.x1 - p.x0 - font.string_width(caption)) / 2, p.y0 + 4, caption, 0,
-                     kWhite, 0xff);
-  }
-
-  void click(int x, int y) {
-    commit();
-    if (ok_pane().contains(x, y) || cancel_pane().contains(x, y)) {
-      ok_ = ok_pane().contains(x, y);
-      wm_.end_modal(ok_ ? 1 : 0);
-      return;
+  // The bottom row: New (while there is room), OK, Cancel.
+  const int y = y0 + height - line - kGap;
+  const int third = (width - 4 * kGap) / 3;
+  const std::array<std::pair<std::string, int>, 3> buttons{
+      {{wm.remake_text("New label ..."), kLabelsNew}, {wm.remake_text("OK"), kLabelsOk}, {wm.remake_text("Cancel"), 0}}};
+  for (std::size_t k = 0; k < buttons.size(); ++k) {
+    if (buttons[k].second == kLabelsNew && labels.size() >= kMaxLabels) {
+      continue;
     }
-    for (std::size_t i = 0; i <= labels_.size(); ++i) {
-      if (y >= row_top(i) && y < row_top(i) + kRowPitch) {
-        if (i < labels_.size()) {
-          states_[i] = states_[i] == kOn ? kOff : kOn;
-        } else if (labels_.size() < game::kMaxPlanetLabels) {
-          typing_ = true;
-        }
+    const int x = x0 + kGap + static_cast<int>(k) * (third + kGap);
+    auto button = std::make_unique<GWindow>(wm, buttons[k].first, Pane{x, y, x + third, y + line - 3});
+    button->set_text_pos(-1, 3);
+    button->set_mouse_focus(true);
+    button->set_border(true);
+    button->set_message(kMessageToWinMgr, kMessageEndModal, buttons[k].second);
+    add(std::move(button));
+  }
+  const int result = wm.do_modal(box_ref, true);
+  for (const int id : ids) {
+    wm.release_window(id);
+  }
+  wm.release_window(box_id);
+  return result;
+}
+
+// Applies `marks` of `labels` to `planets`: the labels as the game's (new
+// ones appended), set on them (all) or taken off (none); then the labels
+// no planet has are dropped, the bits above moved down.
+void apply_labels(game::Session& session, std::span<game::Planet* const> planets,
+                  const std::vector<std::string>& labels, const std::vector<Mark>& marks) {
+  std::vector<std::string>& all = session.game->planet_labels;
+  auto& management = session.game->planet_management;
+  for (std::size_t i = 0; i < labels.size(); ++i) {
+    auto at = std::ranges::find(all, labels[i]);
+    if (at == all.end()) {
+      at = all.insert(all.end(), labels[i]);
+    }
+    const std::uint32_t bit = 1u << static_cast<std::uint32_t>(at - all.begin());
+    for (game::Planet* p : planets) {
+      std::uint32_t& mask = management.at(static_cast<std::size_t>(game::planet_index(session.game->cosmos, *p))).labels;
+      mask = marks[i] == Mark::kAll ? mask | bit : marks[i] == Mark::kNone ? mask & ~bit : mask;
+    }
+  }
+  for (std::size_t i = all.size(); i-- > 0;) {
+    if (std::ranges::none_of(management, [&](const PlanetManagement& m) { return ((m.labels >> i) & 1u) != 0; })) {
+      all.erase(all.begin() + static_cast<std::ptrdiff_t>(i));
+      const std::uint32_t low = (1u << i) - 1u;
+      for (PlanetManagement& m : management) {
+        m.labels = (m.labels & low) | ((m.labels >> 1) & ~low);
       }
     }
-    draw(kDrawNormal);
   }
-
-  void type_key(char c, std::uint16_t scan) {
-    const bool letter = (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == ' ' || c == '-';
-    if (letter && typed_.size() < kMaxLabelLength) {
-      typed_ += c;
-    } else if (scan == kScanBackspace && !typed_.empty()) {
-      typed_.pop_back();
-    } else if (scan == kScanEnter) {
-      commit();
-    }
-    draw(kDrawNormal);
-  }
-
-  // Ends the typing: a new label, set on the planets.
-  void commit() {
-    if (typing_ && !typed_.empty() && std::ranges::find(labels_, typed_) == labels_.end()) {
-      labels_.push_back(typed_);
-      states_.push_back(kOn);
-    }
-    typing_ = false;
-    typed_.clear();
-  }
-
-  static constexpr std::size_t kMaxLabelLength = 16;
-  game::Session& session_;
-  std::vector<std::string> labels_;
-  std::vector<std::uint32_t*> masks_;
-  std::vector<State> states_;
-  bool typing_ = false;
-  std::string typed_;
-  bool ok_ = false;
-};
+}
 
 }  // namespace
 
@@ -633,9 +607,12 @@ bool management_shown(const game::Session& session, const game::Planet& planet) 
 }
 
 std::string management_label(const WinMgr& wm, const game::Session& session, const game::Planet& planet) {
-  const std::string state = planet.self_managed == 0
-                                ? wm.remake_text("Off")
-                                : wm.remake_text(game::planet_goal_name(game::planet_goal(session, planet)));
+  std::string state = planet.self_managed == 0
+                          ? wm.remake_text("Off")
+                          : wm.remake_text(game::planet_goal_name(game::planet_goal(session, planet)));
+  if (planet.self_managed != 0 && game::planet_management(session, planet).research_boost > 0) {
+    state = c_format(wm.remake_text("%s, research boost"), state.c_str());
+  }
   return c_format(wm.remake_text("Management: %s"), state.c_str());
 }
 
@@ -701,16 +678,44 @@ void draw_label_icon(Image8& screen, int x, int y, std::uint8_t color) {
 }
 
 bool run_label_menu(WinMgr& wm, game::Session& session, std::span<game::Planet* const> planets) {
-  auto box = std::make_unique<LabelBox>(wm, session, planets);
-  LabelBox& box_ref = *box;
-  const int box_id = wm.register_window(std::move(box));
-  wm.do_modal(box_ref, true);
-  const bool ok = box_ref.ok();
-  if (ok) {
-    box_ref.apply();
+  // The labels in ascending order, each marked by how many of the planets
+  // have it.
+  std::vector<std::string> labels = session.game->planet_labels;
+  std::ranges::sort(labels);
+  std::vector<Mark> marks;
+  for (const std::string& label : labels) {
+    const auto bit = 1u << static_cast<std::uint32_t>(std::ranges::find(session.game->planet_labels, label) -
+                                                       session.game->planet_labels.begin());
+    const auto has = [&](const game::Planet* p) {
+      return (session.game->planet_management.at(static_cast<std::size_t>(game::planet_index(session.game->cosmos, *p)))
+                  .labels &
+              bit) != 0;
+    };
+    marks.push_back(std::ranges::all_of(planets, has) ? Mark::kAll
+                    : std::ranges::any_of(planets, has) ? Mark::kSome
+                                                        : Mark::kNone);
   }
-  wm.release_window(box_id);
-  return ok;
+  const std::string title =
+      planets.size() == 1 ? c_format(wm.remake_text("Labels of %s"), std::string(game::name_view(planets[0]->name)).c_str())
+                          : c_format(wm.remake_text("Labels of %d planets"), static_cast<int>(planets.size()));
+  while (true) {
+    const int result = label_dialog(wm, title, labels, marks);
+    if (result == kLabelsOk) {
+      apply_labels(session, planets, labels, marks);
+      return true;
+    }
+    if (result != kLabelsNew) {
+      return false;
+    }
+    // A new label (the game's input box), set on the planets.
+    std::string name;
+    if (wm.input_box(wm.remake_text("New label"), name, kMaxLabelLength) != 0 && !name.empty() &&
+        std::ranges::find(labels, name) == labels.end()) {
+      const auto at = std::ranges::upper_bound(labels, name);
+      marks.insert(marks.begin() + (at - labels.begin()), Mark::kAll);
+      labels.insert(at, name);
+    }
+  }
 }
 
 }  // namespace oa

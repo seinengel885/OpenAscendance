@@ -400,14 +400,17 @@ struct PlanetManagement {
     kObservation,
     kSurfaceCloaker,
     kTractorBeam,
-    kOrbitalDefences,  // orbital weapons and shields
+    kOrbitalWeapons,
     kOrbitalCloaker,
+    kOrbitalShields,  // save format 5 on (before: half of the weapons')
     kCounts
   };
+  // The counts of save format 4.
+  static constexpr std::size_t kCountsV4 = kOrbitalShields;
   std::array<BuildLevel, kBuildings> levels{BuildLevel::kStandard, BuildLevel::kStandard, BuildLevel::kStandard,
                                             BuildLevel::kStandard, BuildLevel::kStandard};
   // The defences of the planetary and orbital defence.
-  std::array<std::int16_t, kCounts> counts{-1, -1, -1, -1, -1, -1};
+  std::array<std::int16_t, kCounts> counts{-1, -1, -1, -1, -1, -1, -1};
   std::int16_t min_industry = -1;  // kept when buildings make way
   std::int16_t min_research = -1;
   std::int16_t growth_days = -1;   // an inhabitant within these days (0 off)

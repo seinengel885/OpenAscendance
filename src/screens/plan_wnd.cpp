@@ -55,9 +55,10 @@ constexpr std::uint8_t kHotColor = 0x96;
 // peCustom: the bottom right corner of the management label.
 constexpr int kManagementRight = 628;
 constexpr int kManagementBottom = 466;
-// peCustom: the left end of the planet's name and labels, the gap between
-// name, label symbol and labels, and the symbol's width.
-constexpr int kLabelsLeft = 96;
+// peCustom: the left end of the planet's name and labels (right of the
+// orbital squares' two columns, `planet_geometry::orbital_cell`), the gap
+// between name, label symbol and labels, and the symbol's width.
+constexpr int kLabelsLeft = planet_geometry::orbital_cell(9).x + 70 + 9;
 constexpr int kLabelGap = 6;
 constexpr int kLabelIconWidth = 16;
 

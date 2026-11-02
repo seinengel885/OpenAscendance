@@ -757,12 +757,14 @@ std::string_view planet_goal_name(PlanetGoal goal) {
 PlanetManagement planet_management_standard(const Session& session, const Planet& planet) {
   constexpr std::array<std::int16_t, 5> kShields{2, 3, 4, 6, 8};
   constexpr std::array<std::int16_t, 5> kIndustry{3, 4, 5, 6, 8};
+  constexpr std::array<std::int16_t, 5> kOrbitalWeapons{1, 1, 2, 3, 4};
+  constexpr std::array<std::int16_t, 5> kOrbitalShields{1, 2, 2, 3, 4};
   const std::size_t size = std::min<std::size_t>(planet.size, 4);
   const bool first = first_planet(session, planet);
   PlanetManagement m;
-  m.levels = {BuildLevel::kAlong, BuildLevel::kAlong, first ? BuildLevel::kAlong : BuildLevel::kNo, BuildLevel::kNo,
+  m.levels = {BuildLevel::kAlong, BuildLevel::kAlong, first ? BuildLevel::kFirst : BuildLevel::kNo, BuildLevel::kNo,
               ruins_square(session, planet) != kNoSquare ? BuildLevel::kAlong : BuildLevel::kNo};
-  m.counts = {kShields[size], 0, 0, 0, kShields[size], 0};
+  m.counts = {kShields[size], 0, 0, 0, kOrbitalWeapons[size], 0, kOrbitalShields[size]};
   m.min_industry = kIndustry[size];
   m.min_research = 0;
   m.growth_days = 0;
@@ -770,10 +772,24 @@ PlanetManagement planet_management_standard(const Session& session, const Planet
   return m;
 }
 
+std::int32_t planet_orbital_defence_room(const Session& session, const Planet& planet,
+                                         const PlanetManagement& management) {
+  const Cosmos& cosmos = session.game->cosmos;
+  const bool yard = planet_find_item(cosmos, planet, kItemShipyard) != kNoSquare ||
+                    management.levels[PlanetManagement::kShipyard] != BuildLevel::kNo;
+  const bool dock = planet_find_item(cosmos, planet, plan_detail::kOrbitalDocks) != kNoSquare ||
+                    management.levels[PlanetManagement::kOrbitalDock] != BuildLevel::kNo;
+  const std::int32_t orbit = planet.square_count - planet.surface_squares;
+  return std::max(0, orbit - (yard ? 1 : 0) - (dock ? 1 : 0) - (yard || dock ? 1 : 0));
+}
+
 PlanetManagement planet_management(const Session& session, const Planet& planet) {
-  const PlanetManagement standard = planet_management_standard(session, planet);
-  PlanetManagement m =
-      session.game->planet_management.at(static_cast<std::size_t>(planet_index(session.game->cosmos, planet)));
+  return planet_management_resolved(
+      session.game->planet_management.at(static_cast<std::size_t>(planet_index(session.game->cosmos, planet))),
+      planet_management_standard(session, planet));
+}
+
+PlanetManagement planet_management_resolved(PlanetManagement m, const PlanetManagement& standard) {
   for (std::size_t i = 0; i < m.levels.size(); ++i) {
     m.levels[i] = m.levels[i] == BuildLevel::kStandard ? standard.levels[i] : m.levels[i];
   }

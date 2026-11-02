@@ -95,6 +95,7 @@ TEST_CASE("a peCustom game saves and loads as peCustom", "[game][content][pecust
   management.levels[PlanetManagement::kShipyard] = BuildLevel::kFirst;
   management.counts[PlanetManagement::kSurfaceShields] = 5;
   management.min_industry = 7;
+  management.counts[PlanetManagement::kOrbitalShields] = 3;  // format 5 on
   management.labels = 1;
   session.game->planet_labels = {"Heimat"};
   const std::vector<std::uint8_t> bytes = serialize_save(save_game(session));
@@ -117,6 +118,7 @@ TEST_CASE("a peCustom game saves and loads as peCustom", "[game][content][pecust
   CHECK(m.levels[PlanetManagement::kDig] == BuildLevel::kStandard);
   CHECK(m.counts[PlanetManagement::kSurfaceShields] == 5);
   CHECK(m.min_industry == 7);
+  CHECK(m.counts[PlanetManagement::kOrbitalShields] == 3);
   CHECK(m.labels == 1);
   CHECK(loaded.game->planet_labels == std::vector<std::string>{"Heimat"});
   // Saved again: the same file but for what loading resets (the AI target
@@ -241,6 +243,26 @@ TEST_CASE("the version-4 peCustom saves still load", "[game][content][pecustom]"
   CHECK(m.levels[PlanetManagement::kShipyard] == BuildLevel::kFirst);
   CHECK(m.min_industry == 7);
   CHECK(session.game->planet_labels == std::vector<std::string>{"Heimat"});
+  // Saved before the orbital shields had a count of their own.
+  CHECK(m.counts[PlanetManagement::kOrbitalShields] == -1);
+  cosmos_next_turn(session);
+  session.events.take();
+  CHECK(session.game->cosmos.day == 31);
+}
+
+TEST_CASE("the version-5 peCustom saves still load", "[game][content][pecustom]") {
+  OA_REQUIRE_TABLES(t);
+  const auto saved = versioned_save(5);
+  if (!saved) {
+    SKIP("OA_PECUSTOM_SAVES is not set to the folder of pecustom_v5.sav");
+  }
+  const SaveImage image = parse_save(*saved);
+  CHECK(image.pe_custom_version == 5);
+  Session session(*t);
+  load_game(session, image);
+  // The orbital shields count the save was written with.
+  const PlanetManagement& m = session.game->planet_management.at(static_cast<std::size_t>(player_planet(session)));
+  CHECK(m.counts[PlanetManagement::kOrbitalShields] == 3);
   cosmos_next_turn(session);
   session.events.take();
   CHECK(session.game->cosmos.day == 31);

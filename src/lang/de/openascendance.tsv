@@ -59,7 +59,6 @@ O57	Observation Installation	Beobachtungsstation
 O58	Surface Cloaker	Oberflächentarnung
 O59	Tractor Beam	Traktorstrahl
 O60	Orbital defence	Orbitale Verteidigung
-O61	Orbital weapons and shields	Orbitalwaffen und -schilde
 O62	Orbital Cloaker	Orbitaltarnung
 O63	Orbital Dock	Orbitaldock
 O64	Xeno Archeological Dig	Xenoarchäologie-Grabung
@@ -68,8 +67,6 @@ O66	Industry at least	Industrie mindestens
 O67	Research at least	Forschung mindestens
 O68	Growth: an inhabitant within	Wachstum: Einwohner spätestens alle
 O69	%d days	%d Tage
-O70	Research boost	Forschungsboost
-O71	On	An
 O72	Standard	Standard
 O73	Strategy of %d planets	Strategie von %d Planeten
 O74	Labels	Labels
@@ -87,3 +84,12 @@ O85	All labels	Alle Labels
 O86	Show the planets of size	Planeten der Größe zeigen
 O87	Show the planets labelled	Planeten mit Label zeigen
 O88	Go^to^Planet	Zum^Planeten
+O89	Short-term research boost	Kurzfristiger Forschungsboost
+O90	Yes	Ja
+O91	Orbital weapons	Orbitalwaffen
+O92	Orbital shields	Orbitalschilde
+O93	%s, research boost	%s, Forschungsboost
+O94	Labels of %s	Labels von %s
+O95	Labels of %d planets	Labels von %d Planeten
+O96	New label	Neues Label
+O97	No	Nein

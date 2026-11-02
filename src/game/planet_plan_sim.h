@@ -22,6 +22,7 @@ inline constexpr std::uint8_t kSurfaceShield = 18;
 inline constexpr std::uint8_t kSurfaceMegaShield = 19;
 inline constexpr std::uint8_t kOutpost = 20;
 inline constexpr std::uint8_t kTransportTubes = 21;
+inline constexpr std::uint8_t kOrbitalDocks = 24;
 
 // What one unit of each output is worth for a goal.
 struct Weights {

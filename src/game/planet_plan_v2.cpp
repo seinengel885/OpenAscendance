@@ -5,14 +5,16 @@
 // `plan_detail::Sim`):
 // 1. Housing: while the planet needs more workers than it has room for and
 //    no worker waits for a building, housing in time (when the room left
-//    fills before housing is built).
+//    fills before housing is built); without room and worker, the least
+//    needed building makes way for it.
 // 2. Growth: when workers come slower than the goal's buildings are done
 //    (or as slow), or too slow for a Shipyard's ships or the growth kept,
 //    the growth building that brings inhabitants soonest; without a worker,
 //    the least needed building makes way for one if that is sooner than
 //    waiting, its rebuilding counted (always when growth has stopped).
 // 3. First: the buildings set to come first (defences up to their counts,
-//    Shipyard, Orbital Dock, the dig), making way if need be.
+//    Shipyard, Orbital Dock, the dig), making way if need be; a factory
+//    before a Shipyard or Orbital Dock that has it done sooner.
 // 4. Access: Transport Tubes toward squares not reachable yet, Terraforming
 //    once no usable square is left.
 // 5. Along: the buildings set to come along with the growth: defences in
@@ -90,7 +92,6 @@ enum class Role : std::uint8_t { kHousing, kGrowth, kIndustry, kGoal, kDefence }
 // Planet items of the defences and orbital buildings (`planitem.txt`).
 constexpr std::uint8_t kSurfaceCloaker = 11;
 constexpr std::uint8_t kObservation = 16;
-constexpr std::uint8_t kOrbitalDocks = 24;
 constexpr std::uint8_t kOrbitalCloaker = 25;
 constexpr std::uint8_t kOrbitalShield = 26;
 constexpr std::uint8_t kOrbitalMegaShield = 27;
@@ -368,26 +369,24 @@ class Rules {
   bool has(std::uint8_t item) const { return b_.find(item) != kNoSquare; }
   bool wanted(PM::Building building) const { return m_.levels[building] != BuildLevel::kNo; }
 
-  // The orbital squares the orbital defence may take: all but one each for
-  // the Shipyard, a ship and the Orbital Dock unless never wanted; and of
-  // those, the Orbital Cloakers.
-  std::int32_t orbital_defence_room() const {
-    const std::int32_t orbit = b_.planet.square_count - b_.planet.surface_squares;
-    const std::int32_t kept = (shipyard_ || wanted(PM::kShipyard) ? 2 : 0) + (has(kOrbitalDocks) || wanted(PM::kOrbitalDock) ? 1 : 0);
-    return std::max(0, orbit - kept);
-  }
-  std::int32_t orbital_cloakers() const {
-    return std::min<std::int32_t>(m_.counts[PM::kOrbitalCloaker], orbital_defence_room());
-  }
-  // The orbital weapons and shields wanted, room left.
-  std::int32_t orbital_defences() const {
-    return std::min<std::int32_t>(m_.counts[PM::kOrbitalDefences], orbital_defence_room() - orbital_cloakers());
+  // The orbital cloakers, weapons and shields wanted, in that order as far
+  // as the orbit has room (`planet_orbital_defence_room`).
+  std::array<std::int32_t, 3> orbital_counts() const {
+    std::int32_t room = planet_orbital_defence_room(*session_, b_.planet, m_);
+    std::array<std::int32_t, 3> out{};
+    const std::array<PM::Count, 3> kinds{PM::kOrbitalCloaker, PM::kOrbitalWeapons, PM::kOrbitalShields};
+    for (std::size_t k = 0; k < kinds.size(); ++k) {
+      out[k] = std::clamp<std::int32_t>(m_.counts[kinds[k]], 0, room);
+      room -= out[k];
+    }
+    return out;
   }
   // The workers for the orbital buildings still to come (not set to never).
   std::int32_t orbital_workers() const {
     std::int32_t n = 0;
     if (wanted(PM::kOrbitalDefence)) {
-      n += std::max(0, orbital_defences() + orbital_cloakers() -
+      const std::array<std::int32_t, 3> wanted_counts = orbital_counts();
+      n += std::max(0, wanted_counts[0] + wanted_counts[1] + wanted_counts[2] -
                            count({kItemMissileBase, kItemWhopper, kItemMegaWhopper, kOrbitalShield, kOrbitalMegaShield,
                                   kOrbitalCloaker}));
     }
@@ -459,16 +458,6 @@ class Rules {
     return std::nullopt;
   }
 
-  // The next orbital weapon or shield: the best one known of the kind there
-  // are fewer of (weapons on a tie).
-  std::uint8_t next_orbital_defence() const {
-    const std::uint8_t shield = planet_best_orbital_shield_item(*session_, b_.planet);
-    const std::uint8_t weapon = planet_best_orbital_weapon_item(*session_, b_.planet);
-    const std::int32_t weapons = count({kItemMissileBase, kItemWhopper, kItemMegaWhopper});
-    const std::int32_t shields = count({kOrbitalShield, kOrbitalMegaShield});
-    return weapon != kNoItem && (weapons <= shields || shield == kNoItem) ? weapon : shield;
-  }
-
   // The orbit's defences complete: the cheapest one of which a better one
   // of its kind is known makes way for it.
   std::optional<Action> orbital_upgrade() const {
@@ -481,6 +470,26 @@ class Rules {
       if (better != kNoItem && b_.item(better).cost > b_.item(it).cost &&
           (!best || b_.item(it).cost < b_.item(b_.squares[best->square].item).cost)) {
         best = Action{better, i, i};
+      }
+    }
+    return best;
+  }
+
+  // `item` in orbit, or first the industry building that has it done
+  // sooner (its own days and those of `item` after it).
+  std::optional<Action> sooner(std::uint8_t item) {
+    const std::optional<Action> direct = orbital(item);
+    if (!direct || direct->victim != kNoSquare) {
+      return direct;
+    }
+    const std::int32_t cost = b_.item(item).cost;
+    std::int32_t best_days = days(item);
+    std::optional<Action> best = direct;
+    for (const Action& a : candidates(Role::kIndustry, [](const PlanItem& it) { return it.industry > 0; })) {
+      const std::int32_t after = b_.with(a, [](const Sim& s) { return u16(s.planet.industry); });
+      if (const std::int32_t d = days(a.item) + build_days(cost, after); d < best_days) {
+        best_days = d;
+        best = a;
       }
     }
     return best;
@@ -538,31 +547,46 @@ class Rules {
       }
     }
     if (m_.levels[PM::kOrbitalDefence] == level) {
-      const std::int32_t cloakers = orbital_cloakers();
+      // Cloakers, then weapons and shields, the kind with fewer first.
+      const auto [cloakers, weapons, shields] = orbital_counts();
+      const std::int32_t weapons_built = count({kItemMissileBase, kItemWhopper, kItemMegaWhopper});
+      const std::int32_t shields_built = count({kOrbitalShield, kOrbitalMegaShield});
+      const std::uint8_t weapon = planet_best_orbital_weapon_item(*session_, b_.planet);
+      const std::uint8_t shield = planet_best_orbital_shield_item(*session_, b_.planet);
+      std::vector<std::uint8_t> due_items;
       if (count({kOrbitalCloaker}) < due(cloakers, level)) {
-        if (const std::optional<Action> a = orbital(kOrbitalCloaker)) {
+        due_items.push_back(kOrbitalCloaker);
+      }
+      const bool weapon_due = weapons_built < due(weapons, level);
+      const bool shield_due = shields_built < due(shields, level);
+      if (weapon_due && (!shield_due || weapons_built <= shields_built)) {
+        due_items.push_back(weapon);
+      }
+      if (shield_due) {
+        due_items.push_back(shield);
+      }
+      if (weapon_due) {
+        due_items.push_back(weapon);
+      }
+      for (const std::uint8_t item : due_items) {
+        if (const std::optional<Action> a = orbital(item)) {
           return a;
         }
       }
-      const std::int32_t room = orbital_defences();
-      const std::int32_t built = count({kItemMissileBase, kItemWhopper, kItemMegaWhopper, kOrbitalShield, kOrbitalMegaShield});
-      if (built < due(room, level)) {
-        if (const std::optional<Action> a = orbital(next_orbital_defence())) {
-          return a;
-        }
-      } else if (room > 0 && due(room, level) == room) {
+      if (due_items.empty() && weapons + shields > 0 && due(weapons, level) == weapons &&
+          due(shields, level) == shields) {
         if (const std::optional<Action> a = orbital_upgrade()) {
           return a;
         }
       }
     }
     if (m_.levels[PM::kShipyard] == level && !shipyard_ && single_due(level)) {
-      if (const std::optional<Action> a = orbital(kItemShipyard)) {
+      if (const std::optional<Action> a = sooner(kItemShipyard)) {
         return a;
       }
     }
     if (m_.levels[PM::kOrbitalDock] == level && !has(kOrbitalDocks) && single_due(level)) {
-      if (const std::optional<Action> a = orbital(kOrbitalDocks)) {
+      if (const std::optional<Action> a = sooner(kOrbitalDocks)) {
         return a;
       }
     }
@@ -576,16 +600,48 @@ class Rules {
   std::optional<Action> first() { return due_buildings(BuildLevel::kFirst); }
   std::optional<Action> along() { return due_buildings(BuildLevel::kAlong); }
 
+  // The buildings for `role` among those `fits` on the squares or with the
+  // workers of the least needed building that may make way (not one that
+  // fits itself).
+  template <typename F>
+  std::vector<Action> make_way(Role role, F fits) {
+    std::vector<Action> out;
+    for (const std::uint16_t victim : victims()) {
+      if (fits(b_.item(b_.squares[victim].item))) {
+        continue;
+      }
+      const Square there = b_.squares[victim];
+      b_.clear(victim);
+      b_.recalc();
+      for (Action a : candidates(role, fits)) {
+        a.victim = victim;
+        out.push_back(a);
+      }
+      b_.squares[victim] = there;
+      b_.recalc();
+      if (!out.empty()) {
+        break;
+      }
+    }
+    return out;
+  }
+
   // 1. Housing in time.
   std::optional<Action> housing() {
     // Only while the workers do not wait for buildings.
     if (wanted_population() <= b_.planet.max_population || b_.free_population() > 1) {
       return std::nullopt;
     }
+    const auto houses = [](const PlanItem& it) { return it.max_population > 0; };
+    std::vector<Action> options = candidates(Role::kHousing, houses);
+    if (options.empty() && free_workers() < 1 && b_.room() <= 0) {
+      // No room, no worker: nothing would change; the least needed
+      // building makes way.
+      options = make_way(Role::kHousing, houses);
+    }
     std::optional<Action> best;
     double best_score = 0.0;
-    for (const Action& a :
-         candidates(Role::kHousing, [](const PlanItem& it) { return it.max_population > 0; })) {
+    for (const Action& a : options) {
       // Due when the room left fills before it is built.
       const std::int32_t d = days(a.item);
       if (b_.room() > births(b_, d)) {
@@ -623,23 +679,7 @@ class Rules {
     }
     if (options.empty()) {
       // No worker or no square: the least needed buildings may make way.
-      for (const std::uint16_t victim : victims()) {
-        if (grows(b_.item(b_.squares[victim].item))) {
-          continue;
-        }
-        const Square there = b_.squares[victim];
-        b_.clear(victim);
-        b_.recalc();
-        for (Action a : candidates(Role::kGrowth, grows)) {
-          a.victim = victim;
-          options.push_back(a);
-        }
-        b_.squares[victim] = there;
-        b_.recalc();
-        if (!options.empty()) {
-          break;
-        }
-      }
+      options = make_way(Role::kGrowth, grows);
     }
     std::optional<Action> best;
     if (kept || wait == kNever) {
