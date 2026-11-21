@@ -5,12 +5,14 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <cstdlib>
 #include <array>
 #include <cstdio>
 #include <format>
 #include <map>
 #include <vector>
 
+#include "game/planet_final.h"
 #include "game_oracle.h"
 #include "plan_rig.h"
 
@@ -128,6 +130,66 @@ TEST_CASE("early research focus has research sooner, early industry focus indust
   CAPTURE(early, ii, ir, ri, rr);
   CHECK(rr > ir);
   CHECK(ii > ri);
+}
+
+// The squares of each output's buildings and of housing on `rig`'s planet
+// (`planet_final_output`, `planet_final_housing`).
+std::pair<std::array<int, PlanetManagement::kOutputs>, int> built_layout(PlanRig& rig) {
+  std::array<int, PlanetManagement::kOutputs> out{};
+  int housing = 0;
+  const Planet& p = rig.planet();
+  for (const Square& sq : planet_squares(rig.session().game->cosmos, p).first(p.surface_squares)) {
+    if (sq.item == kNoItem) {
+      continue;
+    }
+    if (const std::optional<PlanetManagement::Output> o = planet_final_output(sq.item)) {
+      ++out[*o];
+    }
+    housing += planet_final_housing(sq.item) ? 1 : 0;
+  }
+  return {out, housing};
+}
+
+TEST_CASE("close to full a managed colony builds only what its final layout wants", "[pecustom][plan]") {
+  OA_REQUIRE_TABLES(t);
+  for (const int size : {1, 4}) {
+    for (const FinalPreset preset : {FinalPreset::kResearch, FinalPreset::kShipyard}) {
+      PlanRig rig(*t, 7, size, PlanetGoal::kBalanced);
+      REQUIRE(rig.ready());
+      rig.management().final_outputs = planet_final_preset(preset, rig.planet());
+      int unwanted = 0;
+      while (rig.days.empty() || (rig.days.back().empty > 0 && rig.days.back().day < kDays)) {
+        // What the final layout still wants before the day.
+        const FinalLayout target =
+            planet_final_layout(rig.session(), rig.planet(), planet_management(rig.session(), rig.planet()));
+        const auto [built, housing] = built_layout(rig);
+        std::array<int, PlanetManagement::kOutputs> missing{};
+        for (std::size_t o = 0; o < missing.size(); ++o) {
+          missing[o] = std::max(0, target.squares[o] - built[o]);
+        }
+        // The last fifth of the usable squares (at least 2).
+        const bool follow = !rig.days.empty() &&
+                            rig.days.back().empty <= std::max(2, (rig.usable_squares() * 2 + 5) / 10);
+        const std::size_t before = rig.steps.size();
+        rig.day();
+        for (std::size_t k = before; follow && k < rig.steps.size(); ++k) {
+          const BuildStep& s = rig.steps[k];
+          const std::optional<PlanetManagement::Output> o = planet_final_output(s.item);
+          // The other buildings (defences) the layout keeps squares for.
+          const bool wanted = o                               ? missing[*o] > 0
+                              : planet_final_housing(s.item) ? target.housing > housing
+                                                              : true;
+          // Growth may still take a square when the next inhabitant is far.
+          if (s.removed == kNoItem && !wanted && t->planitems.items.at(s.item).prosperity <= 0) {
+            ++unwanted;
+            UNSCOPED_INFO(std::format("day {}: {} not in the final layout", s.day, t->planitems.items.at(s.item).name));
+          }
+        }
+      }
+      CAPTURE(size, static_cast<int>(preset));
+      CHECK(unwanted == 0);
+    }
+  }
 }
 
 }  // namespace

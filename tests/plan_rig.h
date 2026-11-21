@@ -96,6 +96,7 @@ class PlanRig {
   Session& session() { return session_; }
   Planet& planet() { return *planet_; }
   PlanetIndex index() const { return index_; }
+  PlanetManagement& management() { return session_.game->planet_management[static_cast<std::size_t>(index_)]; }
 
   // One day of the game, recorded.
   void day() {
@@ -132,6 +133,9 @@ class PlanRig {
       day();
     }
   }
+
+  // The usable surface squares (not ruins; black only for Orfa).
+  int usable_squares() const { return static_cast<int>(std::ranges::count(usable_, true)); }
 
   // The first day without an empty usable square, none before.
   std::optional<int> full_day() const {

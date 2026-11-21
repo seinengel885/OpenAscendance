@@ -6,6 +6,7 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 
 #include "game/session.h"
 #include "game/state.h"
@@ -32,5 +33,11 @@ struct FinalLayout {
 // of its colour first. The points are the game's (colour bonus, output
 // curve, planet-wide boosts already built).
 FinalLayout planet_final_layout(const Session& session, const Planet& planet, const PlanetManagement& management);
+
+// The output whose squares the final layout lays out `item` on (none: not
+// laid out, or housing).
+std::optional<PlanetManagement::Output> planet_final_output(std::uint8_t item);
+// Whether the final layout counts `item` as housing.
+bool planet_final_housing(std::uint8_t item);
 
 }  // namespace oa::game

@@ -267,4 +267,15 @@ FinalLayout planet_final_layout(const Session& session, const Planet& planet, co
   return Layout(session, planet, management).run();
 }
 
+std::optional<PlanetManagement::Output> planet_final_output(std::uint8_t item) {
+  // Per output its plain building and its large one (`kOutputItems`).
+  constexpr std::array<PlanetManagement::Output, kOutputItems.size()> kOf{
+      PlanetManagement::kIndustry,   PlanetManagement::kProsperity, PlanetManagement::kResearch,
+      PlanetManagement::kIndustry,   PlanetManagement::kProsperity, PlanetManagement::kResearch};
+  const auto at = std::ranges::find(kOutputItems, item);
+  return at == kOutputItems.end() ? std::nullopt : std::optional(kOf[static_cast<std::size_t>(at - kOutputItems.begin())]);
+}
+
+bool planet_final_housing(std::uint8_t item) { return std::ranges::find(kHousingItems, item) != kHousingItems.end(); }
+
 }  // namespace oa::game

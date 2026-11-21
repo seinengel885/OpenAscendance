@@ -52,6 +52,7 @@
 #include "game/antag_planet.h"
 #include "game/events.h"
 #include "game/planet.h"
+#include "game/planet_final.h"
 #include "game/planet_plan.h"
 #include "game/planet_plan_sim.h"
 #include "game/ship_design.h"
@@ -75,6 +76,14 @@ constexpr std::int32_t kTypicalCost = 50;
 // A replacement must make up for the outputs lost while rebuilding within
 // these days.
 constexpr std::int32_t kPayback = 100;
+// The share of the usable squares (at least `kTargetLeadMin`) left empty
+// from which the planet builds only what its final layout wants: any other
+// building would make way again soon.
+constexpr double kTargetLead = 0.2;
+constexpr std::int32_t kTargetLeadMin = 2;
+// Close to the final layout, growth waits up to these days for the next
+// inhabitant before it takes a square the layout wants for more.
+constexpr std::int32_t kShortWait = 5;
 // The share of the planet built from which single buildings set to come
 // along are built.
 constexpr double kAlongShare = 0.5;
@@ -143,6 +152,40 @@ class Rules {
       }
     }
     fill_ = built + empty_ > 0 ? static_cast<double>(built) / (built + empty_) : 1.0;
+    lead_ = std::max(kTargetLeadMin, static_cast<std::int32_t>(std::lround(kTargetLead * (built + empty_))));
+    // The squares still missing to the final layout.
+    const FinalLayout target = planet_final_layout(session, planet, m_);
+    std::array<std::int32_t, PlanetManagement::kOutputs> outputs{};
+    std::int32_t housing = 0;
+    for (std::uint16_t i = 0; i < planet.surface_squares; ++i) {
+      if (const std::optional<PlanetManagement::Output> o = planet_final_output(b_.squares[i].item)) {
+        ++outputs[*o];
+      }
+      housing += planet_final_housing(b_.squares[i].item) ? 1 : 0;
+    }
+    for (std::size_t o = 0; o < outputs.size(); ++o) {
+      missing_[o] = std::max(0, target.squares[o] - outputs[o]);
+    }
+    missing_housing_ = std::max(0, target.housing - housing);
+  }
+
+  // Whether the planet is close to full (`kTargetLead`): a building the
+  // final layout does not want would have to make way again soon.
+  bool must_follow_target() const { return empty_ <= lead_; }
+  // Whether the final layout wants `item` on one more square.
+  bool target_wants(std::uint8_t item) const {
+    if (const std::optional<PlanetManagement::Output> o = planet_final_output(item)) {
+      return missing_[*o] > 0;
+    }
+    return planet_final_housing(item) && missing_housing_ > 0;
+  }
+  // `options` without what the final layout does not want, once it must be
+  // followed.
+  std::vector<Action> toward_target(std::vector<Action> options) const {
+    if (must_follow_target()) {
+      std::erase_if(options, [&](const Action& a) { return !target_wants(a.item); });
+    }
+    return options;
   }
 
   // Whether no usable square is left empty.
@@ -640,7 +683,7 @@ class Rules {
       return std::nullopt;
     }
     const auto houses = [](const PlanItem& it) { return it.max_population > 0; };
-    std::vector<Action> options = candidates(Role::kHousing, houses);
+    std::vector<Action> options = toward_target(candidates(Role::kHousing, houses));
     if (options.empty() && free_workers() < 1 && b_.room() <= 0) {
       // No room, no worker: nothing would change; the least needed
       // building makes way.
@@ -679,6 +722,11 @@ class Rules {
       return std::nullopt;
     }
     const std::int32_t wait = next_inhabitant(b_);
+    // Close to the final layout a few days' wait rather than a square it
+    // wants for more.
+    if (!kept && wait <= kShortWait && must_follow_target() && missing_[PlanetManagement::kProsperity] == 0) {
+      return std::nullopt;
+    }
     const auto grows = [](const PlanItem& it) { return it.prosperity > 0; };
     std::vector<Action> options;
     if (free >= 1) {
@@ -746,12 +794,21 @@ class Rules {
     return std::nullopt;
   }
 
-  // The goal's building: the best output gain per day of building.
+  // The outputs a day the final layout still wants more of (all alike).
+  double wanted_value(const Sim& s) const {
+    return (missing_[PlanetManagement::kIndustry] > 0 ? s.exact_industry() : 0.0) +
+           (missing_[PlanetManagement::kResearch] > 0 ? u16(s.planet.research) : 0.0) +
+           (missing_[PlanetManagement::kProsperity] > 0 ? prosperity_sum(s) : 0.0);
+  }
+  // The goal's building: the best output gain per day of building (once
+  // the final layout must be followed, of the outputs it wants).
   std::optional<Action> best_goal_building(std::vector<Action> options) {
+    const bool target = must_follow_target();
+    const auto worth = [&](const Sim& s) { return target ? wanted_value(s) : value(s); };
     std::optional<Action> best;
     double best_score = 0.0;
     for (const Action& a : options) {
-      const double gain = b_.with(a, [&](const Sim& s) { return value(s); }) - value(b_);
+      const double gain = b_.with(a, worth) - worth(b_);
       if (const double score = gain / days(a.item); score > best_score + 1e-9) {
         best = a;
         best_score = score;
@@ -813,7 +870,7 @@ class Rules {
     const std::optional<Action> house = houses.empty() ? std::nullopt : std::optional(houses.front());
     std::optional<Action> best;
     std::int32_t best_day = labs_done(0, industry(), lab_cost, labs, house);
-    for (const Action& a : candidates(Role::kIndustry, [](const PlanItem& it) { return it.industry > 0; })) {
+    for (const Action& a : toward_target(candidates(Role::kIndustry, [](const PlanItem& it) { return it.industry > 0; }))) {
       const std::int32_t after = b_.with(a, [](const Sim& s) { return static_cast<std::int32_t>(u16(s.planet.industry)); });
       if (const std::int32_t day = labs_done(days(a.item), after, lab_cost, labs, house); day < best_day) {
         best = a;
@@ -845,7 +902,7 @@ class Rules {
     const double remaining = empty_ * cost;
     std::optional<Action> best;
     double best_saved = 0.0;
-    for (const Action& a : candidates(Role::kIndustry, [](const PlanItem& it) { return it.industry > 0; })) {
+    for (const Action& a : toward_target(candidates(Role::kIndustry, [](const PlanItem& it) { return it.industry > 0; }))) {
       const double after = b_.with(a, [](const Sim& s) { return s.exact_industry(); });
       if (after <= now) {
         continue;
@@ -862,9 +919,20 @@ class Rules {
     return best;
   }
 
-  // 5. The goal's buildings.
+  // 5. The goal's buildings (toward the final layout once it must be
+  // followed).
   std::optional<Action> goal() {
-    return best_goal_building(candidates(Role::kGoal, [](const PlanItem&) { return true; }));
+    const std::vector<Action> options = toward_target(candidates(Role::kGoal, [](const PlanItem&) { return true; }));
+    if (std::optional<Action> best = best_goal_building(options)) {
+      return best;
+    }
+    // The housing the final layout still wants (it adds no output).
+    if (must_follow_target() && missing_housing_ > 0) {
+      for (const Action& a : toward_target(candidates(Role::kHousing, [](const PlanItem& it) { return it.max_population > 0; }))) {
+        return a;
+      }
+    }
+    return std::nullopt;
   }
 
   // The prosperity a day the planet needs: its growth while it wants more
@@ -984,6 +1052,11 @@ class Rules {
   // The empty usable squares, and those reachable now.
   std::int32_t empty_ = 0;
   std::int32_t reachable_ = 0;
+  // The squares the final layout still wants per output, and of housing.
+  std::array<std::int32_t, PlanetManagement::kOutputs> missing_{};
+  // The empty squares from which the final layout is followed.
+  std::int32_t lead_ = kTargetLeadMin;
+  std::int32_t missing_housing_ = 0;
   std::array<std::vector<std::int32_t>, 5> distance_{};
 };
 
