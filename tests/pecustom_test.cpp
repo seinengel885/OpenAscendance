@@ -94,12 +94,13 @@ TEST_CASE("a peCustom game saves and loads as peCustom", "[game][content][pecust
   PlanetManagement& management = session.game->planet_management.at(static_cast<std::size_t>(home));
   management.levels[PlanetManagement::kShipyard] = BuildLevel::kFirst;
   management.counts[PlanetManagement::kSurfaceShields] = 5;
-  management.min_industry = 7;
+  management.final_outputs[PlanetManagement::kIndustry] = {FinalMode::kAtLeast, 7, kFinalWeights};
   management.counts[PlanetManagement::kOrbitalShields] = 3;  // format 5 on
   management.labels = 1;
   session.game->planet_labels = {"Heimat"};
   session.game->peace_offer_days[1] = 29;  // format 6 on
   management.bell = 1;                     // format 7 on
+  management.final_outputs[PlanetManagement::kResearch] = {FinalMode::kMaximise, 0, 3};  // format 8 on
   const std::vector<std::uint8_t> bytes = serialize_save(save_game(session));
   if (const char* out = std::getenv("OA_WRITE_PECUSTOM_FIXTURE"); out != nullptr && *out != '\0') {
     std::ofstream(out, std::ios::binary)
@@ -119,7 +120,9 @@ TEST_CASE("a peCustom game saves and loads as peCustom", "[game][content][pecust
   CHECK(m.levels[PlanetManagement::kShipyard] == BuildLevel::kFirst);
   CHECK(m.levels[PlanetManagement::kDig] == BuildLevel::kStandard);
   CHECK(m.counts[PlanetManagement::kSurfaceShields] == 5);
-  CHECK(m.min_industry == 7);
+  CHECK(m.final_outputs[PlanetManagement::kIndustry] == FinalOutput{FinalMode::kAtLeast, 7, kFinalWeights});
+  CHECK(m.final_outputs[PlanetManagement::kResearch] == FinalOutput{FinalMode::kMaximise, 0, 3});
+  CHECK(m.final_outputs[PlanetManagement::kProsperity].mode == FinalMode::kStandard);
   CHECK(m.counts[PlanetManagement::kOrbitalShields] == 3);
   CHECK(m.labels == 1);
   CHECK(loaded.game->planet_labels == std::vector<std::string>{"Heimat"});
@@ -227,7 +230,9 @@ TEST_CASE("the version-3 peCustom saves still load", "[game][content][pecustom]"
   CHECK(session.game->planet_goals.at(static_cast<std::size_t>(player_planet(session))) == PlanetGoal::kBalanced);
   // Saved before the planets' management: all standard, no labels.
   CHECK(std::ranges::all_of(session.game->planet_management,
-                            [](const PlanetManagement& m) { return m.min_industry == -1 && m.labels == 0; }));
+                            [](const PlanetManagement& m) {
+                              return m.final_outputs[PlanetManagement::kIndustry].mode == FinalMode::kStandard && m.labels == 0;
+                            }));
   CHECK(session.game->planet_labels.empty());
   cosmos_next_turn(session);
   session.events.take();
@@ -247,7 +252,9 @@ TEST_CASE("the version-4 peCustom saves still load", "[game][content][pecustom]"
   // The management and label the save was written with.
   const PlanetManagement& m = session.game->planet_management.at(static_cast<std::size_t>(player_planet(session)));
   CHECK(m.levels[PlanetManagement::kShipyard] == BuildLevel::kFirst);
-  CHECK(m.min_industry == 7);
+  // Its industry minimum (format 4..7) as the final build-out's.
+  CHECK(m.final_outputs[PlanetManagement::kIndustry] == FinalOutput{FinalMode::kAtLeast, 7, kFinalWeights});
+  CHECK(m.final_outputs[PlanetManagement::kResearch].mode == FinalMode::kStandard);
   CHECK(session.game->planet_labels == std::vector<std::string>{"Heimat"});
   // Saved before the orbital shields had a count of their own.
   CHECK(m.counts[PlanetManagement::kOrbitalShields] == -1);
@@ -307,6 +314,25 @@ TEST_CASE("the version-7 peCustom saves still load", "[game][content][pecustom]"
   load_game(session, image);
   // The project bell the save was written with.
   CHECK(session.game->planet_management.at(static_cast<std::size_t>(player_planet(session))).bell == 1);
+  cosmos_next_turn(session);
+  session.events.take();
+  CHECK(session.game->cosmos.day == 31);
+}
+
+TEST_CASE("the version-8 peCustom saves still load", "[game][content][pecustom]") {
+  OA_REQUIRE_TABLES(t);
+  const auto saved = versioned_save(8);
+  if (!saved) {
+    SKIP("OA_PECUSTOM_SAVES is not set to the folder of pecustom_v8.sav");
+  }
+  const SaveImage image = parse_save(*saved);
+  CHECK(image.pe_custom_version == 8);
+  Session session(*t);
+  load_game(session, image);
+  // The final build-out the save was written with.
+  const PlanetManagement& m = session.game->planet_management.at(static_cast<std::size_t>(player_planet(session)));
+  CHECK(m.final_outputs[PlanetManagement::kIndustry] == FinalOutput{FinalMode::kAtLeast, 7, kFinalWeights});
+  CHECK(m.final_outputs[PlanetManagement::kResearch] == FinalOutput{FinalMode::kMaximise, 0, 3});
   cosmos_next_turn(session);
   session.events.take();
   CHECK(session.game->cosmos.day == 31);

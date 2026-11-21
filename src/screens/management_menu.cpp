@@ -11,6 +11,7 @@
 
 #include "core/c_format.h"
 #include "game/address.h"
+#include "game/planet_final.h"
 #include "game/planet_plan.h"
 #include "game/player_actions.h"
 #include "game/session.h"
@@ -23,6 +24,8 @@ namespace oa {
 namespace {
 
 using game::BuildLevel;
+using game::FinalMode;
+using game::FinalOutput;
 using game::PlanetManagement;
 
 // The window's colours (`game.pal`): the toolkit's background and white
@@ -36,9 +39,15 @@ constexpr std::uint8_t kHead = 0xfb;
 constexpr std::uint8_t kGrey = 0xfc;
 constexpr std::uint8_t kFrame = 0xfe;
 
+// The colours of the final layout's bar: industry, research, prosperity,
+// housing, the other buildings (`game.pal` of the planet screen).
+constexpr std::array<std::uint8_t, 3> kOutputColours{kSelectedColor, 0x27, 0x93};
+constexpr std::uint8_t kHousingColour = 0x09;
+constexpr std::uint8_t kOtherColour = 0x9d;
+
 // The window: its rectangle, the columns (labels, a sub-row's indent, the
 // value box with its arrows, the standard column) and the buttons.
-constexpr Pane kBox{60, 14, 579, 465};
+constexpr Pane kBox{60, 2, 579, 477};
 constexpr int kLabelX = 16;
 constexpr int kIndent = 18;
 constexpr int kValueX0 = 268;
@@ -46,7 +55,12 @@ constexpr int kValueX1 = 418;
 constexpr int kArrow = 16;
 constexpr int kStandardX0 = 428;
 constexpr int kStandardX1 = 508;
-constexpr int kButtonWidth = 110;
+constexpr int kButtonWidth = 100;
+constexpr int kPresetWidth = 82;
+// The mode buttons of a final build-out row (Keep, At least, Maximise) and
+// the weight boxes in the last.
+constexpr std::array<std::pair<int, int>, 3> kModeX{{{96, 170}, {174, 296}, {300, 420}}};
+constexpr int kWeightBox = 9;
 
 // The largest number typed into a value.
 constexpr int kMaxNumber = 999;
@@ -54,14 +68,14 @@ constexpr std::uint16_t kScanBackspace = 0x0e;
 constexpr std::uint16_t kScanEnter = 0x1c;
 
 // What a row of the window sets.
-enum class Kind : std::uint8_t { kHead, kStrategy, kLevel, kCount, kIndustry, kResearch, kGrowth, kBoost };
+enum class Kind : std::uint8_t { kHead, kStrategy, kLevel, kCount, kFinal, kLayout };
 
 struct Row {
   Row(Kind k, std::string l, int i = 0, bool s = false, std::vector<BuildLevel> v = {})
       : kind(k), label(std::move(l)), index(i), sub(s), levels(std::move(v)) {}
   Kind kind;
   std::string label;  // English (`remake_text` key)
-  int index;          // the building or count
+  int index;          // the building, count or output
   bool sub;           // indented under the row before
   // The levels a building row offers.
   std::vector<BuildLevel> levels;
@@ -116,7 +130,6 @@ class ManagementBox final : public GWindow {
     const std::vector<BuildLevel> surface(kSurfaceLevels.begin(), kSurfaceLevels.end());
     const std::vector<BuildLevel> orbital(kOrbitalLevels.begin(), kOrbitalLevels.end());
     rows_ = {{Kind::kStrategy, "Strategy"},
-             {Kind::kBoost, "Short-term research boost"},
              {Kind::kHead, "Buildings (Never / Reserve / Along / First)"},
              {Kind::kLevel, "Planetary defence", PlanetManagement::kPlanetaryDefence, false, surface},
              {Kind::kCount, "Surface Shields", PlanetManagement::kSurfaceShields, true},
@@ -132,10 +145,11 @@ class ManagementBox final : public GWindow {
     if (ruins) {
       rows_.push_back({Kind::kLevel, "Xeno Archeological Dig", PlanetManagement::kDig, false, surface});
     }
-    rows_.push_back({Kind::kHead, "Keep (0: off)"});
-    rows_.push_back({Kind::kIndustry, "Industry at least"});
-    rows_.push_back({Kind::kResearch, "Research at least"});
-    rows_.push_back({Kind::kGrowth, "Growth: an inhabitant within"});
+    rows_.push_back({Kind::kHead, "Final build-out (Keep / At least / Maximise)"});
+    rows_.push_back({Kind::kFinal, "Industry", PlanetManagement::kIndustry});
+    rows_.push_back({Kind::kFinal, "Research", PlanetManagement::kResearch});
+    rows_.push_back({Kind::kFinal, "Prosperity", PlanetManagement::kProsperity});
+    rows_.push_back({Kind::kLayout, ""});
   }
 
   bool ok() const { return ok_; }
@@ -191,17 +205,55 @@ class ManagementBox final : public GWindow {
     for (std::size_t r = 0; r < rows_.size(); ++r) {
       draw_row(r);
     }
+    for (std::size_t k = 0; k < kPresets.size(); ++k) {
+      draw_button(preset_pane(k), wm_.remake_text(kPresets[k].second));
+    }
     draw_button(ok_pane(), wm_.remake_text("OK"));
     draw_button(cancel_pane(), wm_.remake_text("Cancel"));
   }
   void draw_hilite(int /*mode*/) override {}
 
  private:
+  // The final build-out's presets (the bottom row's buttons).
+  static constexpr std::array<std::pair<game::FinalPreset, std::string_view>, 3> kPresets{
+      {{game::FinalPreset::kResearch, "Research"}, {game::FinalPreset::kShipyard, "Shipyard"},
+       {game::FinalPreset::kRefit, "Refit"}}};
+
   int width() const { return pane_.x1 - pane_.x0 + 1; }
-  int line() { return wm_.large_font().font().height + 10; }
+  int height() const { return pane_.y1 - pane_.y0 + 1; }
+  int line() { return wm_.large_font().font().height + 9; }
   int row_top(std::size_t r) { return 6 + line() + 6 + static_cast<int>(r) * line(); }
-  Pane ok_pane() const { return {width() - 2 * kButtonWidth - 24, 418, width() - kButtonWidth - 24, 440}; }
-  Pane cancel_pane() const { return {width() - kButtonWidth - 12, 418, width() - 12, 440}; }
+  Pane bottom_pane(int x0, int x1) const { return {x0, height() - 30, x1, height() - 8}; }
+  Pane preset_pane(std::size_t k) const {
+    const int x0 = 12 + static_cast<int>(k) * (kPresetWidth + 6);
+    return bottom_pane(x0, x0 + kPresetWidth);
+  }
+  Pane ok_pane() const { return bottom_pane(width() - 2 * kButtonWidth - 20, width() - kButtonWidth - 20); }
+  Pane cancel_pane() const { return bottom_pane(width() - kButtonWidth - 12, width() - 12); }
+
+  // The final build-out of output `o` of planet `t` (its standard filled
+  // in), and of all planets (none where they differ).
+  static FinalOutput final_of(const Target& t, std::size_t o) {
+    const FinalOutput& own = t.own.final_outputs[o];
+    return own.mode == FinalMode::kStandard ? t.standard.final_outputs[o] : own;
+  }
+  std::optional<FinalOutput> final_of(std::size_t o) const {
+    const FinalOutput first = final_of(targets_[0], o);
+    const bool same = std::ranges::all_of(targets_, [&](const Target& t) { return final_of(t, o) == first; });
+    return same ? std::optional(first) : std::nullopt;
+  }
+  bool final_standard(std::size_t o) const {
+    return std::ranges::all_of(targets_, [&](const Target& t) { return t.own.final_outputs[o].mode == FinalMode::kStandard; });
+  }
+  // The modes a final build-out row offers (prosperity is not maximised).
+  static std::size_t modes(const Row& row) { return row.index == PlanetManagement::kProsperity ? 2 : 3; }
+  Pane mode_pane(std::size_t r, std::size_t m) {
+    const int y = row_top(r);
+    return {pane_.x0 + kModeX[m].first, pane_.y0 + y, pane_.x0 + kModeX[m].second, pane_.y0 + y + line() - 4};
+  }
+  // The left edge of the weight boxes in the Maximise button (window x).
+  static int weights_x() { return kModeX[2].second - 6 - kFinalWeights * (kWeightBox + 2) + 2; }
+  static constexpr int kFinalWeights = game::kFinalWeights;
 
   // The value of `row` for planet `t` and whether it is the standard.
   std::pair<std::string, bool> value(const Target& t, const Row& row) {
@@ -213,18 +265,12 @@ class ManagementBox final : public GWindow {
         const bool standard = t.own.levels[i] == BuildLevel::kStandard;
         return {wm_.remake_text(level_name(standard ? t.standard.levels[i] : t.own.levels[i])), standard};
       }
-      case Kind::kBoost: {
-        const bool standard = t.own.research_boost < 0;
-        return {wm_.remake_text((standard ? t.standard.research_boost : t.own.research_boost) > 0 ? "Yes" : "No"),
-                standard};
-      }
-      case Kind::kHead:
-        return {"", false};
-      default: {
+      case Kind::kCount: {
         const std::int16_t own = stored(const_cast<Target&>(t), row);
-        const std::string format = row.kind == Kind::kGrowth ? wm_.remake_text("%d days") : std::string("%d");
-        return {c_format(format, own < 0 ? standard_number(t, row) : own), own < 0};
+        return {std::to_string(own < 0 ? standard_number(t, row) : own), own < 0};
       }
+      default:
+        return {"", false};
     }
   }
   // The value shown for `row`: the planets' common one, "-" where they
@@ -249,7 +295,15 @@ class ManagementBox final : public GWindow {
       font.draw_string(screen, kLabelX - 6, text_y, wm_.remake_text(row.label), 0, kHead, 0xff);
       return;
     }
+    if (row.kind == Kind::kLayout) {
+      draw_layout(y);
+      return;
+    }
     font.draw_string(screen, kLabelX + (row.sub ? kIndent : 0), text_y, wm_.remake_text(row.label), 0, kGreen, 0xff);
+    if (row.kind == Kind::kFinal) {
+      draw_final(r);
+      return;
+    }
     const Pane box{pane_.x0 + kValueX0, pane_.y0 + y, pane_.x0 + kValueX1, pane_.y0 + y + line() - 4};
     vfx_pane_wipe(screen, box, editing_ == static_cast<int>(r) ? kHotBack : kBack);
     frame(box, kFrame);
@@ -262,6 +316,16 @@ class ManagementBox final : public GWindow {
     if (row.kind == Kind::kStrategy) {
       return;
     }
+    draw_standard(y, standard);
+  }
+
+  // The standard column of the row at `y`: "Standard" grey while standard,
+  // else the button back to it.
+  void draw_standard(int y, bool standard) {
+    Image8& screen = wm_.screen();
+    GameFont& font = wm_.large_font();
+    const int text_y = y + 3;
+    const Pane box{pane_.x0 + kValueX0, pane_.y0 + y, pane_.x0 + kValueX1, pane_.y0 + y + line() - 4};
     const std::string label = wm_.remake_text("Standard");
     const int label_x = kStandardX0 + (kStandardX1 - kStandardX0 - font.string_width(label)) / 2;
     if (standard) {
@@ -272,6 +336,105 @@ class ManagementBox final : public GWindow {
       frame(button, kFrame);
       font.draw_string(screen, label_x, text_y, label, 0, kWhite, 0xff);
     }
+  }
+
+  // A final build-out row: its modes as buttons, the chosen one red; At
+  // least shows its points (a click on the chosen one types them),
+  // Maximise its weight as boxes (a click on one sets it).
+  void draw_final(std::size_t r) {
+    const Row& row = rows_[r];
+    const auto o = static_cast<std::size_t>(row.index);
+    Image8& screen = wm_.screen();
+    GameFont& font = wm_.large_font();
+    const std::optional<FinalOutput> f = final_of(o);
+    for (std::size_t m = 0; m < modes(row); ++m) {
+      const Pane p = mode_pane(r, m);
+      const bool chosen = f && static_cast<std::size_t>(f->mode) == m;
+      vfx_pane_wipe(screen, p, chosen ? kSelectedColor : kBack);
+      frame(p, kFrame);
+      std::string text;
+      if (m == 0) {
+        text = wm_.remake_text("Keep");
+      } else if (m == 1) {
+        text = editing_ == static_cast<int>(r) ? typed_ + "_"
+               : f                              ? c_format(wm_.remake_text("At least %d"), static_cast<int>(f->value))
+                                                : c_format(wm_.remake_text("At least %s"), "-");
+      } else {
+        text = wm_.remake_text("Maximise");
+      }
+      const int right = m == 2 ? weights_x() - 4 : kModeX[m].second;
+      font.draw_string(screen, kModeX[m].first + (right - kModeX[m].first - font.string_width(text)) / 2, row_top(r) + 3,
+                       text, 0, chosen ? kWhite : kGrey, 0xff);
+      if (m == 2) {
+        for (int k = 0; k < kFinalWeights; ++k) {
+          const int x = pane_.x0 + weights_x() + k * (kWeightBox + 2);
+          const int y = p.y0 + (p.y1 - p.y0 - kWeightBox) / 2;
+          const Pane b{x, y, x + kWeightBox - 1, y + kWeightBox - 1};
+          if (f && k < f->weight) {
+            vfx_pane_wipe(screen, b, chosen ? kWhite : kGrey);
+          } else {
+            frame(b, chosen ? kWhite : kGrey);
+          }
+        }
+      }
+    }
+    draw_standard(row_top(r), final_standard(o));
+  }
+
+  // The final layout of the planet (one planet only) as a bar of its
+  // squares: industry, research, prosperity (each with its points),
+  // housing, the other buildings, the squares left open.
+  void draw_layout(int y) {
+    Image8& screen = wm_.screen();
+    GameFont& font = wm_.large_font();
+    const Pane bar{pane_.x0 + kLabelX, pane_.y0 + y, pane_.x0 + kStandardX1, pane_.y0 + y + line() - 4};
+    if (targets_.size() != 1) {
+      font.draw_string(screen, kLabelX, y + 3, wm_.remake_text("Final layout: shown for one planet"), 0, kGrey, 0xff);
+      return;
+    }
+    const Target& t = targets_[0];
+    const game::FinalLayout layout =
+        game::planet_final_layout(session_, *t.planet, game::planet_management_resolved(t.own, t.standard));
+    struct Part {
+      std::int32_t squares;
+      std::uint8_t colour;
+      std::string label;  // the long one, then the short one
+      std::string brief;
+    };
+    std::vector<Part> parts;
+    const std::array<std::string_view, 3> names{"Industry", "Research", "Prosperity"};
+    for (std::size_t o = 0; o < names.size(); ++o) {
+      const std::string points = std::to_string(layout.points[o]);
+      parts.push_back({layout.squares[o], kOutputColours[o], wm_.remake_text(names[o]) + " " + points, points});
+    }
+    parts.push_back({layout.housing, kHousingColour, wm_.remake_text("Housing"), ""});
+    parts.push_back({layout.other, kOtherColour, wm_.remake_text("Other"), ""});
+    parts.push_back({layout.open, kBack, wm_.remake_text("Open"), ""});
+    std::int32_t total = 0;
+    for (const Part& p : parts) {
+      total += p.squares;
+    }
+    if (total <= 0) {
+      return;
+    }
+    const int w = bar.x1 - bar.x0 + 1;
+    std::int32_t done = 0;
+    for (const Part& p : parts) {
+      const int x0 = bar.x0 + done * w / total;
+      done += p.squares;
+      const int x1 = bar.x0 + done * w / total - 1;
+      if (x1 < x0) {
+        continue;
+      }
+      vfx_pane_wipe(screen, Pane{x0, bar.y0, x1, bar.y1}, p.colour);
+      for (const std::string& text : {p.label, p.brief}) {
+        if (!text.empty() && font.string_width(text) + 4 <= x1 - x0 + 1) {
+          font.draw_string(screen, x0 - pane_.x0 + (x1 - x0 + 1 - font.string_width(text)) / 2, y + 3, text, 0, kWhite, 0xff);
+          break;
+        }
+      }
+    }
+    frame(bar, kFrame);
   }
 
   void frame(const Pane& p, std::uint8_t color) {
@@ -314,6 +477,16 @@ class ManagementBox final : public GWindow {
       wm_.end_modal(in_ok ? 1 : 0);
       return;
     }
+    for (std::size_t k = 0; k < kPresets.size(); ++k) {
+      if (preset_pane(k).contains(x, y)) {
+        commit_typing();
+        for (Target& t : targets_) {
+          t.own.final_outputs = game::planet_final_preset(kPresets[k].first, *t.planet);
+        }
+        draw(kDrawNormal);
+        return;
+      }
+    }
     std::optional<std::size_t> hit;
     for (std::size_t r = 0; r < rows_.size(); ++r) {
       if (y >= row_top(r) && y < row_top(r) + line() - 3) {
@@ -326,8 +499,14 @@ class ManagementBox final : public GWindow {
       return;
     }
     const Row& row = rows_[*hit];
+    if (row.kind == Kind::kLayout) {
+      draw(kDrawNormal);
+      return;
+    }
     if (x >= kStandardX0 && x <= kStandardX1 && row.kind != Kind::kStrategy) {
       to_standard(row);
+    } else if (row.kind == Kind::kFinal) {
+      click_final(*hit, x);
     } else if (x >= kValueX0 && x < kValueX0 + kArrow) {
       step(row, back ? 1 : -1);
     } else if (x > kValueX1 - kArrow && x <= kValueX1) {
@@ -343,23 +522,40 @@ class ManagementBox final : public GWindow {
     draw(kDrawNormal);
   }
 
-  static bool numeric(const Row& row) {
-    return row.kind == Kind::kCount || row.kind == Kind::kIndustry || row.kind == Kind::kResearch ||
-           row.kind == Kind::kGrowth;
+  static bool numeric(const Row& row) { return row.kind == Kind::kCount; }
+
+  // A click at window x `x` on final build-out row `r`: a mode chosen (the
+  // first planet's values otherwise kept), the points of the chosen At
+  // least typed, a weight box of Maximise set.
+  void click_final(std::size_t r, int x) {
+    const Row& row = rows_[r];
+    const auto o = static_cast<std::size_t>(row.index);
+    Target& t = targets_[0];
+    FinalOutput f = final_of(t, o);
+    for (std::size_t m = 0; m < modes(row); ++m) {
+      if (x < kModeX[m].first || x > kModeX[m].second) {
+        continue;
+      }
+      if (m == 1 && f.mode == FinalMode::kAtLeast) {
+        editing_ = static_cast<int>(r);
+        typed_.clear();
+      }
+      f.mode = static_cast<FinalMode>(m);
+      if (m == 2 && x >= weights_x()) {
+        f.weight = static_cast<std::int8_t>(std::min(kFinalWeights, (x - weights_x()) / (kWeightBox + 2) + 1));
+      }
+      t.own.final_outputs[o] = f;
+      spread(row);
+    }
   }
 
-  // The stored number of a numeric row of planet `t`.
+  // The stored number of a numeric row of planet `t` (a count, the points
+  // of a final build-out's At least).
   static std::int16_t& stored(Target& t, const Row& row) {
-    switch (row.kind) {
-      case Kind::kCount:
-        return t.own.counts[static_cast<std::size_t>(row.index)];
-      case Kind::kIndustry:
-        return t.own.min_industry;
-      case Kind::kResearch:
-        return t.own.min_research;
-      default:
-        return t.own.growth_days;
+    if (row.kind == Kind::kFinal) {
+      return t.own.final_outputs[static_cast<std::size_t>(row.index)].value;
     }
+    return t.own.counts[static_cast<std::size_t>(row.index)];
   }
   static std::int16_t standard_number(const Target& t, const Row& row) {
     Target copy{nullptr, t.standard, t.standard, std::nullopt};
@@ -378,10 +574,12 @@ class ManagementBox final : public GWindow {
         case Kind::kLevel:
           t.own.levels[static_cast<std::size_t>(row.index)] = first.own.levels[static_cast<std::size_t>(row.index)];
           break;
-        case Kind::kBoost:
-          t.own.research_boost = first.own.research_boost;
+        case Kind::kFinal:
+          t.own.final_outputs[static_cast<std::size_t>(row.index)] =
+              first.own.final_outputs[static_cast<std::size_t>(row.index)];
           break;
         case Kind::kHead:
+        case Kind::kLayout:
           break;
         default:
           stored(t, row) = stored(targets_[0], row);
@@ -394,8 +592,8 @@ class ManagementBox final : public GWindow {
     Target& first = targets_[0];
     if (row.kind == Kind::kLevel) {
       first.own.levels[static_cast<std::size_t>(row.index)] = BuildLevel::kStandard;
-    } else if (row.kind == Kind::kBoost) {
-      first.own.research_boost = -1;
+    } else if (row.kind == Kind::kFinal) {
+      first.own.final_outputs[static_cast<std::size_t>(row.index)] = FinalOutput{};
     } else if (numeric(row)) {
       stored(first, row) = -1;
     }
@@ -420,18 +618,15 @@ class ManagementBox final : public GWindow {
         own = row.levels[static_cast<std::size_t>(at)];
         break;
       }
-      case Kind::kBoost: {
-        const bool on = (t.own.research_boost < 0 ? t.standard.research_boost : t.own.research_boost) > 0;
-        t.own.research_boost = on ? 0 : 1;
-        break;
-      }
-      default: {
+      case Kind::kCount: {
         std::int16_t& own = stored(t, row);
         const int now = own < 0 ? standard_number(t, row) : own;
         // No more than room is left for.
         own = static_cast<std::int16_t>(std::max(0, delta > 0 && now + delta > largest(row) ? now : now + delta));
         break;
       }
+      default:
+        break;
     }
     spread(row);
   }
@@ -638,12 +833,9 @@ bool management_shown(const game::Session& session, const game::Planet& planet) 
 }
 
 std::string management_label(const WinMgr& wm, const game::Session& session, const game::Planet& planet) {
-  std::string state = planet.self_managed == 0
-                          ? wm.remake_text("Off")
-                          : wm.remake_text(game::planet_goal_name(game::planet_goal(session, planet)));
-  if (planet.self_managed != 0 && game::planet_management(session, planet).research_boost > 0) {
-    state = c_format(wm.remake_text("%s, research boost"), state.c_str());
-  }
+  const std::string state = planet.self_managed == 0
+                                ? wm.remake_text("Off")
+                                : wm.remake_text(game::planet_goal_name(game::planet_goal(session, planet)));
   return c_format(wm.remake_text("Management: %s"), state.c_str());
 }
 

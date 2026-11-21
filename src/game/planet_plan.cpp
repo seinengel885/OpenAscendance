@@ -163,7 +163,6 @@ std::string_view planet_goal_name(PlanetGoal goal) {
 
 PlanetManagement planet_management_standard(const Session& session, const Planet& planet) {
   constexpr std::array<std::int16_t, 5> kShields{2, 3, 4, 6, 8};
-  constexpr std::array<std::int16_t, 5> kIndustry{3, 4, 5, 6, 8};
   constexpr std::array<std::int16_t, 5> kOrbitalWeapons{1, 1, 2, 3, 4};
   constexpr std::array<std::int16_t, 5> kOrbitalShields{1, 2, 2, 3, 4};
   const std::size_t size = std::min<std::size_t>(planet.size, 4);
@@ -172,11 +171,24 @@ PlanetManagement planet_management_standard(const Session& session, const Planet
   m.levels = {BuildLevel::kAlong, BuildLevel::kAlong, first ? BuildLevel::kFirst : BuildLevel::kNo, BuildLevel::kNo,
               ruins_square(session, planet) != kNoSquare ? BuildLevel::kAlong : BuildLevel::kNo};
   m.counts = {kShields[size], 0, 0, 0, kOrbitalWeapons[size], 0, kOrbitalShields[size]};
-  m.min_industry = kIndustry[size];
-  m.min_research = 0;
-  m.growth_days = 0;
-  m.research_boost = 0;
+  m.final_outputs = planet_final_preset(first ? FinalPreset::kShipyard : FinalPreset::kResearch, planet);
   return m;
+}
+
+std::array<FinalOutput, PlanetManagement::kOutputs> planet_final_preset(FinalPreset preset, const Planet& planet) {
+  constexpr std::array<std::int16_t, 5> kIndustry{3, 4, 5, 6, 8};
+  const std::int16_t industry = kIndustry[std::min<std::size_t>(planet.size, 4)];
+  const FinalOutput maximise{FinalMode::kMaximise, industry, kFinalWeights};
+  const FinalOutput none{FinalMode::kAtLeast, 0, kFinalWeights};
+  switch (preset) {
+    case FinalPreset::kShipyard:
+      return {maximise, none, FinalOutput{FinalMode::kKeep, 0, kFinalWeights}};
+    case FinalPreset::kRefit:
+      return {maximise, none, none};
+    default:
+      return {FinalOutput{FinalMode::kAtLeast, industry, kFinalWeights}, FinalOutput{FinalMode::kMaximise, 0, kFinalWeights},
+              none};
+  }
 }
 
 std::int32_t planet_orbital_defence_room(const Session& session, const Planet& planet,
@@ -203,10 +215,9 @@ PlanetManagement planet_management_resolved(PlanetManagement m, const PlanetMana
   for (std::size_t i = 0; i < m.counts.size(); ++i) {
     m.counts[i] = m.counts[i] < 0 ? standard.counts[i] : m.counts[i];
   }
-  m.min_industry = m.min_industry < 0 ? standard.min_industry : m.min_industry;
-  m.min_research = m.min_research < 0 ? standard.min_research : m.min_research;
-  m.growth_days = m.growth_days < 0 ? standard.growth_days : m.growth_days;
-  m.research_boost = m.research_boost < 0 ? standard.research_boost : m.research_boost;
+  for (std::size_t i = 0; i < m.final_outputs.size(); ++i) {
+    m.final_outputs[i] = m.final_outputs[i].mode == FinalMode::kStandard ? standard.final_outputs[i] : m.final_outputs[i];
+  }
   return m;
 }
 

@@ -616,10 +616,16 @@ SaveImage parse_save(std::span<const std::uint8_t> data, std::optional<RawAddres
           for (std::size_t c = 0; c < PlanetManagement::kCountsV4; ++c) {
             m.counts[c] = in.i16();
           }
-          m.min_industry = in.i16();
-          m.min_research = in.i16();
-          m.growth_days = in.i16();
-          m.research_boost = in.i8();
+          // The minima of industry and research of format 4..7 (-1
+          // standard), then the growth and research boost, both dropped.
+          for (const PlanetManagement::Output o : {PlanetManagement::kIndustry, PlanetManagement::kResearch}) {
+            const std::int16_t least = in.i16();
+            if (least >= 0) {
+              m.final_outputs[o] = {FinalMode::kAtLeast, least, kFinalWeights};
+            }
+          }
+          in.i16();
+          in.i8();
           m.labels = in.u32();
           m.reported = in.u8();
         }
@@ -645,6 +651,19 @@ SaveImage parse_save(std::span<const std::uint8_t> data, std::optional<RawAddres
       if (image.pe_custom_version >= 7) {
         for (PlanetManagement& m : image.planet_management) {
           m.bell = in.u8();
+        }
+      }
+      if (image.pe_custom_version >= 8) {
+        for (PlanetManagement& m : image.planet_management) {
+          for (FinalOutput& f : m.final_outputs) {
+            const std::uint8_t mode = in.u8();
+            if (mode > static_cast<std::uint8_t>(FinalMode::kMaximise) && mode != static_cast<std::uint8_t>(FinalMode::kStandard)) {
+              in.fail(std::format("unknown final mode {}", mode));
+            }
+            f.mode = static_cast<FinalMode>(mode);
+            f.value = in.i16();
+            f.weight = in.i8();
+          }
         }
       }
     }
@@ -737,10 +756,12 @@ std::vector<std::uint8_t> serialize_save(const SaveImage& image) {
       for (std::size_t c = 0; c < PlanetManagement::kCountsV4; ++c) {
         w.i16(m.counts[c]);
       }
-      w.i16(m.min_industry);
-      w.i16(m.min_research);
-      w.i16(m.growth_days);
-      w.i8(m.research_boost);
+      // Format 4's minima, growth and research boost: "standard" (format 8
+      // holds the final build-out).
+      w.i16(-1);
+      w.i16(-1);
+      w.i16(-1);
+      w.i8(-1);
       w.u32(m.labels);
       w.u8(m.reported);
     }
@@ -760,6 +781,14 @@ std::vector<std::uint8_t> serialize_save(const SaveImage& image) {
     }
     for (std::size_t i = 0; i < image.planets.size(); ++i) {
       w.u8(i < image.planet_management.size() ? image.planet_management[i].bell : std::uint8_t{0});
+    }
+    for (std::size_t i = 0; i < image.planets.size(); ++i) {
+      const PlanetManagement m = i < image.planet_management.size() ? image.planet_management[i] : PlanetManagement{};
+      for (const FinalOutput& f : m.final_outputs) {
+        w.u8(static_cast<std::uint8_t>(f.mode));
+        w.i16(f.value);
+        w.i8(f.weight);
+      }
     }
   }
   return std::move(out);

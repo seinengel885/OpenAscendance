@@ -42,8 +42,17 @@ PlanetManagement planet_management_resolved(PlanetManagement own, const PlanetMa
 // growth, a Shipyard first on the owner's first planet, the dig along where
 // there are ruins; by size (tiny .. enormous) Surface Shields
 // 2 / 3 / 4 / 6 / 8, orbital weapons 1 / 1 / 2 / 3 / 4 and shields
-// 1 / 2 / 2 / 3 / 4, an industry of 3 / 4 / 5 / 6 / 8 kept.
+// 1 / 2 / 2 / 3 / 4; the final build-out of the Shipyard preset on the first
+// planet, else of the research one.
 PlanetManagement planet_management_standard(const Session& session, const Planet& planet);
+
+// The final build-out's presets (`PlanetManagement::final_outputs`).
+enum class FinalPreset : std::uint8_t {
+  kResearch,  // industry at least 3 / 4 / 5 / 6 / 8 by size, research maximised, no prosperity
+  kShipyard,  // industry maximised, prosperity kept
+  kRefit,     // industry maximised, no research nor prosperity
+};
+std::array<FinalOutput, PlanetManagement::kOutputs> planet_final_preset(FinalPreset preset, const Planet& planet);
 
 // Why a planet of the player needs the player (the planet list's bell), in
 // this order: a lingering danger at its star, its growth stopped while

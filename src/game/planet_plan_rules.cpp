@@ -21,8 +21,7 @@
 //    the share of the planet built, single buildings once half of it is.
 // 6. Industry: while workers come faster than the goal's buildings are
 //    done, a factory when it saves more days on the buildings still to come
-//    than it takes itself (with the research boost: only up to the
-//    industry kept).
+//    than it takes itself.
 // 7. Goal: the building that adds most of the goal's outputs per day of
 //    building, on the square of its colour.
 // 8. Replacement (no empty square left): the building whose replacement
@@ -106,12 +105,9 @@ constexpr std::uint8_t kRed = 2;
 constexpr std::uint8_t kGreen = 3;
 constexpr std::uint8_t kBlue = 4;
 
-Weights goal_weights(PlanetGoal goal, bool research_complete, bool research_boost) {
+Weights goal_weights(PlanetGoal goal, bool research_complete) {
   if (research_complete) {
     return {1.0, 0.0};
-  }
-  if (research_boost) {
-    return {0.0, 1.0};
   }
   switch (goal) {
     case PlanetGoal::kIndustry:
@@ -133,7 +129,7 @@ class Rules {
         session_(&session),
         goal_(goal),
         m_(management),
-        weights_(goal_weights(goal, research_complete, management.research_boost > 0)),
+        weights_(goal_weights(goal, research_complete)),
         black_usable_(session.game->cosmos.races.at(planet.owner).ability == 2) {
     shipyard_ = b_.find(kItemShipyard) != kNoSquare;
     std::int32_t built = 0;
@@ -765,9 +761,7 @@ class Rules {
 
   // 4. Industry while it speeds up the buildings still to come.
   std::optional<Action> productivity() {
-    // The research boost: only up to the industry kept.
-    const bool boost = m_.research_boost > 0;
-    if (goal_ == PlanetGoal::kIndustry || reachable_ == 0 || (boost && industry() >= m_.min_industry)) {
+    if (goal_ == PlanetGoal::kIndustry || reachable_ == 0) {
       return std::nullopt;
     }
     const std::optional<Action> next = best_goal_building(candidates(Role::kGoal, [](const PlanItem&) { return true; }));
@@ -776,7 +770,7 @@ class Rules {
     }
     // Only while industry holds the planet back: workers come faster than
     // its buildings are done.
-    if (!boost && b_.free_population() < 2 && interval(b_) >= days(next->item)) {
+    if (b_.free_population() < 2 && interval(b_) >= days(next->item)) {
       return std::nullopt;
     }
     const double cost = b_.item(next->item).cost;
@@ -792,8 +786,7 @@ class Rules {
       // The factory takes a square of the goal's buildings, for good if the
       // goal wants industry, else until it makes way for one.
       const double later = weights_.industry > 0.0 ? remaining - cost : remaining;
-      const double saved = boost ? (after - now) / days(a.item)
-                                 : remaining / now - (b_.item(a.item).cost / now + later / after);
+      const double saved = remaining / now - (b_.item(a.item).cost / now + later / after);
       if (saved > best_saved) {
         best = a;
         best_saved = saved;
@@ -813,13 +806,13 @@ class Rules {
     return b_.planet.population < wanted_population() ? std::numeric_limits<std::int32_t>::max() : kept_growth();
   }
   // The prosperity a day kept: a Shipyard's (while no more workers than
-  // those for ships are free) and that of the growth kept.
-  std::int32_t kept_growth() const {
-    std::int32_t need = b_.free_population() <= ship_workers() ? ship_growth() : 0;
-    if (m_.growth_days > 0) {
-      need = std::max(need, (b_.pop_growth() + m_.growth_days - 1) / m_.growth_days);
-    }
-    return need;
+  // those for ships are free).
+  std::int32_t kept_growth() const { return b_.free_population() <= ship_workers() ? ship_growth() : 0; }
+  // The points of `output` its buildings may not go below when making way:
+  // all while kept, the final build-out's minimum (`FinalOutput`).
+  std::int32_t kept_points(PlanetManagement::Output output, std::int32_t now) const {
+    const FinalOutput& f = m_.final_outputs[output];
+    return std::min<std::int32_t>(now, f.mode == FinalMode::kKeep ? now : f.mode == FinalMode::kAtLeast ? f.value : 0);
   }
   // The prosperity a day for an inhabitant within a ship's building time
   // (0 without a Shipyard).
@@ -848,8 +841,8 @@ class Rules {
     std::vector<Victim> all;
     const std::int32_t need = needed_growth();
     const std::int32_t rate = b_.growth_rate();
-    const std::int32_t min_industry = std::min<std::int32_t>(m_.min_industry, industry());
-    const std::int32_t min_research = std::min<std::int32_t>(m_.min_research, u16(b_.planet.research));
+    const std::int32_t min_industry = kept_points(PlanetManagement::kIndustry, industry());
+    const std::int32_t min_research = kept_points(PlanetManagement::kResearch, u16(b_.planet.research));
     const double now = value(b_);
     for (std::uint16_t i = 0; i < b_.planet.surface_squares; ++i) {
       const std::uint8_t it = b_.squares[i].item;

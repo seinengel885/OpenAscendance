@@ -397,8 +397,27 @@ enum class BuildLevel : std::uint8_t {
   kStandard = 0xff,  // the planet's standard (`planet_plan.h`)
 };
 
+// peCustom (save format 8): how the final build-out of a full planet
+// (`PlanetManagement::final_outputs`) treats an output. The values are saved:
+// never change them.
+enum class FinalMode : std::uint8_t {
+  kKeep = 0,      // its buildings neither built nor demolished
+  kAtLeast = 1,   // `FinalOutput::value` points (shortened alike when the
+                  // squares do not suffice for all)
+  kMaximise = 2,  // the squares left, shared by `FinalOutput::weight`
+  kStandard = 0xff,
+};
+struct FinalOutput {
+  FinalMode mode = FinalMode::kStandard;
+  std::int16_t value = -1;  // the points of kAtLeast (-1 standard)
+  std::int8_t weight = -1;  // 1..5, the share of kMaximise (-1 standard)
+  bool operator==(const FinalOutput&) const = default;
+};
+// The largest weight of a maximised output.
+inline constexpr std::int8_t kFinalWeights = 5;
+
 // peCustom (save format 4): a planet's management beyond its strategy
-// (`Game::planet_goals`), read by `planet_plan_v2.cpp`. -1 / kStandard: the
+// (`Game::planet_goals`), read by `planet_plan_rules.cpp`. -1 / kStandard: the
 // standard for the planet (`planet_plan.h`).
 struct PlanetManagement {
   enum Building : std::uint8_t { kPlanetaryDefence, kOrbitalDefence, kShipyard, kOrbitalDock, kDig, kBuildings };
@@ -418,10 +437,9 @@ struct PlanetManagement {
                                             BuildLevel::kStandard, BuildLevel::kStandard};
   // The defences of the planetary and orbital defence.
   std::array<std::int16_t, kCounts> counts{-1, -1, -1, -1, -1, -1, -1};
-  std::int16_t min_industry = -1;  // kept when buildings make way
-  std::int16_t min_research = -1;
-  std::int16_t growth_days = -1;   // an inhabitant within these days (0 off)
-  std::int8_t research_boost = -1;  // 0 / 1
+  // The final build-out (save format 8): industry, research, prosperity.
+  enum Output : std::uint8_t { kIndustry, kResearch, kProsperity, kOutputs };
+  std::array<FinalOutput, kOutputs> final_outputs{};
   // The labels of `Game::planet_labels` the planet has (bit i: label i).
   std::uint32_t labels = 0;
   // Whether the planet's completion was reported (cleared when it builds

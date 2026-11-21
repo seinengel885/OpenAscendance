@@ -57,11 +57,11 @@ O60	Orbital defence	Orbitale Verteidigung
 O62	Orbital Cloaker	Orbitaltarnung
 O63	Orbital Dock	Orbitaldock
 O64	Xeno Archeological Dig	Xenoarchäologie-Grabung
-O65	Keep (0: off)	Erhalten (0: aus)
-O66	Industry at least	Industrie mindestens
-O67	Research at least	Forschung mindestens
-O68	Growth: an inhabitant within	Wachstum: Einwohner spätestens alle
-O69	%d days	%d Tage
+O65	Final build-out (Keep / At least / Maximise)	Endausbau (Behalten / Mindestens / Maximieren)
+O66	Keep	Behalten
+O67	At least %d	Mindestens %d
+O68	At least %s	Mindestens %s
+O69	Maximise	Maximieren
 O72	Standard	Standard
 O73	Management of %d planets	Verwaltung von %d Planeten
 O74	Labels	Labels
@@ -79,12 +79,14 @@ O85	All labels	Alle Labels
 O86	Show the planets of size	Planeten der Größe zeigen
 O87	Show the planets labelled	Planeten mit Label zeigen
 O88	Go^to^Planet	Zum^Planeten
-O89	Short-term research boost	Kurzfristiger Forschungsboost
-O90	Yes	Ja
+O89	Prosperity	Wohlstand
+O90	Refit	Umbau
 O91	Orbital weapons	Orbitalwaffen
 O92	Orbital shields	Orbitalschilde
-O93	%s, research boost	%s, Forschungsboost
+O93	Housing	Wohnraum
 O94	Labels of %s	Labels von %s
 O95	Labels of %d planets	Labels von %d Planeten
 O96	New label	Neues Label
-O97	No	Nein
+O97	Other	Sonstige
+O98	Open	Frei
+O99	Final layout: shown for one planet	Endausbau: Vorschau nur für einen Planeten
