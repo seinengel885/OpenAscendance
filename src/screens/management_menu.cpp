@@ -49,7 +49,7 @@ constexpr std::uint8_t kOtherColour = 0x9d;
 // box, the two columns of the buildings (left edge, width, a sub-row's
 // indent, the value box in a column), the arrows of a value box and the
 // buttons.
-constexpr Pane kBox{60, 70, 579, 410};
+constexpr Pane kBox{60, 62, 579, 418};
 constexpr int kLabelX = 16;
 constexpr int kRight = 506;
 constexpr int kStrategyX0 = 300;
@@ -60,8 +60,10 @@ constexpr int kColumnValueX0 = 146;
 constexpr int kArrow = 16;
 constexpr int kButtonWidth = 100;
 constexpr int kPresetWidth = 76;
-// The line of the final build-out's head (with its presets).
+// The line of the final build-out's head (with its presets) and the space
+// above it (as below its layout).
 constexpr int kFinalLine = 8;
+constexpr int kFinalGap = 16;
 // The mode buttons of a final build-out row (Keep, At least, Maximise),
 // the number field in At least and the weight boxes in Maximise.
 constexpr std::array<std::pair<int, int>, 3> kModeX{{{110, 190}, {196, 342}, {348, kRight}}};
@@ -246,7 +248,7 @@ class ManagementBox final : public GWindow {
     rows_.push_back(std::move(row));
   }
   int line() { return wm_.large_font().font().height + 9; }
-  int line_top(int at) { return 6 + line() + 6 + at * line(); }
+  int line_top(int at) { return 6 + line() + 6 + at * line() + (at >= kFinalLine ? kFinalGap : 0); }
   int row_top(std::size_t r) { return line_top(rows_[r].line); }
   // The window x of a row's label and the edges of its value box.
   static int label_x(const Row& row) {
