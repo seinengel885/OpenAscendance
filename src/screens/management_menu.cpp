@@ -59,7 +59,9 @@ constexpr int kIndent = 16;
 constexpr int kColumnValueX0 = 146;
 constexpr int kArrow = 16;
 constexpr int kButtonWidth = 100;
-constexpr int kPresetWidth = 82;
+constexpr int kPresetWidth = 76;
+// The line of the final build-out's head (with its presets).
+constexpr int kFinalLine = 8;
 // The mode buttons of a final build-out row (Keep, At least, Maximise),
 // the number field in At least and the weight boxes in Maximise.
 constexpr std::array<std::pair<int, int>, 3> kModeX{{{110, 190}, {196, 342}, {348, kRight}}};
@@ -162,7 +164,7 @@ class ManagementBox final : public GWindow {
     for (std::size_t i = 0; i < orbital_rows.size(); ++i) {
       add(orbital_rows[i], 2 + static_cast<int>(i), 1);
     }
-    add({Kind::kHead, "Final build-out (Keep / At least / Maximise)"}, 8, -1);
+    add({Kind::kHead, "Final build-out"}, kFinalLine, -1);
     add({Kind::kFinal, "Industry", PlanetManagement::kIndustry}, 9, -1);
     add({Kind::kFinal, "Research", PlanetManagement::kResearch}, 10, -1);
     add({Kind::kFinal, "Prosperity", PlanetManagement::kProsperity}, 11, -1);
@@ -244,7 +246,8 @@ class ManagementBox final : public GWindow {
     rows_.push_back(std::move(row));
   }
   int line() { return wm_.large_font().font().height + 9; }
-  int row_top(std::size_t r) { return 6 + line() + 6 + rows_[r].line * line(); }
+  int line_top(int at) { return 6 + line() + 6 + at * line(); }
+  int row_top(std::size_t r) { return line_top(rows_[r].line); }
   // The window x of a row's label and the edges of its value box.
   static int label_x(const Row& row) {
     return row.column < 0 ? kLabelX : kColumnX[static_cast<std::size_t>(row.column)] + 4 + (row.sub ? kIndent : 0);
@@ -257,9 +260,11 @@ class ManagementBox final : public GWindow {
     return {x0 + kColumnValueX0, x0 + kColumnWidth};
   }
   Pane bottom_pane(int x0, int x1) const { return {x0, height() - 30, x1, height() - 8}; }
-  Pane preset_pane(std::size_t k) const {
-    const int x0 = 12 + static_cast<int>(k) * (kPresetWidth + 6);
-    return bottom_pane(x0, x0 + kPresetWidth);
+  // The presets' buttons, right in the final build-out's head.
+  Pane preset_pane(std::size_t k) {
+    const int x0 = kRight - static_cast<int>(kPresets.size() - k) * (kPresetWidth + 6) + 6;
+    const int y = line_top(kFinalLine);
+    return {x0, y, x0 + kPresetWidth, y + line() - 4};
   }
   Pane ok_pane() const { return bottom_pane(width() - 2 * kButtonWidth - 20, width() - kButtonWidth - 20); }
   Pane cancel_pane() const { return bottom_pane(width() - kButtonWidth - 12, width() - 12); }
@@ -472,7 +477,9 @@ class ManagementBox final : public GWindow {
     vfx_pane_wipe(screen, screen_pane, kBack);
     frame(screen_pane, kWhite);
     GameFont& font = wm_.large_font();
-    font.draw_string(screen, p.x0 + (p.x1 - p.x0 - font.string_width(caption)) / 2, p.y0 + 4, caption, 0, kWhite, 0xff);
+    // A bottom button's text 4 pixels down, a row's 3 (as the values').
+    const int dy = p.y1 - p.y0 > line() ? 4 : 3;
+    font.draw_string(screen, p.x0 + (p.x1 - p.x0 - font.string_width(caption)) / 2, p.y0 + dy, caption, 0, kWhite, 0xff);
   }
 
   // A click at (x, y) of the window (`back`: the right button, which steps
