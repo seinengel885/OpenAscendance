@@ -82,6 +82,7 @@ add_executable(oa_game_tests
   negotiation_test.cpp
   # The peCustom variant and its saves (OA_PECUSTOM_SAVES).
   pecustom_test.cpp
+  planet_plan_test.cpp
 )
 target_link_libraries(oa_game_tests PRIVATE oa_game Catch2::Catch2WithMain)
 catch_discover_tests(oa_game_tests)
