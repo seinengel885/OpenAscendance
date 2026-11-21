@@ -96,5 +96,39 @@ TEST_CASE("a managed colony builds without idling, early demolition or ping-pong
   }
 }
 
+// The outputs summed over the first `days` days of `rig`.
+std::pair<long, long> sums(const PlanRig& rig, int days) {
+  long industry = 0;
+  long research = 0;
+  for (const DayRecord& r : rig.days) {
+    if (r.day <= days) {
+      industry += r.industry;
+      research += r.research;
+    }
+  }
+  return {industry, research};
+}
+
+TEST_CASE("early research focus has research sooner, early industry focus industry", "[pecustom][plan]") {
+  OA_REQUIRE_TABLES(t);
+  PlanRig industry(*t, 7, 3, PlanetGoal::kEarlyIndustry);
+  PlanRig research(*t, 7, 3, PlanetGoal::kEarlyResearch);
+  REQUIRE(industry.ready());
+  industry.run(400);
+  research.run(400);
+  for (std::size_t d = 24; d < 400; d += 25) {
+    std::printf("F day %d  early industry I %d R %d  early research I %d R %d\n", industry.days[d].day,
+                industry.days[d].industry, industry.days[d].research, research.days[d].industry,
+                research.days[d].research);
+  }
+  // The early phase: half the days early industry focus takes to be full.
+  const int early = industry.full_day().value_or(400) / 2;
+  const auto [ii, ir] = sums(industry, early);
+  const auto [ri, rr] = sums(research, early);
+  CAPTURE(early, ii, ir, ri, rr);
+  CHECK(rr > ir);
+  CHECK(ii > ri);
+}
+
 }  // namespace
 }  // namespace oa::game

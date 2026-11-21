@@ -128,6 +128,7 @@ class Rules {
       : neighbours_(surface_neighbours(session.tables->planitems, planet)),
         b_(session, planet, neighbours_),
         session_(&session),
+        goal_(goal),
         m_(management),
         weights_(goal_weights(goal, research_complete)),
         black_usable_(session.game->cosmos.races.at(planet.owner).ability == 2) {
@@ -759,6 +760,69 @@ class Rules {
     return best;
   }
 
+  // The day (from today) the `labs`-th of the goal's buildings (`lab_cost`)
+  // is done with the planet's industry at `industry`, after a factory
+  // `factory_days` long (0: none): each starts once a worker is free for it
+  // (the free ones, then births as far as there is room), housing
+  // (`house`, its worker not counted) first where the room is full.
+  std::int32_t labs_done(std::int32_t factory_days, std::int32_t industry, std::int32_t lab_cost, std::int32_t labs,
+                         const std::optional<Action>& house) const {
+    const std::int32_t free = b_.free_population();
+    std::int32_t room = b_.room();
+    std::int32_t day = 0;
+    std::int32_t started = 0;
+    const auto start = [&](std::int32_t length) {
+      ++started;
+      while (free + std::min(births(b_, day), room) < started && day < kNever) {
+        ++day;
+      }
+      day = std::min(kNever, day + length);
+    };
+    if (factory_days > 0) {
+      start(factory_days);
+    }
+    for (std::int32_t i = 0; i < labs; ++i) {
+      if (house && free + room <= started) {
+        const PlanItem& h = b_.item(house->item);
+        day = std::min(kNever, day + build_days(h.cost, industry));
+        room += h.max_population;
+      }
+      start(build_days(lab_cost, industry));
+    }
+    return day;
+  }
+
+  // 4 (early research focus). A factory first only when the goal's
+  // buildings for the workers to come (and their housing) are done sooner
+  // with it.
+  std::optional<Action> sooner_labs(const Action& next) {
+    const std::int32_t squares = std::max(1, empty_ - 1);
+    const std::int32_t free = b_.free_population();
+    // The goal's buildings for the workers there are and those born while
+    // they are built.
+    std::int32_t labs = std::clamp(free, 1, squares);
+    for (std::int32_t more = 0; more < squares; ++more) {
+      const std::int32_t workers = std::clamp(free + births(b_, labs * days(next.item)), 1, squares);
+      if (workers <= labs) {
+        break;
+      }
+      labs = workers;
+    }
+    const std::int32_t lab_cost = b_.item(next.item).cost;
+    const std::vector<Action> houses = candidates(Role::kHousing, [](const PlanItem& it) { return it.max_population > 0; });
+    const std::optional<Action> house = houses.empty() ? std::nullopt : std::optional(houses.front());
+    std::optional<Action> best;
+    std::int32_t best_day = labs_done(0, industry(), lab_cost, labs, house);
+    for (const Action& a : candidates(Role::kIndustry, [](const PlanItem& it) { return it.industry > 0; })) {
+      const std::int32_t after = b_.with(a, [](const Sim& s) { return static_cast<std::int32_t>(u16(s.planet.industry)); });
+      if (const std::int32_t day = labs_done(days(a.item), after, lab_cost, labs, house); day < best_day) {
+        best = a;
+        best_day = day;
+      }
+    }
+    return best;
+  }
+
   // 4. Industry while it speeds up the buildings still to come.
   std::optional<Action> productivity() {
     if (reachable_ == 0) {
@@ -767,6 +831,9 @@ class Rules {
     const std::optional<Action> next = best_goal_building(candidates(Role::kGoal, [](const PlanItem&) { return true; }));
     if (!next) {
       return std::nullopt;
+    }
+    if (goal_ == PlanetGoal::kEarlyResearch) {
+      return sooner_labs(*next);
     }
     // Only while industry holds the planet back: workers come faster than
     // its buildings are done.
@@ -906,6 +973,7 @@ class Rules {
   Neighbours neighbours_;
   Sim b_;
   const Session* session_;
+  PlanetGoal goal_;
   PlanetManagement m_;
   Weights weights_;
   // The share of the usable surface built.
