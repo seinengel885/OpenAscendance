@@ -16,8 +16,8 @@
 namespace oa::game {
 
 // The goals in the order the menus list them.
-inline constexpr std::array<PlanetGoal, 3> kPlanetGoals{PlanetGoal::kBalanced, PlanetGoal::kIndustry,
-                                                         PlanetGoal::kResearch};
+inline constexpr std::array<PlanetGoal, 3> kPlanetGoals{PlanetGoal::kBalanced, PlanetGoal::kEarlyIndustry,
+                                                         PlanetGoal::kEarlyResearch};
 
 // The strategy `delta` steps after `current` in the order off (none), then
 // `kPlanetGoals`, wrapping.
@@ -50,7 +50,7 @@ PlanetManagement planet_management_standard(const Session& session, const Planet
 enum class FinalPreset : std::uint8_t {
   kResearch,  // industry at least 3 / 4 / 5 / 6 / 8 by size, research maximised, no prosperity
   kShipyard,  // industry maximised, prosperity kept
-  kRefit,     // industry maximised, no research nor prosperity
+  kDock,      // industry maximised, no research nor prosperity
 };
 std::array<FinalOutput, PlanetManagement::kOutputs> planet_final_preset(FinalPreset preset, const Planet& planet);
 

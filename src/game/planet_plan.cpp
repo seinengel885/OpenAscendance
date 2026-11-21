@@ -48,6 +48,10 @@ bool first_planet(const Session& session, const Planet& planet) {
   return first;
 }
 
+// The hops to the frontier within which a red AI planet gets an Orbital
+// Dock (`ai_plan`).
+constexpr std::int32_t kDockHops = 1;
+
 struct AiPlan {
   PlanetGoal goal;
   PlanetManagement management;
@@ -96,10 +100,13 @@ std::vector<PlanetIndex> ai_shipyard_planets(const Session& session, const Race&
 }
 
 // The AI's strategy and management of `planet` (`race` its owner): a
-// Shipyard along on its Shipyard planets (first while it has none) (`ai_shipyard_planets`), which
-// build for industry; its first planet balanced, for research when the
-// Shipyards are elsewhere; the others by their squares' colours (red: industry, blue:
-// research, else balanced); defences first under a lingering danger.
+// Shipyard along on its Shipyard planets (first while it has none)
+// (`ai_shipyard_planets`), which focus on industry early and maximise it;
+// its first planet balanced with its standard management; the others by
+// their squares' colours: blue ones focus on research early and maximise
+// it, red ones by the frontier an Orbital Dock maximising industry, the
+// rest balanced, keeping what they built; defences first under a
+// lingering danger.
 AiPlan ai_plan(const Session& session, const Race& race, const Planet& planet) {
   const Cosmos& cosmos = session.game->cosmos;
   const auto index = planet_index(cosmos, planet);
@@ -122,16 +129,23 @@ AiPlan ai_plan(const Session& session, const Race& race, const Planet& planet) {
     red += sq.color == 2 ? 1 : 0;
     blue += sq.color == 4 ? 1 : 0;
   }
-  const bool first = first_planet(session, planet);
-  if (first) {
-    // Balanced, or research when the Shipyards are elsewhere.
-    plan.goal = yard || yards.empty() ? PlanetGoal::kBalanced : PlanetGoal::kResearch;
-  } else if (yard) {
-    plan.goal = PlanetGoal::kIndustry;
-  } else if (2 * red > 3 * blue) {
-    plan.goal = PlanetGoal::kIndustry;
+  const auto take = [&](PlanetGoal goal, FinalPreset preset) {
+    plan.goal = goal;
+    plan.management.final_outputs = planet_final_preset(preset, planet);
+  };
+  if (first_planet(session, planet)) {
+    return plan;
+  }
+  if (yard) {
+    take(PlanetGoal::kEarlyIndustry, FinalPreset::kShipyard);
   } else if (2 * blue > 3 * red) {
-    plan.goal = PlanetGoal::kResearch;
+    take(PlanetGoal::kEarlyResearch, FinalPreset::kResearch);
+  } else if (2 * red > 3 * blue && frontier_hops(cosmos, race, planet.star) <= kDockHops) {
+    take(PlanetGoal::kEarlyIndustry, FinalPreset::kDock);
+    plan.management.levels[PlanetManagement::kOrbitalDock] = BuildLevel::kAlong;
+  } else {
+    constexpr FinalOutput kKeep{FinalMode::kKeep, 0, kFinalWeights};
+    plan.management.final_outputs = {kKeep, kKeep, kKeep};
   }
   return plan;
 }
@@ -153,10 +167,10 @@ std::string_view planet_goal_name(PlanetGoal goal) {
   switch (goal) {
     case PlanetGoal::kBalanced:
       return "Balanced";
-    case PlanetGoal::kIndustry:
-      return "Industry";
-    case PlanetGoal::kResearch:
-      return "Research";
+    case PlanetGoal::kEarlyIndustry:
+      return "Early industry focus";
+    case PlanetGoal::kEarlyResearch:
+      return "Early research focus";
   }
   return "Balanced";
 }
@@ -183,7 +197,7 @@ std::array<FinalOutput, PlanetManagement::kOutputs> planet_final_preset(FinalPre
   switch (preset) {
     case FinalPreset::kShipyard:
       return {maximise, none, FinalOutput{FinalMode::kKeep, 0, kFinalWeights}};
-    case FinalPreset::kRefit:
+    case FinalPreset::kDock:
       return {maximise, none, none};
     default:
       return {FinalOutput{FinalMode::kAtLeast, industry, kFinalWeights}, FinalOutput{FinalMode::kMaximise, 0, kFinalWeights},

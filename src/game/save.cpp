@@ -585,6 +585,8 @@ SaveImage parse_save(std::span<const std::uint8_t> data, std::optional<RawAddres
                             image.pe_custom_version, kPeCustomSaveVersion));
       }
       // Data appended by later versions is read here, by version.
+      // The planets of the former industry goal (format 3 to 8).
+      std::vector<std::size_t> former_industry;
       if (image.pe_custom_version >= 2) {
         for (auto& row : image.last_attack_days) {
           for (std::int32_t& day : row) {
@@ -594,13 +596,19 @@ SaveImage parse_save(std::span<const std::uint8_t> data, std::optional<RawAddres
       }
       if (image.pe_custom_version >= 3) {
         image.planet_goals.resize(image.planets.size());
-        for (PlanetGoal& goal : image.planet_goals) {
+        for (std::size_t i = 0; i < image.planet_goals.size(); ++i) {
           const std::uint8_t g = in.u8();
           if (g >= kPlanetGoalEnd) {
             in.fail(std::format("unknown planet goal {}", g));
           }
-          // The former planner's goals: balanced.
-          goal = g < kPlanetGoalFirst ? PlanetGoal::kBalanced : static_cast<PlanetGoal>(g);
+          // The former planner's goals: balanced; the former industry goal:
+          // early industry focus, industry maximised (below).
+          if (g == kPlanetGoalFormerIndustry) {
+            former_industry.push_back(i);
+          }
+          image.planet_goals[i] = g < kPlanetGoalFirst ? PlanetGoal::kBalanced
+                                  : g == kPlanetGoalFormerIndustry ? PlanetGoal::kEarlyIndustry
+                                                                   : static_cast<PlanetGoal>(g);
         }
       }
       if (image.pe_custom_version >= 4) {
@@ -664,6 +672,13 @@ SaveImage parse_save(std::span<const std::uint8_t> data, std::optional<RawAddres
             f.value = in.i16();
             f.weight = in.i8();
           }
+        }
+      }
+      if (!former_industry.empty()) {
+        image.planet_management.resize(image.planets.size());
+        for (const std::size_t i : former_industry) {
+          FinalOutput& f = image.planet_management[i].final_outputs[PlanetManagement::kIndustry];
+          f = {FinalMode::kMaximise, f.value, kFinalWeights};
         }
       }
     }

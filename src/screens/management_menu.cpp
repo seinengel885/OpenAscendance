@@ -238,7 +238,7 @@ class ManagementBox final : public GWindow {
   // The final build-out's presets (the bottom row's buttons).
   static constexpr std::array<std::pair<game::FinalPreset, std::string_view>, 3> kPresets{
       {{game::FinalPreset::kResearch, "Research"}, {game::FinalPreset::kShipyard, "Shipyard"},
-       {game::FinalPreset::kRefit, "Refit"}}};
+       {game::FinalPreset::kDock, "Dock"}}};
 
   int width() const { return pane_.x1 - pane_.x0 + 1; }
   int height() const { return pane_.y1 - pane_.y0 + 1; }

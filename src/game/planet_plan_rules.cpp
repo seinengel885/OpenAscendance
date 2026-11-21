@@ -110,14 +110,15 @@ Weights goal_weights(PlanetGoal goal, bool research_complete) {
     return {1.0, 0.0};
   }
   switch (goal) {
-    case PlanetGoal::kIndustry:
-      return {1.0, 0.05};
-    case PlanetGoal::kResearch:
-      // Industry only for the planet's building (rule 4) and its minimum.
+    case PlanetGoal::kEarlyIndustry:
+    case PlanetGoal::kEarlyResearch:
+      // Industry only while it speeds up the planet (rule 4) and for the
+      // final build-out.
       return {0.0, 1.0};
-    default:
-      return {1.0, 1.0};
+    case PlanetGoal::kBalanced:
+      break;
   }
+  return {1.0, 1.0};
 }
 
 class Rules {
@@ -127,7 +128,6 @@ class Rules {
       : neighbours_(surface_neighbours(session.tables->planitems, planet)),
         b_(session, planet, neighbours_),
         session_(&session),
-        goal_(goal),
         m_(management),
         weights_(goal_weights(goal, research_complete)),
         black_usable_(session.game->cosmos.races.at(planet.owner).ability == 2) {
@@ -761,7 +761,7 @@ class Rules {
 
   // 4. Industry while it speeds up the buildings still to come.
   std::optional<Action> productivity() {
-    if (goal_ == PlanetGoal::kIndustry || reachable_ == 0) {
+    if (reachable_ == 0) {
       return std::nullopt;
     }
     const std::optional<Action> next = best_goal_building(candidates(Role::kGoal, [](const PlanItem&) { return true; }));
@@ -906,7 +906,6 @@ class Rules {
   Neighbours neighbours_;
   Sim b_;
   const Session* session_;
-  PlanetGoal goal_;
   PlanetManagement m_;
   Weights weights_;
   // The share of the usable surface built.

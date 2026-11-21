@@ -37,7 +37,7 @@ O35	Mood	Stimmung
 O36	How this species feels about you: the mark shows its mood, the zones what it does there. \nRed: declares war when it has a reason and expects to win. \nOrange: refuses peace. \nYellow: accepts peace. \nGrey-green: offers peace, but breaks an alliance. \nLight green: keeps an alliance. \nGreen: accepts an alliance. \nBright green: offers an alliance.	Wie diese Spezies zu dir steht: Die Marke zeigt ihre Stimmung, die Bereiche, was sie dort tut. \nRot: erklärt Krieg, wenn sie einen Anlass hat und sich Chancen ausrechnet. \nOrange: lehnt Frieden ab. \nGelb: nimmt Frieden an. \nGraugrün: bietet Frieden an, bricht aber ein Bündnis. \nHellgrün: hält ein Bündnis. \nGrün: nimmt ein Bündnis an. \nLeuchtgrün: bietet selbst ein Bündnis an.
 O37	Management: %s	Verwaltung: %s
 O38	Management of %s	Verwaltung von %s
-O39	Balanced	Ausgewogen
+O39	Balanced	Ausgeglichen
 O40	Industry	Industrie
 O41	Research	Forschung
 O43	Shipyard	Werft
@@ -79,7 +79,7 @@ O86	Show the planets of size	Planeten der Größe zeigen
 O87	Show the planets labelled	Planeten mit Label zeigen
 O88	Go^to^Planet	Zum^Planeten
 O89	Prosperity	Wohlstand
-O90	Refit	Umbau
+O90	Dock	Dock
 O91	Orbital weapons	Orbitalwaffen
 O92	Orbital shields	Orbitalschilde
 O93	Housing	Wohnraum
@@ -89,3 +89,5 @@ O96	New label	Neues Label
 O97	Other	Sonstige
 O98	Open	Frei
 O99	Final layout: shown for one planet	Endausbau: Vorschau nur für einen Planeten
+O100	Early industry focus	Früher Industriefokus
+O101	Early research focus	Früher Forschungsfokus

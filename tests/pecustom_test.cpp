@@ -20,6 +20,7 @@
 #include "core/error.h"
 #include "game/cosmos.h"
 #include "game/new_game.h"
+#include "game/planet_plan.h"
 #include "game/save.h"
 #include "game/session.h"
 #include "game_oracle.h"
@@ -89,7 +90,7 @@ TEST_CASE("a peCustom game saves and loads as peCustom", "[game][content][pecust
   play(session, Variant::kPeCustom, 30);
   // A goal for the player's planet's self-management (format 3 on).
   const PlanetIndex home = player_planet(session);
-  session.game->planet_goals.at(static_cast<std::size_t>(home)) = PlanetGoal::kResearch;
+  session.game->planet_goals.at(static_cast<std::size_t>(home)) = PlanetGoal::kEarlyResearch;
   // Its management and a label (format 4 on).
   PlanetManagement& management = session.game->planet_management.at(static_cast<std::size_t>(home));
   management.levels[PlanetManagement::kShipyard] = BuildLevel::kFirst;
@@ -115,7 +116,7 @@ TEST_CASE("a peCustom game saves and loads as peCustom", "[game][content][pecust
   load_game(loaded, image);
   CHECK(loaded.game->variant == Variant::kPeCustom);
   CHECK(loaded.game->cosmos.day == 30);
-  CHECK(loaded.game->planet_goals.at(static_cast<std::size_t>(home)) == PlanetGoal::kResearch);
+  CHECK(loaded.game->planet_goals.at(static_cast<std::size_t>(home)) == PlanetGoal::kEarlyResearch);
   const PlanetManagement& m = loaded.game->planet_management.at(static_cast<std::size_t>(home));
   CHECK(m.levels[PlanetManagement::kShipyard] == BuildLevel::kFirst);
   CHECK(m.levels[PlanetManagement::kDig] == BuildLevel::kStandard);
@@ -336,6 +337,37 @@ TEST_CASE("the version-8 peCustom saves still load", "[game][content][pecustom]"
   cosmos_next_turn(session);
   session.events.take();
   CHECK(session.game->cosmos.day == 31);
+}
+
+TEST_CASE("the former Industry strategy loads as early industry focus, industry maximised", "[game][content][pecustom]") {
+  OA_REQUIRE_TABLES(t);
+  Session session(*t);
+  play(session, Variant::kPeCustom, 30);
+  const auto home = static_cast<std::size_t>(player_planet(session));
+  constexpr std::uint8_t kFormerIndustry = 7;
+  session.game->planet_goals.at(home) = static_cast<PlanetGoal>(kFormerIndustry);
+  session.game->planet_management.at(home).final_outputs[PlanetManagement::kResearch] = {FinalMode::kAtLeast, 4,
+                                                                                         kFinalWeights};
+  Session loaded(*t);
+  load_game(loaded, parse_save(serialize_save(save_game(session))));
+  CHECK(loaded.game->planet_goals.at(home) == PlanetGoal::kEarlyIndustry);
+  const PlanetManagement& m = loaded.game->planet_management.at(home);
+  CHECK(m.final_outputs[PlanetManagement::kIndustry].mode == FinalMode::kMaximise);
+  CHECK(m.final_outputs[PlanetManagement::kIndustry].weight == kFinalWeights);
+  CHECK(m.final_outputs[PlanetManagement::kResearch] == FinalOutput{FinalMode::kAtLeast, 4, kFinalWeights});
+}
+
+TEST_CASE("the strategies cycle balanced, early industry, early research, off", "[pecustom]") {
+  std::optional<PlanetGoal> g = planet_next_strategy(std::nullopt, 1);
+  CHECK(g == PlanetGoal::kBalanced);
+  g = planet_next_strategy(g, 1);
+  CHECK(g == PlanetGoal::kEarlyIndustry);
+  g = planet_next_strategy(g, 1);
+  CHECK(g == PlanetGoal::kEarlyResearch);
+  CHECK(planet_next_strategy(g, 1) == std::nullopt);
+  CHECK(planet_goal_name(PlanetGoal::kBalanced) == "Balanced");
+  CHECK(planet_goal_name(PlanetGoal::kEarlyIndustry) == "Early industry focus");
+  CHECK(planet_goal_name(PlanetGoal::kEarlyResearch) == "Early research focus");
 }
 
 }  // namespace
