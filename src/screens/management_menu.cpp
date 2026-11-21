@@ -45,21 +45,25 @@ constexpr std::array<std::uint8_t, 3> kOutputColours{kSelectedColor, 0x27, 0x93}
 constexpr std::uint8_t kHousingColour = 0x09;
 constexpr std::uint8_t kOtherColour = 0x9d;
 
-// The window: its rectangle, the columns (labels, a sub-row's indent, the
-// value box with its arrows, the standard column) and the buttons.
-constexpr Pane kBox{60, 2, 579, 477};
+// The window: its rectangle, the labels' left edge, the strategy's value
+// box, the two columns of the buildings (left edge, width, a sub-row's
+// indent, the value box in a column), the arrows of a value box and the
+// buttons.
+constexpr Pane kBox{60, 70, 579, 410};
 constexpr int kLabelX = 16;
-constexpr int kIndent = 18;
-constexpr int kValueX0 = 268;
-constexpr int kValueX1 = 418;
+constexpr int kRight = 506;
+constexpr int kStrategyX0 = 300;
+constexpr std::array<int, 2> kColumnX{12, 264};
+constexpr int kColumnWidth = 246;
+constexpr int kIndent = 16;
+constexpr int kColumnValueX0 = 146;
 constexpr int kArrow = 16;
-constexpr int kStandardX0 = 428;
-constexpr int kStandardX1 = 508;
 constexpr int kButtonWidth = 100;
 constexpr int kPresetWidth = 82;
-// The mode buttons of a final build-out row (Keep, At least, Maximise) and
-// the weight boxes in the last.
-constexpr std::array<std::pair<int, int>, 3> kModeX{{{96, 170}, {174, 296}, {300, 420}}};
+// The mode buttons of a final build-out row (Keep, At least, Maximise),
+// the number field in At least and the weight boxes in Maximise.
+constexpr std::array<std::pair<int, int>, 3> kModeX{{{110, 190}, {196, 342}, {348, kRight}}};
+constexpr int kNumberWidth = 38;
 constexpr int kWeightBox = 9;
 
 // The largest number typed into a value.
@@ -76,9 +80,11 @@ struct Row {
   Kind kind;
   std::string label;  // English (`remake_text` key)
   int index;          // the building, count or output
-  bool sub;           // indented under the row before
+  bool sub;           // indented under the row above
   // The levels a building row offers.
   std::vector<BuildLevel> levels;
+  int line = 0;     // the window's line
+  int column = -1;  // the buildings' column (0, 1), -1 the whole width
 };
 
 const std::array<BuildLevel, 3> kSurfaceLevels{BuildLevel::kNo, BuildLevel::kAlong, BuildLevel::kFirst};
@@ -110,9 +116,10 @@ struct Target {
 };
 
 // The management window of one or more planets: the strategy
-// (self-management off or a goal) and the `PlanetManagement`, each value
-// with arrows (a click on a number types it), a standard value grey, an
-// own one white with a button back to the standard. A row the planets
+// (self-management off or a goal) and the `PlanetManagement` (the buildings
+// in two columns, the final build-out with its presets and layout), each
+// value with arrows (a click on a number types it), a planet's standard
+// shown until changed. A row the planets
 // differ in shows "-"; a change sets the row on all of them, the rows not
 // changed stay each planet's own. OK applies, Cancel and Esc do not.
 class ManagementBox final : public GWindow {
@@ -129,27 +136,37 @@ class ManagementBox final : public GWindow {
     }
     const std::vector<BuildLevel> surface(kSurfaceLevels.begin(), kSurfaceLevels.end());
     const std::vector<BuildLevel> orbital(kOrbitalLevels.begin(), kOrbitalLevels.end());
-    rows_ = {{Kind::kStrategy, "Strategy"},
-             {Kind::kHead, "Buildings (Never / Reserve / Along / First)"},
-             {Kind::kLevel, "Planetary defence", PlanetManagement::kPlanetaryDefence, false, surface},
-             {Kind::kCount, "Surface Shields", PlanetManagement::kSurfaceShields, true},
-             {Kind::kCount, "Observation Installation", PlanetManagement::kObservation, true},
-             {Kind::kCount, "Surface Cloaker", PlanetManagement::kSurfaceCloaker, true},
-             {Kind::kCount, "Tractor Beam", PlanetManagement::kTractorBeam, true},
-             {Kind::kLevel, "Orbital defence", PlanetManagement::kOrbitalDefence, false, orbital},
-             {Kind::kCount, "Orbital weapons", PlanetManagement::kOrbitalWeapons, true},
-             {Kind::kCount, "Orbital shields", PlanetManagement::kOrbitalShields, true},
-             {Kind::kCount, "Orbital Cloaker", PlanetManagement::kOrbitalCloaker, true},
-             {Kind::kLevel, "Shipyard", PlanetManagement::kShipyard, false, orbital},
-             {Kind::kLevel, "Orbital Dock", PlanetManagement::kOrbitalDock, false, orbital}};
-    if (ruins) {
-      rows_.push_back({Kind::kLevel, "Xeno Archeological Dig", PlanetManagement::kDig, false, surface});
+    // The strategy, the buildings in two columns (surface left, orbit
+    // right), the final build-out.
+    add({Kind::kStrategy, "Strategy"}, 0, -1);
+    add({Kind::kHead, "Buildings (Never / Reserve / Along / First)"}, 1, -1);
+    const std::array<Row, 5> surface_rows{
+        Row{Kind::kLevel, "Planetary defence", PlanetManagement::kPlanetaryDefence, false, surface},
+        Row{Kind::kCount, "Surface Shields", PlanetManagement::kSurfaceShields, true},
+        Row{Kind::kCount, "Observation Installation", PlanetManagement::kObservation, true},
+        Row{Kind::kCount, "Surface Cloaker", PlanetManagement::kSurfaceCloaker, true},
+        Row{Kind::kCount, "Tractor Beam", PlanetManagement::kTractorBeam, true}};
+    const std::array<Row, 6> orbital_rows{
+        Row{Kind::kLevel, "Orbital defence", PlanetManagement::kOrbitalDefence, false, orbital},
+        Row{Kind::kCount, "Orbital weapons", PlanetManagement::kOrbitalWeapons, true},
+        Row{Kind::kCount, "Orbital shields", PlanetManagement::kOrbitalShields, true},
+        Row{Kind::kCount, "Orbital Cloaker", PlanetManagement::kOrbitalCloaker, true},
+        Row{Kind::kLevel, "Shipyard", PlanetManagement::kShipyard, false, orbital},
+        Row{Kind::kLevel, "Orbital Dock", PlanetManagement::kOrbitalDock, false, orbital}};
+    for (std::size_t i = 0; i < surface_rows.size(); ++i) {
+      add(surface_rows[i], 2 + static_cast<int>(i), 0);
     }
-    rows_.push_back({Kind::kHead, "Final build-out (Keep / At least / Maximise)"});
-    rows_.push_back({Kind::kFinal, "Industry", PlanetManagement::kIndustry});
-    rows_.push_back({Kind::kFinal, "Research", PlanetManagement::kResearch});
-    rows_.push_back({Kind::kFinal, "Prosperity", PlanetManagement::kProsperity});
-    rows_.push_back({Kind::kLayout, ""});
+    if (ruins) {
+      add({Kind::kLevel, "Xeno Archeological Dig", PlanetManagement::kDig, false, surface}, 7, 0);
+    }
+    for (std::size_t i = 0; i < orbital_rows.size(); ++i) {
+      add(orbital_rows[i], 2 + static_cast<int>(i), 1);
+    }
+    add({Kind::kHead, "Final build-out (Keep / At least / Maximise)"}, 8, -1);
+    add({Kind::kFinal, "Industry", PlanetManagement::kIndustry}, 9, -1);
+    add({Kind::kFinal, "Research", PlanetManagement::kResearch}, 10, -1);
+    add({Kind::kFinal, "Prosperity", PlanetManagement::kProsperity}, 11, -1);
+    add({Kind::kLayout, ""}, 12, -1);
   }
 
   bool ok() const { return ok_; }
@@ -221,8 +238,24 @@ class ManagementBox final : public GWindow {
 
   int width() const { return pane_.x1 - pane_.x0 + 1; }
   int height() const { return pane_.y1 - pane_.y0 + 1; }
+  void add(Row row, int at, int column) {
+    row.line = at;
+    row.column = column;
+    rows_.push_back(std::move(row));
+  }
   int line() { return wm_.large_font().font().height + 9; }
-  int row_top(std::size_t r) { return 6 + line() + 6 + static_cast<int>(r) * line(); }
+  int row_top(std::size_t r) { return 6 + line() + 6 + rows_[r].line * line(); }
+  // The window x of a row's label and the edges of its value box.
+  static int label_x(const Row& row) {
+    return row.column < 0 ? kLabelX : kColumnX[static_cast<std::size_t>(row.column)] + 4 + (row.sub ? kIndent : 0);
+  }
+  static std::pair<int, int> box_x(const Row& row) {
+    if (row.column < 0) {
+      return {kStrategyX0, kRight};
+    }
+    const int x0 = kColumnX[static_cast<std::size_t>(row.column)];
+    return {x0 + kColumnValueX0, x0 + kColumnWidth};
+  }
   Pane bottom_pane(int x0, int x1) const { return {x0, height() - 30, x1, height() - 8}; }
   Pane preset_pane(std::size_t k) const {
     const int x0 = 12 + static_cast<int>(k) * (kPresetWidth + 6);
@@ -242,9 +275,6 @@ class ManagementBox final : public GWindow {
     const bool same = std::ranges::all_of(targets_, [&](const Target& t) { return final_of(t, o) == first; });
     return same ? std::optional(first) : std::nullopt;
   }
-  bool final_standard(std::size_t o) const {
-    return std::ranges::all_of(targets_, [&](const Target& t) { return t.own.final_outputs[o].mode == FinalMode::kStandard; });
-  }
   // The modes a final build-out row offers (prosperity is not maximised).
   static std::size_t modes(const Row& row) { return row.index == PlanetManagement::kProsperity ? 2 : 3; }
   Pane mode_pane(std::size_t r, std::size_t m) {
@@ -253,36 +283,36 @@ class ManagementBox final : public GWindow {
   }
   // The left edge of the weight boxes in the Maximise button (window x).
   static int weights_x() { return kModeX[2].second - 6 - kFinalWeights * (kWeightBox + 2) + 2; }
+  // The left edge of the points' field in the At least button (window x).
+  static int number_x() { return kModeX[1].second - 3 - kNumberWidth; }
   static constexpr int kFinalWeights = game::kFinalWeights;
 
   // The value of `row` for planet `t` and whether it is the standard.
-  std::pair<std::string, bool> value(const Target& t, const Row& row) {
+  std::string value(const Target& t, const Row& row) {
     const auto i = static_cast<std::size_t>(row.index);
     switch (row.kind) {
       case Kind::kStrategy:
-        return {t.strategy ? wm_.remake_text(game::planet_goal_name(*t.strategy)) : wm_.remake_text("Off"), false};
+        return t.strategy ? wm_.remake_text(game::planet_goal_name(*t.strategy)) : wm_.remake_text("Off");
       case Kind::kLevel: {
         const bool standard = t.own.levels[i] == BuildLevel::kStandard;
-        return {wm_.remake_text(level_name(standard ? t.standard.levels[i] : t.own.levels[i])), standard};
+        return wm_.remake_text(level_name(standard ? t.standard.levels[i] : t.own.levels[i]));
       }
       case Kind::kCount: {
         const std::int16_t own = stored(const_cast<Target&>(t), row);
-        return {std::to_string(own < 0 ? standard_number(t, row) : own), own < 0};
+        return std::to_string(own < 0 ? standard_number(t, row) : own);
       }
       default:
-        return {"", false};
+        return "";
     }
   }
   // The value shown for `row`: the planets' common one, "-" where they
-  // differ; standard while it is every planet's standard.
-  std::pair<std::string, bool> value(const Row& row) {
-    auto [text, standard] = value(targets_[0], row);
+  // differ.
+  std::string value(const Row& row) {
+    std::string text = value(targets_[0], row);
     for (const Target& t : targets_) {
-      const auto [other, other_standard] = value(t, row);
-      text = other == text ? text : "-";
-      standard = standard && other_standard;
+      text = value(t, row) == text ? text : "-";
     }
-    return {text, standard};
+    return text;
   }
 
   void draw_row(std::size_t r) {
@@ -292,55 +322,31 @@ class ManagementBox final : public GWindow {
     const int y = row_top(r);
     const int text_y = y + 3;
     if (row.kind == Kind::kHead) {
-      font.draw_string(screen, kLabelX - 6, text_y, wm_.remake_text(row.label), 0, kHead, 0xff);
+      font.draw_string(screen, kLabelX - 4, text_y, wm_.remake_text(row.label), 0, kHead, 0xff);
       return;
     }
     if (row.kind == Kind::kLayout) {
       draw_layout(y);
       return;
     }
-    font.draw_string(screen, kLabelX + (row.sub ? kIndent : 0), text_y, wm_.remake_text(row.label), 0, kGreen, 0xff);
+    font.draw_string(screen, label_x(row), text_y, wm_.remake_text(row.label), 0, kGreen, 0xff);
     if (row.kind == Kind::kFinal) {
       draw_final(r);
       return;
     }
-    const Pane box{pane_.x0 + kValueX0, pane_.y0 + y, pane_.x0 + kValueX1, pane_.y0 + y + line() - 4};
+    const auto [x0, x1] = box_x(row);
+    const Pane box{pane_.x0 + x0, pane_.y0 + y, pane_.x0 + x1, pane_.y0 + y + line() - 4};
     vfx_pane_wipe(screen, box, editing_ == static_cast<int>(r) ? kHotBack : kBack);
     frame(box, kFrame);
-    const auto [text, standard] = value(row);
-    const std::string shown = editing_ == static_cast<int>(r) ? typed_ + "_" : text;
-    const int text_x = kValueX0 + (kValueX1 - kValueX0 - font.string_width(shown)) / 2;
-    font.draw_string(screen, text_x, text_y, shown, 0, standard ? kGrey : kWhite, 0xff);
+    const std::string shown = editing_ == static_cast<int>(r) ? typed_ + "_" : value(row);
+    font.draw_string(screen, x0 + (x1 - x0 - font.string_width(shown)) / 2, text_y, shown, 0, kWhite, 0xff);
     arrow(box, true);
     arrow(box, false);
-    if (row.kind == Kind::kStrategy) {
-      return;
-    }
-    draw_standard(y, standard);
-  }
-
-  // The standard column of the row at `y`: "Standard" grey while standard,
-  // else the button back to it.
-  void draw_standard(int y, bool standard) {
-    Image8& screen = wm_.screen();
-    GameFont& font = wm_.large_font();
-    const int text_y = y + 3;
-    const Pane box{pane_.x0 + kValueX0, pane_.y0 + y, pane_.x0 + kValueX1, pane_.y0 + y + line() - 4};
-    const std::string label = wm_.remake_text("Standard");
-    const int label_x = kStandardX0 + (kStandardX1 - kStandardX0 - font.string_width(label)) / 2;
-    if (standard) {
-      font.draw_string(screen, label_x, text_y, label, 0, kGrey, 0xff);
-    } else {
-      // An own value: the button back to the standard.
-      const Pane button{pane_.x0 + kStandardX0, box.y0, pane_.x0 + kStandardX1, box.y1};
-      frame(button, kFrame);
-      font.draw_string(screen, label_x, text_y, label, 0, kWhite, 0xff);
-    }
   }
 
   // A final build-out row: its modes as buttons, the chosen one red; At
-  // least shows its points (a click on the chosen one types them),
-  // Maximise its weight as boxes (a click on one sets it).
+  // least with its points in a field of their own (a click types them),
+  // Maximise with its weight as boxes (a click on one sets it).
   void draw_final(std::size_t r) {
     const Row& row = rows_[r];
     const auto o = static_cast<std::size_t>(row.index);
@@ -352,17 +358,20 @@ class ManagementBox final : public GWindow {
       const bool chosen = f && static_cast<std::size_t>(f->mode) == m;
       vfx_pane_wipe(screen, p, chosen ? kSelectedColor : kBack);
       frame(p, kFrame);
-      std::string text;
-      if (m == 0) {
-        text = wm_.remake_text("Keep");
-      } else if (m == 1) {
-        text = editing_ == static_cast<int>(r) ? typed_ + "_"
-               : f                              ? c_format(wm_.remake_text("At least %d"), static_cast<int>(f->value))
-                                                : c_format(wm_.remake_text("At least %s"), "-");
-      } else {
-        text = wm_.remake_text("Maximise");
+      const std::array<std::string_view, 3> names{"Keep", "At least", "Maximise"};
+      const std::string text = wm_.remake_text(names[m]);
+      if (m == 1) {
+        // The points' field, like the value boxes.
+        const Pane field{pane_.x0 + number_x(), p.y0 + 2, pane_.x0 + kModeX[1].second - 3, p.y1 - 2};
+        vfx_pane_wipe(screen, field, editing_ == static_cast<int>(r) ? kHotBack : kBack);
+        frame(field, kWhite);
+        const std::string points = editing_ == static_cast<int>(r) ? typed_ + "_"
+                                   : f                              ? std::to_string(f->value)
+                                                                    : std::string("-");
+        font.draw_string(screen, number_x() + (kNumberWidth - font.string_width(points)) / 2, row_top(r) + 3, points, 0,
+                         kWhite, 0xff);
       }
-      const int right = m == 2 ? weights_x() - 4 : kModeX[m].second;
+      const int right = m == 2 ? weights_x() - 4 : m == 1 ? number_x() - 4 : kModeX[m].second;
       font.draw_string(screen, kModeX[m].first + (right - kModeX[m].first - font.string_width(text)) / 2, row_top(r) + 3,
                        text, 0, chosen ? kWhite : kGrey, 0xff);
       if (m == 2) {
@@ -378,7 +387,6 @@ class ManagementBox final : public GWindow {
         }
       }
     }
-    draw_standard(row_top(r), final_standard(o));
   }
 
   // The final layout of the planet (one planet only) as a bar of its
@@ -387,7 +395,7 @@ class ManagementBox final : public GWindow {
   void draw_layout(int y) {
     Image8& screen = wm_.screen();
     GameFont& font = wm_.large_font();
-    const Pane bar{pane_.x0 + kLabelX, pane_.y0 + y, pane_.x0 + kStandardX1, pane_.y0 + y + line() - 4};
+    const Pane bar{pane_.x0 + kLabelX, pane_.y0 + y, pane_.x0 + kRight, pane_.y0 + y + line() - 4};
     if (targets_.size() != 1) {
       font.draw_string(screen, kLabelX, y + 3, wm_.remake_text("Final layout: shown for one planet"), 0, kGrey, 0xff);
       return;
@@ -489,7 +497,10 @@ class ManagementBox final : public GWindow {
     }
     std::optional<std::size_t> hit;
     for (std::size_t r = 0; r < rows_.size(); ++r) {
-      if (y >= row_top(r) && y < row_top(r) + line() - 3) {
+      const int column = rows_[r].column;
+      const bool in_column = column < 0 || (x >= kColumnX[static_cast<std::size_t>(column)] &&
+                                            x <= kColumnX[static_cast<std::size_t>(column)] + kColumnWidth);
+      if (in_column && y >= row_top(r) && y < row_top(r) + line() - 3) {
         hit = r;
       }
     }
@@ -503,15 +514,14 @@ class ManagementBox final : public GWindow {
       draw(kDrawNormal);
       return;
     }
-    if (x >= kStandardX0 && x <= kStandardX1 && row.kind != Kind::kStrategy) {
-      to_standard(row);
-    } else if (row.kind == Kind::kFinal) {
+    const auto [x0, x1] = box_x(row);
+    if (row.kind == Kind::kFinal) {
       click_final(*hit, x);
-    } else if (x >= kValueX0 && x < kValueX0 + kArrow) {
+    } else if (x >= x0 && x < x0 + kArrow) {
       step(row, back ? 1 : -1);
-    } else if (x > kValueX1 - kArrow && x <= kValueX1) {
+    } else if (x > x1 - kArrow && x <= x1) {
       step(row, back ? -1 : 1);
-    } else if (x >= kValueX0 && x <= kValueX1) {
+    } else if (x >= x0 && x <= x1) {
       if (numeric(row)) {
         editing_ = static_cast<int>(*hit);
         typed_.clear();
@@ -525,8 +535,9 @@ class ManagementBox final : public GWindow {
   static bool numeric(const Row& row) { return row.kind == Kind::kCount; }
 
   // A click at window x `x` on final build-out row `r`: a mode chosen (the
-  // first planet's values otherwise kept), the points of the chosen At
-  // least typed, a weight box of Maximise set.
+  // first planet's values otherwise kept), the points of At least typed
+  // (a click on its field, or on the button once chosen), a weight box of
+  // Maximise set.
   void click_final(std::size_t r, int x) {
     const Row& row = rows_[r];
     const auto o = static_cast<std::size_t>(row.index);
@@ -536,7 +547,7 @@ class ManagementBox final : public GWindow {
       if (x < kModeX[m].first || x > kModeX[m].second) {
         continue;
       }
-      if (m == 1 && f.mode == FinalMode::kAtLeast) {
+      if (m == 1 && (f.mode == FinalMode::kAtLeast || x >= number_x())) {
         editing_ = static_cast<int>(r);
         typed_.clear();
       }
@@ -586,18 +597,6 @@ class ManagementBox final : public GWindow {
           break;
       }
     }
-  }
-
-  void to_standard(const Row& row) {
-    Target& first = targets_[0];
-    if (row.kind == Kind::kLevel) {
-      first.own.levels[static_cast<std::size_t>(row.index)] = BuildLevel::kStandard;
-    } else if (row.kind == Kind::kFinal) {
-      first.own.final_outputs[static_cast<std::size_t>(row.index)] = FinalOutput{};
-    } else if (numeric(row)) {
-      stored(first, row) = -1;
-    }
-    spread(row);
   }
 
   // Steps the value of `row` by `delta` (choices wrap, numbers stop at 0),
