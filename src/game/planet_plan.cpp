@@ -52,11 +52,6 @@ bool first_planet(const Session& session, const Planet& planet) {
 // Dock (`ai_plan`).
 constexpr std::int32_t kDockHops = 1;
 
-struct AiPlan {
-  PlanetGoal goal;
-  PlanetManagement management;
-};
-
 // Hops from `star` to the nearest star that is not `race`'s alone (one with
 // no colony, or another's).
 std::int32_t frontier_hops(const Cosmos& cosmos, const Race& race, StarIndex star) {
@@ -103,38 +98,37 @@ std::vector<PlanetIndex> ai_shipyard_planets(const Session& session, const Race&
 // and orbital defence along (Surface Shields 2 / 3 / 4 / 6 / 8, orbital
 // weapons 1 / 1 / 2 / 3 / 4 and shields 1 / 2 / 2 / 3 / 4 by size), the dig
 // along where there are ruins, a Shipyard along on its Shipyard planets (first while it has none)
-// (`ai_shipyard_planets`), which focus on industry early and maximise it;
-// its first planet balanced with its standard management; the others by
-// their squares' colours: blue ones focus on research early and maximise
-// it, red ones by the frontier an Orbital Dock maximising industry, the
-// rest balanced, keeping what they built; defences first under a
-// lingering danger.
-AiPlan ai_plan(const Session& session, const Race& race, const Planet& planet) {
+// (`ai_shipyard_planets`), which maximise industry; its first planet with
+// its standard management; the others by their squares' colours: blue ones
+// maximise research, red ones by the frontier an Orbital Dock maximising
+// industry, the rest industry and research alike, keeping the prosperity
+// built; defences first under a lingering danger.
+PlanetManagement ai_plan(const Session& session, const Race& race, const Planet& planet) {
   const Cosmos& cosmos = session.game->cosmos;
   const auto index = planet_index(cosmos, planet);
   constexpr std::array<std::int16_t, 5> kShields{2, 3, 4, 6, 8};
   constexpr std::array<std::int16_t, 5> kOrbitalWeapons{1, 1, 2, 3, 4};
   constexpr std::array<std::int16_t, 5> kOrbitalShields{1, 2, 2, 3, 4};
   const std::size_t size = std::min<std::size_t>(planet.size, 4);
-  AiPlan plan{PlanetGoal::kBalanced, planet_management_standard(session, planet)};
-  plan.management.levels[PlanetManagement::kPlanetaryDefence] = BuildLevel::kAlong;
-  plan.management.levels[PlanetManagement::kOrbitalDefence] = BuildLevel::kAlong;
-  plan.management.levels[PlanetManagement::kDig] =
+  PlanetManagement m = planet_management_standard(session, planet);
+  m.levels[PlanetManagement::kPlanetaryDefence] = BuildLevel::kAlong;
+  m.levels[PlanetManagement::kOrbitalDefence] = BuildLevel::kAlong;
+  m.levels[PlanetManagement::kDig] =
       ruins_square(session, planet) != kNoSquare ? BuildLevel::kAlong : BuildLevel::kNo;
-  plan.management.counts[PlanetManagement::kSurfaceShields] = kShields[size];
-  plan.management.counts[PlanetManagement::kOrbitalWeapons] = kOrbitalWeapons[size];
-  plan.management.counts[PlanetManagement::kOrbitalShields] = kOrbitalShields[size];
+  m.counts[PlanetManagement::kSurfaceShields] = kShields[size];
+  m.counts[PlanetManagement::kOrbitalWeapons] = kOrbitalWeapons[size];
+  m.counts[PlanetManagement::kOrbitalShields] = kOrbitalShields[size];
   const std::vector<PlanetIndex> yards = ai_shipyard_planets(session, race);
   const bool yard = std::ranges::find(yards, index) != yards.end();
   // The species' first Shipyard comes first: its ships colonize.
   const bool none = std::ranges::none_of(yards, [&](PlanetIndex i) {
     return planet_find_item(cosmos, cosmos.planets[static_cast<std::size_t>(i)], kItemShipyard) != kNoSquare;
   });
-  plan.management.levels[PlanetManagement::kShipyard] =
+  m.levels[PlanetManagement::kShipyard] =
       !yard ? BuildLevel::kNo : none ? BuildLevel::kFirst : BuildLevel::kAlong;
   if (pe_danger_at(session, race, planet)) {
-    plan.management.levels[PlanetManagement::kPlanetaryDefence] = BuildLevel::kFirst;
-    plan.management.levels[PlanetManagement::kOrbitalDefence] = BuildLevel::kFirst;
+    m.levels[PlanetManagement::kPlanetaryDefence] = BuildLevel::kFirst;
+    m.levels[PlanetManagement::kOrbitalDefence] = BuildLevel::kFirst;
   }
   std::int32_t red = 0;
   std::int32_t blue = 0;
@@ -142,25 +136,22 @@ AiPlan ai_plan(const Session& session, const Race& race, const Planet& planet) {
     red += sq.color == 2 ? 1 : 0;
     blue += sq.color == 4 ? 1 : 0;
   }
-  const auto take = [&](PlanetGoal goal, FinalPreset preset) {
-    plan.goal = goal;
-    plan.management.final_outputs = planet_final_preset(preset, planet);
-  };
+  const auto take = [&](FinalPreset preset) { m.final_outputs = planet_final_preset(preset, planet); };
   if (first_planet(session, planet)) {
-    return plan;
+    return m;
   }
   if (yard) {
-    take(PlanetGoal::kEarlyIndustry, FinalPreset::kShipyard);
+    take(FinalPreset::kShipyard);
   } else if (2 * blue > 3 * red) {
-    take(PlanetGoal::kEarlyResearch, FinalPreset::kResearch);
+    take(FinalPreset::kResearch);
   } else if (2 * red > 3 * blue && frontier_hops(cosmos, race, planet.star) <= kDockHops) {
-    take(PlanetGoal::kEarlyIndustry, FinalPreset::kDock);
-    plan.management.levels[PlanetManagement::kOrbitalDock] = BuildLevel::kAlong;
+    take(FinalPreset::kDock);
+    m.levels[PlanetManagement::kOrbitalDock] = BuildLevel::kAlong;
   } else {
-    constexpr FinalOutput kKeep{FinalMode::kKeep, 0, kFinalWeights};
-    plan.management.final_outputs = {kKeep, kKeep, kKeep};
+    constexpr FinalOutput kMax{FinalMode::kMaximise, 0, kFinalWeights};
+    m.final_outputs = {kMax, kMax, FinalOutput{FinalMode::kKeep, 0, kFinalWeights}};
   }
-  return plan;
+  return m;
 }
 
 }  // namespace
@@ -194,7 +185,7 @@ PlanetManagement planet_management_standard(const Session& session, const Planet
   m.levels.fill(BuildLevel::kNo);
   m.levels[PlanetManagement::kShipyard] = first ? BuildLevel::kFirst : BuildLevel::kNo;
   m.counts.fill(0);
-  m.final_outputs = planet_final_preset(first ? FinalPreset::kShipyard : FinalPreset::kResearch, planet);
+  m.final_outputs = planet_final_preset(FinalPreset::kResearch, planet);
   return m;
 }
 
@@ -203,11 +194,12 @@ std::array<FinalOutput, PlanetManagement::kOutputs> planet_final_preset(FinalPre
   const std::int16_t industry = kIndustry[std::min<std::size_t>(planet.size, 4)];
   const FinalOutput maximise{FinalMode::kMaximise, industry, kFinalWeights};
   const FinalOutput none{FinalMode::kAtLeast, 0, kFinalWeights};
+  const FinalOutput keep{FinalMode::kKeep, 0, kFinalWeights};
   switch (preset) {
     case FinalPreset::kShipyard:
-      return {maximise, none, FinalOutput{FinalMode::kKeep, 0, kFinalWeights}};
+      return {maximise, keep, keep};
     case FinalPreset::kDock:
-      return {maximise, none, none};
+      return {maximise, keep, none};
     default:
       return {FinalOutput{FinalMode::kAtLeast, industry, kFinalWeights}, FinalOutput{FinalMode::kMaximise, 0, kFinalWeights},
               none};
@@ -299,8 +291,7 @@ void pe_manage_planet(Session& session, Race& race, Planet& planet) {
     if (antag_race_ai_planet_specials(session, race, planet)) {
       return;
     }
-    const AiPlan plan = ai_plan(session, race, planet);
-    pe_manage_planet_rules(session, planet, plan.goal, plan.management);
+    pe_manage_planet_rules(session, planet, ai_plan(session, race, planet));
     return;
   }
   // Under a lingering danger the orbital defences come first (unless the
@@ -310,7 +301,7 @@ void pe_manage_planet(Session& session, Race& race, Planet& planet) {
       pe_build_orbital_defence(session, race, planet)) {
     return;
   }
-  pe_manage_planet_rules(session, planet, planet_goal(session, planet), management);
+  pe_manage_planet_rules(session, planet, management);
 }
 
 bool pe_take_project_bell(Session& session, const Planet& planet) {

@@ -21,12 +21,13 @@
 //    the share of the planet built, single buildings once half of it is.
 // 6. Industry: while workers come faster than the goal's buildings are
 //    done, a factory when it saves more days on the buildings still to come
-//    than it takes itself. The early research focus instead only a factory
-//    when the goal's next building would take longer than `kLabDays`; the
-//    balanced strategy so too until housing is due (the room fills before
-//    housing would be built), then as the early industry focus.
+//    than it takes itself; while the final layout maximises research and
+//    housing is not due yet (the room fills before housing would be built),
+//    only when the goal's next building would take longer than `kLabDays`.
 // 7. Goal: the building that adds most of the goal's outputs per day of
-//    building, on the square of its colour.
+//    building, on the square of its colour. The goal: the outputs the final
+//    layout wants squares for (research once all is known no more); research
+//    kept builds on blue squares only.
 // In 6 and 7 a large building (Megafacility, Research Campus) stands in for
 // its small one while it takes at most `kLargeDays`, and a boost (Hyperpower Plant, Internet,
 // Fertilization Plant) comes only once it brings more of its output than the
@@ -35,7 +36,8 @@
 //    gains the goal most, if the gain makes up for the loss while
 //    rebuilding; the prosperity needed (a Shipyard's: an inhabitant within a
 //    ship's building time, two workers free for ships; the growth kept), the
-//    industry and research kept and the housing in use stay. Each
+//    industry and research kept (research on blue squares) and the housing
+//    in use stay. Each
 //    replacement raises the goal's outputs, so buildings never replace each
 //    other back and forth.
 // Orbital squares: one each for the Shipyard, a ship and the Orbital Dock
@@ -89,8 +91,8 @@ constexpr std::int32_t kTargetLead = 6;
 // Close to the final layout, each building may wait up to these days for
 // its worker before growth takes a square the layout wants for more.
 constexpr std::int32_t kShortWait = 5;
-// The longest a building of the early research focus's goal may take
-// before a factory goes first (Patrick's play: 17 days fine, 25 too long;
+// The longest the goal's next building may take before a factory goes
+// first while research is maximised and housing not due (Patrick's play: 17 days fine, 25 too long;
 // with the curve sum^0.85 17 means three factories for the Laboratory,
 // the most research up to about day 880, 15 four).
 constexpr std::int32_t kLabDays = 17;
@@ -134,32 +136,13 @@ constexpr std::uint8_t kRed = 2;
 constexpr std::uint8_t kGreen = 3;
 constexpr std::uint8_t kBlue = 4;
 
-Weights goal_weights(PlanetGoal goal, bool research_complete) {
-  if (research_complete) {
-    return {1.0, 0.0};
-  }
-  switch (goal) {
-    case PlanetGoal::kEarlyIndustry:
-    case PlanetGoal::kEarlyResearch:
-      // Industry only while it speeds up the planet (rule 4) and for the
-      // final build-out.
-      return {0.0, 1.0};
-    case PlanetGoal::kBalanced:
-      break;
-  }
-  return {1.0, 1.0};
-}
-
 class Rules {
  public:
-  Rules(const Session& session, const Planet& planet, PlanetGoal goal, const PlanetManagement& management,
-        bool research_complete)
+  Rules(const Session& session, const Planet& planet, const PlanetManagement& management, bool research_complete)
       : neighbours_(surface_neighbours(session.tables->planitems, planet)),
         b_(session, planet, neighbours_),
         session_(&session),
-        goal_(goal),
         m_(management),
-        weights_(goal_weights(goal, research_complete)),
         research_complete_(research_complete),
         black_usable_(session.game->cosmos.races.at(planet.owner).ability == 2) {
     shipyard_ = b_.find(kItemShipyard) != kNoSquare;
@@ -187,13 +170,16 @@ class Rules {
       missing_[o] = std::max(0, target.squares[o] - outputs[o]);
     }
     missing_housing_ = std::max(0, target.housing - housing);
+    weights_ = {target.squares[PlanetManagement::kIndustry] > 0 || research_complete ? 1.0 : 0.0,
+                target.squares[PlanetManagement::kResearch] > 0 && !research_complete ? 1.0 : 0.0};
     target_items_ = target.items;
     // Per building how many more there are than the layout wants (fewer:
     // negative).
+    // Research kept counts on blue squares only.
     surplus_.assign(session.tables->planitems.items.size(), 0);
     for (std::uint16_t i = 0; i < planet.surface_squares; ++i) {
       const std::uint8_t it = b_.squares[i].item;
-      if (it < surplus_.size() && (planet_final_output(it) || planet_final_housing(it))) {
+      if (it < surplus_.size() && (planet_final_output(it) || planet_final_housing(it)) && !off_blue(i)) {
         ++surplus_[it];
       }
     }
@@ -247,6 +233,15 @@ class Rules {
     return options;
   }
 
+  // Whether research is kept: on the blue squares only.
+  bool blue_research() const { return m_.final_outputs[PlanetManagement::kResearch].mode == FinalMode::kKeep; }
+  // Whether `square` holds research off the blue squares while research is
+  // kept.
+  bool off_blue(std::uint16_t square) const {
+    const Square& sq = b_.squares[square];
+    return blue_research() && sq.item != kNoItem && b_.item(sq.item).research > 0 && (sq.color & 7u) != kBlue;
+  }
+
   // Whether no usable square is left empty.
   bool built_up() const { return empty_ == 0; }
 
@@ -271,8 +266,8 @@ class Rules {
   // The industry a day in tenths.
   std::int32_t industry() const { return planet_industry_tenths(b_.planet); }
   std::int32_t days(std::uint8_t item) const { return build_days(b_.item(item).cost, industry()); }
-  // The goal's outputs a day (balanced: both alike, so each square gets the
-  // building of its colour).
+  // The goal's outputs a day (both alike when the final layout wants both,
+  // so each square gets the building of its colour).
   double value(const Sim& s) const {
     return weights_.industry * s.exact_industry() + weights_.research * u16(s.planet.research);
   }
@@ -425,7 +420,12 @@ class Rules {
   // Where `item` for `role` goes: the reachable empty square of the best
   // colour, nearest to the unreached squares of that colour.
   std::uint16_t place(std::uint8_t item, Role role) {
+    // Research kept: its buildings on blue squares only.
+    const bool blue_only = b_.item(item).research > 0 && blue_research();
     for (const std::uint8_t colour : colours(item, role)) {
+      if (blue_only && colour != kBlue) {
+        continue;
+      }
       std::uint16_t best = kNoSquare;
       std::int32_t best_d = kNever + 1;
       for (std::uint16_t i = 0; i < b_.planet.surface_squares; ++i) {
@@ -934,9 +934,9 @@ class Rules {
     return worthwhile(toward_target(candidates(Role::kIndustry, [](const PlanItem& it) { return it.industry > 0; })));
   }
 
-  // 6 (early research focus, as Patrick plays it, and balanced until
-  // housing is due): the goal's building unless it takes longer than
-  // `kLabDays`; then the factory that speeds it up most.
+  // 6 (research maximised, until housing is due; as Patrick plays it): the
+  // goal's building unless it takes longer than `kLabDays`; then the
+  // factory that speeds it up most.
   std::optional<Action> sooner_labs(const Action& next) {
     if (days(next.item) <= kLabDays) {
       return std::nullopt;
@@ -977,7 +977,8 @@ class Rules {
     if (!next) {
       return std::nullopt;
     }
-    if (goal_ == PlanetGoal::kEarlyResearch || (goal_ == PlanetGoal::kBalanced && !housing_due())) {
+    if (m_.final_outputs[PlanetManagement::kResearch].mode == FinalMode::kMaximise && !research_complete_ &&
+        !housing_due()) {
       return sooner_labs(*next);
     }
     // Only while industry holds the planet back: workers come faster than
@@ -1069,16 +1070,19 @@ class Rules {
     const std::int32_t rate = b_.growth_rate();
     const std::int32_t min_industry = kept_points(PlanetManagement::kIndustry, industry(), 10);
     const std::int32_t min_research = kept_points(PlanetManagement::kResearch, u16(b_.planet.research), 1);
+    // Research kept: on blue squares it stays, elsewhere it may go.
     const double now = value(b_);
     for (std::uint16_t i = 0; i < b_.planet.surface_squares; ++i) {
       const std::uint8_t it = b_.squares[i].item;
       if (!b_.built(i) || std::ranges::find(kBuildings, it) == kBuildings.end() || !b_.removable(i)) {
         continue;
       }
+      const bool blue = (b_.squares[i].color & 7u) == kBlue;
       const auto [loss, ok] = b_.with(Action{kNoItem, i, i}, [&](const Sim& s) {
-        const bool keeps = (b_.item(it).prosperity <= 0 || s.growth_rate() >= std::min(need, rate)) &&
-                           (b_.item(it).industry <= 0 || planet_industry_tenths(s.planet) >= min_industry) &&
-                           (b_.item(it).research <= 0 || u16(s.planet.research) >= min_research);
+        const bool keeps =
+            (b_.item(it).prosperity <= 0 || s.growth_rate() >= std::min(need, rate)) &&
+            (b_.item(it).industry <= 0 || planet_industry_tenths(s.planet) >= min_industry) &&
+            (b_.item(it).research <= 0 || (blue_research() ? !blue : u16(s.planet.research) >= min_research));
         return std::pair{now - value(s), keeps};
       });
       if (ok) {
@@ -1130,7 +1134,12 @@ class Rules {
     double best_score = 0.0;
     for (const std::uint16_t victim : victims()) {
       const Square there = b_.squares[victim];
-      if (surplus_[there.item] <= 0) {
+      // Research kept: research off the blue squares makes way, as does
+      // another building on a blue square research still wants.
+      const std::uint8_t research = target_items_[PlanetManagement::kResearch];
+      const bool blue_wanted = blue_research() && (there.color & 7u) == kBlue && b_.item(there.item).research <= 0 &&
+                               research < surplus_.size() && surplus_[research] < 0;
+      if (surplus_[there.item] <= 0 && !off_blue(victim) && !blue_wanted) {
         continue;
       }
       b_.clear(victim);
@@ -1163,7 +1172,6 @@ class Rules {
   Neighbours neighbours_;
   Sim b_;
   const Session* session_;
-  PlanetGoal goal_;
   PlanetManagement m_;
   Weights weights_;
   bool research_complete_ = false;
@@ -1188,7 +1196,7 @@ class Rules {
 
 }  // namespace
 
-void pe_manage_planet_rules(Session& session, Planet& planet, PlanetGoal goal, const PlanetManagement& management) {
+void pe_manage_planet_rules(Session& session, Planet& planet, const PlanetManagement& management) {
   const bool complete = antag_race_research_complete(session, session.game->cosmos.races.at(planet.owner));
   // A project without end is weighed anew every day, the planet seen
   // without it.
@@ -1198,7 +1206,7 @@ void pe_manage_planet_rules(Session& session, Planet& planet, PlanetGoal goal, c
     seen.project_item = kNoItem;
     planet_recalc_output(session, seen);
   }
-  Rules rules(session, seen, goal, management, complete);
+  Rules rules(session, seen, management, complete);
   const Action a = rules.decide();
   const auto index = planet_index(session.game->cosmos, planet);
   const bool player = planet.owner == session.player_race && !session.autoplay;

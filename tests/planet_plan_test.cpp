@@ -123,31 +123,67 @@ std::pair<long, long> sums(const PlanRig& rig, int days) {
   return {industry, research};
 }
 
-TEST_CASE("early research focus has research sooner, early industry focus industry, balanced between",
+TEST_CASE("a final layout maximising research has research sooner, one maximising industry industry",
           "[pecustom][plan]") {
   OA_REQUIRE_TABLES(t);
-  PlanRig industry(*t, 7, 3, PlanetGoal::kEarlyIndustry);
-  PlanRig balanced(*t, 7, 3, PlanetGoal::kBalanced);
-  PlanRig research(*t, 7, 3, PlanetGoal::kEarlyResearch);
-  REQUIRE(industry.ready());
-  industry.run(400);
-  balanced.run(400);
+  PlanRig research(*t, 7, 3, PlanetGoal::kBalanced);
+  PlanRig industry(*t, 7, 3, PlanetGoal::kBalanced);
+  REQUIRE(research.ready());
+  industry.management().final_outputs = planet_final_preset(FinalPreset::kDock, industry.planet());
   research.run(400);
+  industry.run(400);
   for (std::size_t d = 24; d < 400; d += 25) {
-    std::printf("F day %d  early industry I %d R %d  balanced I %d R %d  early research I %d R %d\n",
-                industry.days[d].day, industry.days[d].industry, industry.days[d].research,
-                balanced.days[d].industry, balanced.days[d].research, research.days[d].industry,
-                research.days[d].research);
+    std::printf("F day %d  research I %d R %d  industry I %d R %d\n", research.days[d].day, research.days[d].industry,
+                research.days[d].research, industry.days[d].industry, industry.days[d].research);
   }
-  // The early phase: half the days early industry focus takes to be full.
+  // The early phase: half the days the industry layout takes to be full.
   const int early = industry.full_day().value_or(400) / 2;
-  const auto [ii, ir] = sums(industry, early);
-  const auto [bi, br] = sums(balanced, early);
   const auto [ri, rr] = sums(research, early);
-  CAPTURE(early, ii, ir, bi, br, ri, rr);
-  CHECK(rr > br);
-  CHECK(br > ir);
+  const auto [ii, ir] = sums(industry, early);
+  CAPTURE(early, ri, rr, ii, ir);
+  CHECK(rr > ir);
   CHECK(ii > ri);
+}
+
+// The research buildings `rig`'s planet started, each with its square's
+// colour.
+std::vector<std::pair<std::uint8_t, std::uint8_t>> research_built(const GameTables& t, PlanRig& rig) {
+  std::vector<std::pair<std::uint8_t, std::uint8_t>> out;
+  const std::span<const Square> sq = planet_squares(rig.session().game->cosmos, rig.planet());
+  for (const BuildStep& s : rig.steps) {
+    if (t.planitems.items.at(s.item).research > 0) {
+      out.emplace_back(s.item, static_cast<std::uint8_t>(sq[s.square].color & 7u));
+    }
+  }
+  return out;
+}
+
+TEST_CASE("a final layout without research builds no research building on the way", "[pecustom][plan]") {
+  OA_REQUIRE_TABLES(t);
+  for (const int seed : {7, 11}) {
+    PlanRig rig(*t, seed, 3, PlanetGoal::kBalanced);
+    REQUIRE(rig.ready());
+    rig.management().final_outputs = planet_final_preset(FinalPreset::kShipyard, rig.planet());
+    rig.management().final_outputs[PlanetManagement::kResearch] = FinalOutput{FinalMode::kAtLeast, 0, kFinalWeights};
+    rig.run(600);
+    CAPTURE(seed);
+    CHECK(research_built(*t, rig).empty());
+  }
+}
+
+TEST_CASE("research kept to its own squares builds research only on blue squares", "[pecustom][plan]") {
+  OA_REQUIRE_TABLES(t);
+  for (const int seed : {7, 11}) {
+    PlanRig rig(*t, seed, 3, PlanetGoal::kBalanced);
+    REQUIRE(rig.ready());
+    rig.management().final_outputs = planet_final_preset(FinalPreset::kShipyard, rig.planet());
+    REQUIRE(rig.management().final_outputs[PlanetManagement::kResearch].mode == FinalMode::kKeep);
+    rig.run(600);
+    const auto built = research_built(*t, rig);
+    CAPTURE(seed, built.size());
+    CHECK(!built.empty());
+    CHECK(std::ranges::all_of(built, [](const auto& b) { return b.second == 4; }));
+  }
 }
 
 // The squares of each output's buildings and of housing on `rig`'s planet
@@ -512,53 +548,46 @@ Ship* order_colony_ship(Session& session, Planet& planet) {
 }
 
 // The day each seed's home planet launches its first interstellar colony
-// ship by, per strategy (balanced, early industry, early research focus):
-// the rules of 2026-11-22 and a twentieth more.
+// ship by: the rules of 2026-11-22 and a twentieth more.
 constexpr std::array<int, 3> kShipSeeds{7, 11, 23};
-constexpr std::array<std::array<int, 3>, 3> kShipBy{{{310, 330, 270}, {300, 378, 315}, {309, 365, 286}}};
+constexpr std::array<int, 3> kShipBy{310, 300, 309};
 
 TEST_CASE("a managed home planet launches its first interstellar colony ship in time", "[pecustom][plan]") {
   OA_REQUIRE_TABLES(t);
   constexpr int kLimit = 1000;
-  constexpr std::array<PlanetGoal, 3> kGoals{PlanetGoal::kBalanced, PlanetGoal::kEarlyIndustry,
-                                             PlanetGoal::kEarlyResearch};
   for (std::size_t si = 0; si < kShipSeeds.size(); ++si) {
-    for (std::size_t gi = 0; gi < kGoals.size(); ++gi) {
-      const int seed = kShipSeeds[si];
-      const PlanetGoal goal = kGoals[gi];
-      PlanRig rig(*t, seed, PlanRig::Home{}, goal);
-      REQUIRE(rig.ready());
-      Session& s = rig.session();
-      Research& r = s.game->research;
-      r.self_managed = 0;
-      const std::vector<std::uint8_t> path = research_path(s, {kGizmoStarLaneDrive, kGizmoColonizer});
-      Ship* ship = nullptr;
-      int launched = 0;
-      int known = 0;
-      for (int day = 1; day <= kLimit && launched == 0; ++day) {
-        const auto next = std::ranges::find_if(
-            path, [&](std::uint8_t item) { return ((r.items[item].known_mask >> s.player_race) & 1) == 0; });
-        if (next != path.end()) {
-          if (r.project[s.player_race] != *next) {
-            research_set_project(r, s.player_race, *next);
-          }
-        } else if (known == 0) {
-          known = day;
+    const int seed = kShipSeeds[si];
+    PlanRig rig(*t, seed, PlanRig::Home{}, PlanetGoal::kBalanced);
+    REQUIRE(rig.ready());
+    Session& s = rig.session();
+    Research& r = s.game->research;
+    r.self_managed = 0;
+    const std::vector<std::uint8_t> path = research_path(s, {kGizmoStarLaneDrive, kGizmoColonizer});
+    Ship* ship = nullptr;
+    int launched = 0;
+    int known = 0;
+    for (int day = 1; day <= kLimit && launched == 0; ++day) {
+      const auto next = std::ranges::find_if(
+          path, [&](std::uint8_t item) { return ((r.items[item].known_mask >> s.player_race) & 1) == 0; });
+      if (next != path.end()) {
+        if (r.project[s.player_race] != *next) {
+          research_set_project(r, s.player_race, *next);
         }
-        if (known != 0 && ship == nullptr) {
-          ship = order_colony_ship(s, rig.planet());
-        }
-        rig.day();
-        if (ship != nullptr && ship->location_kind != ShipLocation::kBuilding) {
-          launched = day;
-        }
+      } else if (known == 0) {
+        known = day;
       }
-      std::printf("A seed %d goal %d: research %zu items done day %d, ship launched day %d\n", seed,
-                  static_cast<int>(goal), path.size(), known, launched);
-      CAPTURE(seed, goal, known);
-      CHECK(launched > 0);
-      CHECK(launched <= kShipBy[si][gi]);
+      if (known != 0 && ship == nullptr) {
+        ship = order_colony_ship(s, rig.planet());
+      }
+      rig.day();
+      if (ship != nullptr && ship->location_kind != ShipLocation::kBuilding) {
+        launched = day;
+      }
     }
+    std::printf("A seed %d: research %zu items done day %d, ship launched day %d\n", seed, path.size(), known, launched);
+    CAPTURE(seed, known);
+    CHECK(launched > 0);
+    CHECK(launched <= kShipBy[si]);
   }
 }
 

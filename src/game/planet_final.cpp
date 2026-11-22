@@ -103,7 +103,11 @@ class Layout {
     std::array<std::int32_t, PlanetManagement::kOutputs> weight{};
     for (std::size_t o = 0; o < ask.size(); ++o) {
       const FinalOutput& fo = m_.final_outputs[o];
-      if (fo.mode == FinalMode::kKeep) {
+      if (fo.mode == FinalMode::kKeep && o == PlanetManagement::kResearch) {
+        // Research kept: on all blue squares, nowhere else.
+        ask[o] = static_cast<std::int32_t>(
+            std::ranges::count_if(free_, [&](std::uint16_t i) { return (base_[i].color & 7u) == kColour[o]; }));
+      } else if (fo.mode == FinalMode::kKeep) {
         ask[o] = kept_[o];
       } else if (fo.mode == FinalMode::kAtLeast) {
         ask[o] = squares_for(o, fo.value, squares);

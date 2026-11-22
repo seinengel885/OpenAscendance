@@ -411,7 +411,8 @@ enum class BuildLevel : std::uint8_t {
 // (`PlanetManagement::final_outputs`) treats an output. The values are saved:
 // never change them.
 enum class FinalMode : std::uint8_t {
-  kKeep = 0,      // its buildings neither built nor demolished
+  kKeep = 0,      // its buildings neither built nor demolished (research: on
+                  // all blue squares, nowhere else)
   kAtLeast = 1,   // `FinalOutput::value` points (shortened alike when the
                   // squares do not suffice for all)
   kMaximise = 2,  // the squares left, shared by `FinalOutput::weight`

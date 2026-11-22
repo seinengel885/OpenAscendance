@@ -40,15 +40,14 @@ PlanetManagement planet_management(const Session& session, const Planet& planet)
 PlanetManagement planet_management_resolved(PlanetManagement own, const PlanetManagement& standard);
 // The standards of `planet`: no buildings (the player sets per planet what
 // it wants), but a Shipyard first on the owner's first planet; the final
-// build-out of the Shipyard preset on the first planet, else of the
-// research one.
+// build-out of the research preset.
 PlanetManagement planet_management_standard(const Session& session, const Planet& planet);
 
 // The final build-out's presets (`PlanetManagement::final_outputs`).
 enum class FinalPreset : std::uint8_t {
   kResearch,  // industry at least 3 / 4 / 5 / 6 / 8 by size, research maximised, no prosperity
-  kShipyard,  // industry maximised, prosperity kept
-  kDock,      // industry maximised, no research nor prosperity
+  kShipyard,  // industry maximised, research kept (blue squares), prosperity kept
+  kDock,      // industry maximised, research kept (blue squares), no prosperity
 };
 std::array<FinalOutput, PlanetManagement::kOutputs> planet_final_preset(FinalPreset preset, const Planet& planet);
 
@@ -73,9 +72,9 @@ std::int32_t planet_orbital_defence_room(const Session& session, const Planet& p
 bool pe_endless_project(std::uint8_t item);
 
 // The rules (`planet_plan_rules.cpp`): start the next project of an idle
-// planet managed for `goal` with `management` (its standards filled in),
-// or end its project without end for another or none.
-void pe_manage_planet_rules(Session& session, Planet& planet, PlanetGoal goal, const PlanetManagement& management);
+// planet managed with `management` (its standards filled in), or end its
+// project without end for another or none.
+void pe_manage_planet_rules(Session& session, Planet& planet, const PlanetManagement& management);
 
 // peCustom: chooses the project of an idle planet (or one running a
 // project without end, `pe_endless_project`) that the AI runs (by the
