@@ -18,8 +18,11 @@ namespace oa::game {
 // buildings (defences, specials, the Colony Base) and those left to the
 // strategy (no output maximised).
 struct FinalLayout {
+  // Per output its building (`kNoItem`: none known) and squares.
+  std::array<std::uint8_t, PlanetManagement::kOutputs> items{kNoItem, kNoItem, kNoItem};
   std::array<std::int16_t, PlanetManagement::kOutputs> squares{};
   std::array<std::int16_t, PlanetManagement::kOutputs> points{};
+  std::uint8_t house = kNoItem;  // the housing (`kNoItem`: none known)
   std::int16_t housing = 0;
   std::int16_t other = 0;
   std::int16_t open = 0;

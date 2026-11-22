@@ -134,6 +134,26 @@ class PlanRig {
     }
   }
 
+  // The player researches nothing more.
+  void stop_research() {
+    session_.game->research.self_managed = 0;
+    session_.game->research.project[session_.player_race] = -1;
+  }
+  // The player knows `item` (its research requirement).
+  void learn(std::uint8_t item) {
+    Research& r = session_.game->research;
+    const std::uint8_t req = session_.tables->planitems.items.at(item).research_requirement;
+    if (req < r.count) {
+      r.items[req].known_mask |= static_cast<std::uint8_t>(1u << session_.player_race);
+    }
+  }
+  // Runs until the planet is full (at most `limit` days in all).
+  void run_until_full(int limit) {
+    while ((days.empty() || days.back().empty > 0) && day_ < limit) {
+      day();
+    }
+  }
+
   // The usable surface squares (not ruins; black only for Orfa).
   int usable_squares() const { return static_cast<int>(std::ranges::count(usable_, true)); }
 

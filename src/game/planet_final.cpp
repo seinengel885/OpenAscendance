@@ -47,6 +47,7 @@ class Layout {
       : session_(session), planet_(planet), m_(m) {
     const std::span<const Square> real = planet_squares(session.game->cosmos, planet);
     base_.assign(real.begin(), real.end());
+    cap_ = planet.base_population;
     const bool black_usable = session.game->cosmos.races.at(planet.owner).ability == 2;
     std::int32_t defences_built = 0;
     std::array<std::int32_t, PlanetManagement::kOutputs> kept{};
@@ -127,8 +128,10 @@ class Layout {
     }
     const Planet result = points(layout);
     for (std::size_t o = 0; o < got.size(); ++o) {
+      out.items[o] = best_item(o);
       out.squares[o] = static_cast<std::int16_t>(got[o]);
     }
+    out.house = house;
     out.points = {static_cast<std::int16_t>(plan_detail::u16(result.industry)),
                   static_cast<std::int16_t>(plan_detail::u16(result.research)),
                   static_cast<std::int16_t>(plan_detail::u16(result.prosperity))};
@@ -256,7 +259,7 @@ class Layout {
   std::vector<Square> base_;           // the squares without the buildings laid out
   std::vector<std::uint16_t> free_;    // the squares to lay out
   std::array<std::int32_t, PlanetManagement::kOutputs> kept_{};  // squares of each output now
-  std::int32_t cap_ = 0;               // room of the buildings staying
+  std::int32_t cap_ = 0;               // room of the planet and the buildings staying
   std::int32_t workers_ = 0;           // their workers (and the defences to come)
   std::int32_t other_extra_ = 0;       // squares of the defences to come
 };

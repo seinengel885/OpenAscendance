@@ -192,5 +192,70 @@ TEST_CASE("close to full a managed colony builds only what its final layout want
   }
 }
 
+// Whether `rig`'s planet has its final layout (housing within one).
+bool at_final_layout(PlanRig& rig) {
+  const FinalLayout target =
+      planet_final_layout(rig.session(), rig.planet(), planet_management(rig.session(), rig.planet()));
+  const auto [built, housing] = built_layout(rig);
+  for (std::size_t o = 0; o < built.size(); ++o) {
+    if (built[o] != target.squares[o]) {
+      return false;
+    }
+  }
+  return std::abs(housing - target.housing) <= 1;
+}
+
+// A full colony (seed 7, size 2, balanced, research preset, no research
+// after the start), settled for 150 days.
+PlanRig& full_colony(PlanRig& rig) {
+  rig.stop_research();
+  rig.run_until_full(kDays);
+  rig.run(150);
+  return rig;
+}
+
+TEST_CASE("a full colony rebuilds to a new final layout and stays", "[pecustom][plan]") {
+  OA_REQUIRE_TABLES(t);
+  PlanRig rig(*t, 7, 2, PlanetGoal::kBalanced);
+  REQUIRE(rig.ready());
+  full_colony(rig);
+  REQUIRE(rig.full_day().has_value());
+  rig.management().final_outputs = planet_final_preset(FinalPreset::kShipyard, rig.planet());
+  const int changed = rig.days.back().day;
+  int reached = 0;
+  while (reached == 0 && rig.days.back().day < changed + 300) {
+    rig.day();
+    reached = at_final_layout(rig) ? rig.days.back().day : 0;
+  }
+  CAPTURE(changed, reached);
+  REQUIRE(reached > 0);
+  const std::size_t steps = rig.steps.size();
+  rig.run(100);
+  CHECK(rig.steps.size() == steps);
+  CHECK(at_final_layout(rig));
+}
+
+TEST_CASE("a Research Campus found during the final build-out replaces the labs once", "[pecustom][plan]") {
+  OA_REQUIRE_TABLES(t);
+  constexpr std::uint8_t kLaboratory = 2;
+  constexpr std::uint8_t kCampus = 8;
+  PlanRig rig(*t, 7, 2, PlanetGoal::kBalanced);
+  REQUIRE(rig.ready());
+  full_colony(rig);
+  rig.learn(kCampus);
+  const std::size_t from = rig.steps.size();
+  rig.run(400);
+  int labs = 0;
+  for (const Square& sq : planet_squares(rig.session().game->cosmos, rig.planet()).first(rig.planet().surface_squares)) {
+    labs += sq.item == kLaboratory ? 1 : 0;
+  }
+  CHECK(labs == 0);
+  for (std::size_t k = from; k < rig.steps.size(); ++k) {
+    CAPTURE(rig.steps[k].day);
+    CHECK(rig.steps[k].item != kLaboratory);
+  }
+  CHECK(at_final_layout(rig));
+}
+
 }  // namespace
 }  // namespace oa::game

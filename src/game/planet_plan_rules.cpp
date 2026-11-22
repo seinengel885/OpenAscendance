@@ -44,6 +44,7 @@
 #include <cmath>
 #include <cstdint>
 #include <initializer_list>
+#include <iterator>
 #include <limits>
 #include <optional>
 #include <vector>
@@ -73,9 +74,6 @@ constexpr std::array<std::uint8_t, 15> kBuildings{0, 1, 2, 3, 4, 6, 7, 8, 9, 10,
 constexpr std::int32_t kNever = 1000000;
 // The cost of a typical building (when the goal's next one is not known).
 constexpr std::int32_t kTypicalCost = 50;
-// A replacement must make up for the outputs lost while rebuilding within
-// these days.
-constexpr std::int32_t kPayback = 100;
 // The share of the usable squares (at least `kTargetLeadMin`) left empty
 // from which the planet builds only what its final layout wants: any other
 // building would make way again soon.
@@ -167,6 +165,23 @@ class Rules {
       missing_[o] = std::max(0, target.squares[o] - outputs[o]);
     }
     missing_housing_ = std::max(0, target.housing - housing);
+    // Per building how many more there are than the layout wants (fewer:
+    // negative).
+    surplus_.assign(session.tables->planitems.items.size(), 0);
+    for (std::uint16_t i = 0; i < planet.surface_squares; ++i) {
+      const std::uint8_t it = b_.squares[i].item;
+      if (it < surplus_.size() && (planet_final_output(it) || planet_final_housing(it))) {
+        ++surplus_[it];
+      }
+    }
+    for (std::size_t o = 0; o < target.items.size(); ++o) {
+      if (target.items[o] < surplus_.size()) {
+        surplus_[target.items[o]] -= target.squares[o];
+      }
+    }
+    if (target.house < surplus_.size()) {
+      surplus_[target.house] -= target.housing;
+    }
   }
 
   // Whether the planet is close to full (`kTargetLead`): a building the
@@ -420,13 +435,17 @@ class Rules {
   bool wanted(PM::Building building) const { return m_.levels[building] != BuildLevel::kNo; }
 
   // The orbital cloakers, weapons and shields wanted, in that order as far
-  // as the orbit has room (`planet_orbital_defence_room`).
+  // as the orbit has room (`planet_orbital_defence_room`) and the owner
+  // knows them.
   std::array<std::int32_t, 3> orbital_counts() const {
     std::int32_t room = planet_orbital_defence_room(*session_, b_.planet, m_);
     std::array<std::int32_t, 3> out{};
     const std::array<PM::Count, 3> kinds{PM::kOrbitalCloaker, PM::kOrbitalWeapons, PM::kOrbitalShields};
+    const std::array<bool, 3> known{race_knows_item(*session_, b_.planet, kOrbitalCloaker),
+                                    planet_best_orbital_weapon_item(*session_, b_.planet) != kNoItem,
+                                    planet_best_orbital_shield_item(*session_, b_.planet) != kNoItem};
     for (std::size_t k = 0; k < kinds.size(); ++k) {
-      out[k] = std::clamp<std::int32_t>(m_.counts[kinds[k]], 0, room);
+      out[k] = known[k] ? std::clamp<std::int32_t>(m_.counts[kinds[k]], 0, room) : 0;
       room -= out[k];
     }
     return out;
@@ -1002,32 +1021,44 @@ class Rules {
     return out;
   }
 
-  // 6. Replacement once no empty square is left: the best gain per day of
-  // building that pays back.
+  // All outputs a day and the room for workers (the gain of a building
+  // toward the final layout).
+  static double all_outputs(const Sim& s) {
+    return s.exact_industry() + u16(s.planet.research) + prosperity_sum(s) + s.planet.max_population;
+  }
+
+  // 6. Replacement toward the final layout once no empty square is left: a
+  // building it has too many of makes way for one it wants more of, the
+  // most gained per day of building first. Only toward the layout, so the
+  // planet never builds back what it took down.
   std::optional<Action> replacement() {
     if (reachable_ > 0 || b_.planet.project_item != kNoItem) {
       return std::nullopt;
     }
     std::optional<Action> best;
     double best_score = 0.0;
-    const double now = value(b_);
     for (const std::uint16_t victim : victims()) {
       const Square there = b_.squares[victim];
+      if (surplus_[there.item] <= 0) {
+        continue;
+      }
       b_.clear(victim);
       b_.recalc();
-      const double without = value(b_);
+      const double without = all_outputs(b_);
       ++reachable_;
       distance_ = {};
-      for (Action a : candidates(Role::kGoal, [&](const PlanItem&) { return true; })) {
-        if (a.item == there.item) {
+      std::vector<Action> options = candidates(Role::kGoal, [](const PlanItem&) { return true; });
+      std::ranges::copy(candidates(Role::kHousing, [](const PlanItem& it) { return it.max_population > 0; }),
+                        std::back_inserter(options));
+      for (Action a : options) {
+        if (a.item >= surplus_.size() || surplus_[a.item] >= 0) {
           continue;
         }
-        const double gain = b_.with(a, [&](const Sim& s) { return value(s); }) - now;
-        const std::int32_t d = days(a.item);
+        const double gain = b_.with(a, all_outputs) - without;
         a.victim = victim;
-        if (gain > 0.0 && gain * kPayback > (now - without) * d && gain / d > best_score) {
+        if (const double score = gain / days(a.item); score > best_score) {
           best = a;
-          best_score = gain / d;
+          best_score = score;
         }
       }
       --reachable_;
@@ -1054,6 +1085,9 @@ class Rules {
   std::int32_t reachable_ = 0;
   // The squares the final layout still wants per output, and of housing.
   std::array<std::int32_t, PlanetManagement::kOutputs> missing_{};
+  // Per building its count less the final layout's (`kNoItem` and buildings
+  // it does not lay out: 0).
+  std::vector<std::int32_t> surplus_;
   // The empty squares from which the final layout is followed.
   std::int32_t lead_ = kTargetLeadMin;
   std::int32_t missing_housing_ = 0;
