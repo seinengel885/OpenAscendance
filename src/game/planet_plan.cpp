@@ -278,8 +278,10 @@ PlanetGoal planet_goal(const Session& session, const Planet& planet) {
   return session.game->planet_goals.at(static_cast<std::size_t>(planet_index(session.game->cosmos, planet)));
 }
 
+bool pe_endless_project(std::uint8_t item) { return item == kItemEndlessParty || item == kItemScientistTakeover; }
+
 void pe_manage_planet(Session& session, Race& race, Planet& planet) {
-  if (planet.industry == 0) {
+  if (planet.industry == 0 || (planet.project_item != kNoItem && !pe_endless_project(planet.project_item))) {
     return;
   }
   if (!is_player_planet(session, planet)) {

@@ -70,13 +70,19 @@ std::string_view planet_alarm_text(PlanetAlarm alarm);
 std::int32_t planet_orbital_defence_room(const Session& session, const Planet& planet,
                                          const PlanetManagement& management);
 
+// Whether `item` is a project without end the rules choose (Endless Party,
+// Scientist Takeover): a planet running one is managed every day.
+bool pe_endless_project(std::uint8_t item);
+
 // The rules (`planet_plan_rules.cpp`): start the next project of an idle
-// planet managed for `goal` with `management` (its standards filled in).
+// planet managed for `goal` with `management` (its standards filled in),
+// or end its project without end for another or none.
 void pe_manage_planet_rules(Session& session, Planet& planet, PlanetGoal goal, const PlanetManagement& management);
 
-// peCustom: chooses the project of an idle planet that the AI runs (by the
+// peCustom: chooses the project of an idle planet (or one running a
+// project without end, `pe_endless_project`) that the AI runs (by the
 // rules, for a strategy and management it picks itself) or that manages
-// itself (`Planet::project_item` none).
+// itself; a planet busy otherwise is left alone.
 void pe_manage_planet(Session& session, Race& race, Planet& planet);
 
 // Whether the bell of `planet`'s project was on (`PlanetManagement::bell`,

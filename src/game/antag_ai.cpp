@@ -964,7 +964,8 @@ void antag_race_ai_turn(Session& session, Race& race) {
     Planet& planet = cosmos.planets[static_cast<std::size_t>(i)];
     if (planet.owner == race.index &&
         (race.index != session.player_race || planet.self_managed != 0 || session.autoplay) &&
-        planet.project_item == kNoItem) {
+        (planet.project_item == kNoItem ||
+         (session.game->variant == Variant::kPeCustom && pe_endless_project(planet.project_item)))) {
       if (session.game->variant == Variant::kPeCustom) {
         pe_manage_planet(session, race, planet);
       } else {

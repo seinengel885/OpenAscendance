@@ -257,5 +257,37 @@ TEST_CASE("a Research Campus found during the final build-out replaces the labs 
   CHECK(at_final_layout(rig));
 }
 
+TEST_CASE("a built-up colony maximising research takes over the scientists", "[pecustom][plan]") {
+  OA_REQUIRE_TABLES(t);
+  PlanRig rig(*t, 7, 2, PlanetGoal::kBalanced);
+  REQUIRE(rig.ready());
+  full_colony(rig);
+  rig.learn(kItemScientistTakeover);
+  rig.run(200);
+  CHECK(rig.planet().project_item == kItemScientistTakeover);
+  // New settings: the takeover ends, the planet rebuilds.
+  rig.management().final_outputs = planet_final_preset(FinalPreset::kShipyard, rig.planet());
+  const std::size_t steps = rig.steps.size();
+  rig.run(30);
+  CHECK(rig.steps.size() > steps);
+}
+
+TEST_CASE("a colony of a species knowing all research takes over no scientists", "[pecustom][plan]") {
+  OA_REQUIRE_TABLES(t);
+  PlanRig rig(*t, 7, 2, PlanetGoal::kBalanced);
+  REQUIRE(rig.ready());
+  full_colony(rig);
+  Research& research = rig.session().game->research;
+  for (std::size_t i = 0; i < research.count; ++i) {
+    research.items[i].known_mask |= static_cast<std::uint8_t>(1u << rig.session().player_race);
+  }
+  bool takeover = false;
+  for (int d = 0; d < 300; ++d) {
+    rig.day();
+    takeover = takeover || rig.planet().project_item == kItemScientistTakeover;
+  }
+  CHECK_FALSE(takeover);
+}
+
 }  // namespace
 }  // namespace oa::game

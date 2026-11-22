@@ -138,6 +138,7 @@ class Rules {
         goal_(goal),
         m_(management),
         weights_(goal_weights(goal, research_complete)),
+        research_complete_(research_complete),
         black_usable_(session.game->cosmos.races.at(planet.owner).ability == 2) {
     shipyard_ = b_.find(kItemShipyard) != kNoSquare;
     std::int32_t built = 0;
@@ -209,7 +210,7 @@ class Rules {
   // The project, none to wait.
   Action decide() {
     for (auto rule : {&Rules::housing, &Rules::growth, &Rules::first, &Rules::access, &Rules::along,
-                      &Rules::productivity, &Rules::goal, &Rules::replacement}) {
+                      &Rules::productivity, &Rules::goal, &Rules::replacement, &Rules::endless}) {
       if (const std::optional<Action> a = (this->*rule)()) {
         return *a;
       }
@@ -752,7 +753,12 @@ class Rules {
       options = candidates(Role::kGrowth, grows);
     }
     if (options.empty()) {
-      // No worker or no square: the least needed buildings may make way.
+      // No worker or no square: a party rather than a building taken down
+      // (it ends once a worker is free), else the least needed buildings
+      // may make way.
+      if (knows(kItemEndlessParty)) {
+        return Action{kItemEndlessParty, kNoSquare};
+      }
       options = make_way(Role::kGrowth, grows);
     }
     std::optional<Action> best;
@@ -1021,6 +1027,25 @@ class Rules {
     return out;
   }
 
+  // 7. A project without end once nothing is left to build: the
+  // scientists take over while research is maximised and not complete; a
+  // full planet with a Shipyard, no worker free but room, parties for
+  // workers.
+  std::optional<Action> endless() {
+    if (!built_up()) {
+      return std::nullopt;
+    }
+    if (m_.final_outputs[PlanetManagement::kResearch].mode == FinalMode::kMaximise && !research_complete_ &&
+        knows(kItemScientistTakeover)) {
+      return Action{kItemScientistTakeover, kNoSquare};
+    }
+    if (shipyard_ && b_.free_population() == 0 && b_.room() > 0 && knows(kItemEndlessParty)) {
+      return Action{kItemEndlessParty, kNoSquare};
+    }
+    return std::nullopt;
+  }
+  bool knows(std::uint8_t item) const { return race_knows_item(*session_, b_.planet, item); }
+
   // All outputs a day and the room for workers (the gain of a building
   // toward the final layout).
   static double all_outputs(const Sim& s) {
@@ -1075,6 +1100,7 @@ class Rules {
   PlanetGoal goal_;
   PlanetManagement m_;
   Weights weights_;
+  bool research_complete_ = false;
   // The share of the usable surface built.
   double fill_ = 0.0;
   bool shipyard_ = false;
@@ -1098,20 +1124,43 @@ class Rules {
 
 void pe_manage_planet_rules(Session& session, Planet& planet, PlanetGoal goal, const PlanetManagement& management) {
   const bool complete = antag_race_research_complete(session, session.game->cosmos.races.at(planet.owner));
-  Rules rules(session, planet, goal, management, complete);
+  // A project without end is weighed anew every day, the planet seen
+  // without it.
+  const std::uint8_t running = pe_endless_project(planet.project_item) ? planet.project_item : kNoItem;
+  Planet seen = planet;
+  if (running != kNoItem) {
+    seen.project_item = kNoItem;
+    planet_recalc_output(session, seen);
+  }
+  Rules rules(session, seen, goal, management, complete);
   const Action a = rules.decide();
+  const auto index = planet_index(session.game->cosmos, planet);
+  const bool player = planet.owner == session.player_race && !session.autoplay;
+  if (running != kNoItem) {
+    if (a.item == running) {
+      return;
+    }
+    // The party ends with a worker free: the player hears of it.
+    if (running == kItemEndlessParty && seen.population > seen.used_population && player) {
+      session.post_event(EventCode::kFreePopulation, index);
+    }
+    planet.project_item = kNoItem;
+    planet_recalc_output(session, planet);
+  }
   // The player hears once when the planet is built up (nothing left to
   // build or replace), again after it built anew.
-  const auto index = planet_index(session.game->cosmos, planet);
   std::uint8_t& reported = session.game->planet_management.at(static_cast<std::size_t>(index)).reported;
-  if (a.item == kNoItem) {
-    if (rules.built_up() && reported == 0 && planet.owner == session.player_race && !session.autoplay) {
+  if (a.item == kNoItem || pe_endless_project(a.item)) {
+    if (rules.built_up() && reported == 0 && player) {
       reported = 1;
       session.post_event(EventCode::kPlanetBuiltUp, index);
     }
-    return;
+    if (a.item == kNoItem) {
+      return;
+    }
+  } else {
+    reported = 0;
   }
-  reported = 0;
   if (a.victim != kNoSquare) {
     const std::uint8_t there = planet_squares(session.game->cosmos, planet)[a.victim].item;
     if (!planet_set_square_item(session, planet, a.victim, there, SquareMode::kRemove)) {
