@@ -21,7 +21,10 @@
 //    the share of the planet built, single buildings once half of it is.
 // 6. Industry: while workers come faster than the goal's buildings are
 //    done, a factory when it saves more days on the buildings still to come
-//    than it takes itself.
+//    than it takes itself. The early research focus instead only a factory
+//    when the goal's next building would take longer than `kLabDays`; the
+//    balanced strategy so too until housing is due (the room fills before
+//    housing would be built), then as the early industry focus.
 // 7. Goal: the building that adds most of the goal's outputs per day of
 //    building, on the square of its colour.
 // In 6 and 7 a large building (Megafacility, Research Campus) stands in for
@@ -88,9 +91,9 @@ constexpr std::int32_t kTargetLead = 6;
 constexpr std::int32_t kShortWait = 5;
 // The longest a building of the early research focus's goal may take
 // before a factory goes first (Patrick's play: 17 days fine, 25 too long;
-// 15 gave the most early research against balanced without losing much
-// later).
-constexpr std::int32_t kLabDays = 15;
+// with the curve sum^0.85 17 means three factories for the Laboratory,
+// the most research up to about day 880, 15 four).
+constexpr std::int32_t kLabDays = 17;
 // The large buildings (Megafacility, Research Campus) and the small ones
 // they stand for (Factory, Laboratory): the large one while it takes at most
 // `kLargeDays`, else the small one and a factory more in between (Patrick's
@@ -931,9 +934,9 @@ class Rules {
     return worthwhile(toward_target(candidates(Role::kIndustry, [](const PlanItem& it) { return it.industry > 0; })));
   }
 
-  // 4 (early research focus, as Patrick plays it): the goal's building
-  // unless it takes longer than `kLabDays`; then the factory that speeds it
-  // up most.
+  // 6 (early research focus, as Patrick plays it, and balanced until
+  // housing is due): the goal's building unless it takes longer than
+  // `kLabDays`; then the factory that speeds it up most.
   std::optional<Action> sooner_labs(const Action& next) {
     if (days(next.item) <= kLabDays) {
       return std::nullopt;
@@ -950,7 +953,22 @@ class Rules {
     return best;
   }
 
-  // 4. Industry while it speeds up the buildings still to come.
+  // Whether housing is due: the planet wants more workers than it has room
+  // for and the room left fills before its quickest housing would be built
+  // (or none can be).
+  bool housing_due() {
+    if (wanted_population() <= b_.planet.max_population) {
+      return false;
+    }
+    const auto houses = [](const PlanItem& it) { return it.max_population > 0; };
+    std::int32_t quickest = kNever;
+    for (const Action& a : toward_target(candidates(Role::kHousing, houses))) {
+      quickest = std::min(quickest, days(a.item));
+    }
+    return b_.room() <= births(b_, quickest);
+  }
+
+  // 6. Industry while it speeds up the buildings still to come.
   std::optional<Action> productivity() {
     if (reachable_ == 0) {
       return std::nullopt;
@@ -959,7 +977,7 @@ class Rules {
     if (!next) {
       return std::nullopt;
     }
-    if (goal_ == PlanetGoal::kEarlyResearch) {
+    if (goal_ == PlanetGoal::kEarlyResearch || (goal_ == PlanetGoal::kBalanced && !housing_due())) {
       return sooner_labs(*next);
     }
     // Only while industry holds the planet back: workers come faster than

@@ -123,24 +123,30 @@ std::pair<long, long> sums(const PlanRig& rig, int days) {
   return {industry, research};
 }
 
-TEST_CASE("early research focus has research sooner, early industry focus industry", "[pecustom][plan]") {
+TEST_CASE("early research focus has research sooner, early industry focus industry, balanced between",
+          "[pecustom][plan]") {
   OA_REQUIRE_TABLES(t);
   PlanRig industry(*t, 7, 3, PlanetGoal::kEarlyIndustry);
+  PlanRig balanced(*t, 7, 3, PlanetGoal::kBalanced);
   PlanRig research(*t, 7, 3, PlanetGoal::kEarlyResearch);
   REQUIRE(industry.ready());
   industry.run(400);
+  balanced.run(400);
   research.run(400);
   for (std::size_t d = 24; d < 400; d += 25) {
-    std::printf("F day %d  early industry I %d R %d  early research I %d R %d\n", industry.days[d].day,
-                industry.days[d].industry, industry.days[d].research, research.days[d].industry,
+    std::printf("F day %d  early industry I %d R %d  balanced I %d R %d  early research I %d R %d\n",
+                industry.days[d].day, industry.days[d].industry, industry.days[d].research,
+                balanced.days[d].industry, balanced.days[d].research, research.days[d].industry,
                 research.days[d].research);
   }
   // The early phase: half the days early industry focus takes to be full.
   const int early = industry.full_day().value_or(400) / 2;
   const auto [ii, ir] = sums(industry, early);
+  const auto [bi, br] = sums(balanced, early);
   const auto [ri, rr] = sums(research, early);
-  CAPTURE(early, ii, ir, ri, rr);
-  CHECK(rr > ir);
+  CAPTURE(early, ii, ir, bi, br, ri, rr);
+  CHECK(rr > br);
+  CHECK(br > ir);
   CHECK(ii > ri);
 }
 
@@ -509,7 +515,7 @@ Ship* order_colony_ship(Session& session, Planet& planet) {
 // ship by, per strategy (balanced, early industry, early research focus):
 // the rules of 2026-11-22 and a twentieth more.
 constexpr std::array<int, 3> kShipSeeds{7, 11, 23};
-constexpr std::array<std::array<int, 3>, 3> kShipBy{{{293, 330, 293}, {422, 378, 307}, {345, 365, 293}}};
+constexpr std::array<std::array<int, 3>, 3> kShipBy{{{310, 330, 270}, {300, 378, 315}, {309, 365, 286}}};
 
 TEST_CASE("a managed home planet launches its first interstellar colony ship in time", "[pecustom][plan]") {
   OA_REQUIRE_TABLES(t);
