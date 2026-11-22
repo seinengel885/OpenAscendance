@@ -19,6 +19,9 @@
 
 #include "game/planet.h"
 #include "game/planet_final.h"
+#include "game/player_actions.h"
+#include "game/race_ai.h"
+#include "game/ship.h"
 #include "game_oracle.h"
 #include "plan_rig.h"
 
@@ -451,6 +454,106 @@ TEST_CASE("large buildings and boosts come once they are worth it", "[pecustom][
   // Both came, the small ones while the large took too long.
   CHECK(larges > 0);
   CHECK(smalls > 0);
+}
+
+// The research toward `gizmos`: each requirement not known yet after its own
+// prerequisites (depth first, the tables' order), each item once.
+std::vector<std::uint8_t> research_path(const Session& session, std::initializer_list<std::int8_t> gizmos) {
+  const Research& r = session.game->research;
+  const RaceIndex race = session.player_race;
+  std::vector<std::uint8_t> path;
+  const auto visit = [&](const auto& self, std::uint8_t item) -> void {
+    if (item >= r.count || ((r.items[item].known_mask >> race) & 1) != 0 || std::ranges::find(path, item) != path.end()) {
+      return;
+    }
+    for (const std::uint8_t pre : r.items[item].prereqs) {
+      if (pre == 0xff) {
+        break;
+      }
+      self(self, pre);
+    }
+    path.push_back(item);
+  };
+  for (const std::int8_t g : gizmos) {
+    visit(visit, session.tables->gizmos.at(static_cast<std::size_t>(g)).research_requirement);
+  }
+  return path;
+}
+
+// Orders a small colony ship with a Star Lane Drive at the planet's
+// Shipyard, as the player does on the planet screen (`PlanWnd::ship_design`);
+// returns the ship, none if the planet cannot build one.
+Ship* order_colony_ship(Session& session, Planet& planet) {
+  if (!planet_can_build_ship(session, planet)) {
+    return nullptr;
+  }
+  const std::uint16_t square = planet_auto_place_item(session, planet, kItemShip, 0);
+  if (square == kNoSquare) {
+    return nullptr;
+  }
+  Ship* ship = race_ai_new_ship(session, session.game->cosmos.races.at(planet.owner), planet);
+  REQUIRE(ship != nullptr);
+  planet_set_square_ship(session, planet, square, ship_index(session.game->cosmos, *ship));
+  ship_set_hull_size(session, *ship, 0);
+  const std::int8_t generator = ship_best_gizmo_for_race(session, 4, planet.owner);
+  const std::int8_t drive = ship_best_gizmo_for_race(session, 2, planet.owner);
+  REQUIRE(generator >= 0);
+  REQUIRE(drive >= 0);
+  for (const std::int8_t g : {generator, drive, kGizmoStarLaneDrive, kGizmoColonizer, kGizmoColonizer}) {
+    REQUIRE(ship_install_gizmo(session, *ship, g, ship->gizmo_count));
+  }
+  return ship;
+}
+
+// The day each seed's home planet launches its first interstellar colony
+// ship by, per strategy (balanced, early industry, early research focus):
+// the rules of 2026-11-22 and a twentieth more.
+constexpr std::array<int, 3> kShipSeeds{7, 11, 23};
+constexpr std::array<std::array<int, 3>, 3> kShipBy{{{293, 330, 293}, {422, 378, 307}, {345, 365, 293}}};
+
+TEST_CASE("a managed home planet launches its first interstellar colony ship in time", "[pecustom][plan]") {
+  OA_REQUIRE_TABLES(t);
+  constexpr int kLimit = 1000;
+  constexpr std::array<PlanetGoal, 3> kGoals{PlanetGoal::kBalanced, PlanetGoal::kEarlyIndustry,
+                                             PlanetGoal::kEarlyResearch};
+  for (std::size_t si = 0; si < kShipSeeds.size(); ++si) {
+    for (std::size_t gi = 0; gi < kGoals.size(); ++gi) {
+      const int seed = kShipSeeds[si];
+      const PlanetGoal goal = kGoals[gi];
+      PlanRig rig(*t, seed, PlanRig::Home{}, goal);
+      REQUIRE(rig.ready());
+      Session& s = rig.session();
+      Research& r = s.game->research;
+      r.self_managed = 0;
+      const std::vector<std::uint8_t> path = research_path(s, {kGizmoStarLaneDrive, kGizmoColonizer});
+      Ship* ship = nullptr;
+      int launched = 0;
+      int known = 0;
+      for (int day = 1; day <= kLimit && launched == 0; ++day) {
+        const auto next = std::ranges::find_if(
+            path, [&](std::uint8_t item) { return ((r.items[item].known_mask >> s.player_race) & 1) == 0; });
+        if (next != path.end()) {
+          if (r.project[s.player_race] != *next) {
+            research_set_project(r, s.player_race, *next);
+          }
+        } else if (known == 0) {
+          known = day;
+        }
+        if (known != 0 && ship == nullptr) {
+          ship = order_colony_ship(s, rig.planet());
+        }
+        rig.day();
+        if (ship != nullptr && ship->location_kind != ShipLocation::kBuilding) {
+          launched = day;
+        }
+      }
+      std::printf("A seed %d goal %d: research %zu items done day %d, ship launched day %d\n", seed,
+                  static_cast<int>(goal), path.size(), known, launched);
+      CAPTURE(seed, goal, known);
+      CHECK(launched > 0);
+      CHECK(launched <= kShipBy[si][gi]);
+    }
+  }
 }
 
 }  // namespace

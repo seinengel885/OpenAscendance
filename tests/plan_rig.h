@@ -47,23 +47,14 @@ class PlanRig {
   // `size` with most of its surface not black (Colony Base, two inhabitants) with `goal` and the planet's
   // standard management; the player's other planets are not managed.
   PlanRig(const GameTables& tables, int seed, int size, PlanetGoal goal) : session_(tables) {
-    session_.game->variant = Variant::kPeCustom;
-    const CosmosTxt txt{.stars = 50, .races = 7, .seed = seed, .species = {}};
-    program_start(session_, 0, &txt, false);
-    NewGameSetup setup;
-    setup.activate(session_);
-    setup.begin(session_);
-    session_.window_state.assign(kWindowStateSize, 0);
+    start(seed);
     Cosmos& c = session_.game->cosmos;
-    session_.game->research.self_managed = -1;
     for (PlanetIndex i = 0; i < c.planet_count; ++i) {
       Planet& p = c.planets[static_cast<std::size_t>(i)];
-      if (p.owner == session_.player_race) {
-        p.self_managed = 0;
-      }
-      if (planet_ == nullptr && p.owner == kNoOwner && p.size == size && habitable(p)) {
+      if (p.owner == kNoOwner && p.size == size && habitable(p)) {
         planet_ = &p;
         index_ = i;
+        break;
       }
     }
     if (planet_ == nullptr) {
@@ -75,14 +66,22 @@ class PlanRig {
     p.population = 2;
     planet_auto_build_item(session_, p, kItemColonyBase);
     planet_recalc_output(session_, p);
-    p.self_managed = -1;
-    session_.game->planet_goals[static_cast<std::size_t>(index_)] = goal;
-    session_.game->planet_management[static_cast<std::size_t>(index_)] = PlanetManagement{};
-    usable_.assign(p.surface_squares, false);
-    const bool black = c.races.at(p.owner).ability == 2;
-    const std::span<const Square> sq = planet_squares(c, p);
-    for (std::uint16_t i = 0; i < p.surface_squares; ++i) {
-      usable_[i] = (sq[i].color & kSquareRuins) == 0 && ((sq[i].color & 7u) != 0 || black);
+    manage(goal, PlanetManagement{});
+  }
+  // A new game (`seed`), the player's home planet managed with `goal` and
+  // the standard management of a first planet (Shipyard first).
+  struct Home {};
+  PlanRig(const GameTables& tables, int seed, Home, PlanetGoal goal) : session_(tables) {
+    start(seed);
+    Cosmos& c = session_.game->cosmos;
+    for (PlanetIndex i = 0; i < c.planet_count && planet_ == nullptr; ++i) {
+      if (c.planets[static_cast<std::size_t>(i)].owner == session_.player_race) {
+        planet_ = &c.planets[static_cast<std::size_t>(i)];
+        index_ = i;
+      }
+    }
+    if (planet_ != nullptr) {
+      manage(goal, planet_management_standard(session_, *planet_));
     }
   }
 
@@ -171,6 +170,38 @@ class PlanRig {
   std::vector<DayRecord> days;
 
  private:
+  // The new game, none of the player's planets managed.
+  void start(int seed) {
+    session_.game->variant = Variant::kPeCustom;
+    const CosmosTxt txt{.stars = 50, .races = 7, .seed = seed, .species = {}};
+    program_start(session_, 0, &txt, false);
+    NewGameSetup setup;
+    setup.activate(session_);
+    setup.begin(session_);
+    session_.window_state.assign(kWindowStateSize, 0);
+    Cosmos& c = session_.game->cosmos;
+    session_.game->research.self_managed = -1;
+    for (PlanetIndex i = 0; i < c.planet_count; ++i) {
+      Planet& p = c.planets[static_cast<std::size_t>(i)];
+      if (p.owner == session_.player_race) {
+        p.self_managed = 0;
+      }
+    }
+  }
+  // Puts the planet under `management` with `goal`, notes its usable squares.
+  void manage(PlanetGoal goal, const PlanetManagement& management) {
+    Planet& p = *planet_;
+    p.self_managed = -1;
+    session_.game->planet_goals[static_cast<std::size_t>(index_)] = goal;
+    session_.game->planet_management[static_cast<std::size_t>(index_)] = management;
+    usable_.assign(p.surface_squares, false);
+    const bool black = session_.game->cosmos.races.at(p.owner).ability == 2;
+    const std::span<const Square> sq = planet_squares(session_.game->cosmos, p);
+    for (std::uint16_t i = 0; i < p.surface_squares; ++i) {
+      usable_[i] = (sq[i].color & kSquareRuins) == 0 && ((sq[i].color & 7u) != 0 || black);
+    }
+  }
+
   Session session_;
   Planet* planet_ = nullptr;
   PlanetIndex index_ = 0;
