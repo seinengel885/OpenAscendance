@@ -74,11 +74,10 @@ constexpr std::array<std::uint8_t, 15> kBuildings{0, 1, 2, 3, 4, 6, 7, 8, 9, 10,
 constexpr std::int32_t kNever = 1000000;
 // The cost of a typical building (when the goal's next one is not known).
 constexpr std::int32_t kTypicalCost = 50;
-// The share of the usable squares (at least `kTargetLeadMin`) left empty
-// from which the planet builds only what its final layout wants: any other
-// building would make way again soon.
-constexpr double kTargetLead = 0.2;
-constexpr std::int32_t kTargetLeadMin = 2;
+// The empty usable squares (the last buildings) from which the planet
+// builds only what its final layout wants: any other building would make
+// way again soon.
+constexpr std::int32_t kTargetLead = 5;
 // Close to the final layout, growth waits up to these days for the next
 // inhabitant before it takes a square the layout wants for more.
 constexpr std::int32_t kShortWait = 5;
@@ -151,7 +150,6 @@ class Rules {
       }
     }
     fill_ = built + empty_ > 0 ? static_cast<double>(built) / (built + empty_) : 1.0;
-    lead_ = std::max(kTargetLeadMin, static_cast<std::int32_t>(std::lround(kTargetLead * (built + empty_))));
     // The squares still missing to the final layout.
     const FinalLayout target = planet_final_layout(session, planet, m_);
     std::array<std::int32_t, PlanetManagement::kOutputs> outputs{};
@@ -187,7 +185,7 @@ class Rules {
 
   // Whether the planet is close to full (`kTargetLead`): a building the
   // final layout does not want would have to make way again soon.
-  bool must_follow_target() const { return empty_ <= lead_; }
+  bool must_follow_target() const { return empty_ <= kTargetLead; }
   // Whether the final layout wants `item` on one more square.
   bool target_wants(std::uint8_t item) const {
     if (const std::optional<PlanetManagement::Output> o = planet_final_output(item)) {
@@ -1114,8 +1112,6 @@ class Rules {
   // Per building its count less the final layout's (`kNoItem` and buildings
   // it does not lay out: 0).
   std::vector<std::int32_t> surplus_;
-  // The empty squares from which the final layout is followed.
-  std::int32_t lead_ = kTargetLeadMin;
   std::int32_t missing_housing_ = 0;
   std::array<std::vector<std::int32_t>, 5> distance_{};
 };

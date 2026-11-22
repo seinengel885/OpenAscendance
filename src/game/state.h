@@ -374,15 +374,12 @@ constexpr RaceDays no_attack_days() {
 // never played: saves holding them load as balanced.
 enum class PlanetGoal : std::uint8_t {
   kBalanced = 6,       // industry and research alike
-  // 7: the former industry goal, loaded as early industry focus with
-  // industry maximised (`kPlanetGoalFormerIndustry`).
-  kEarlyIndustry = 8,  // research, industry first while it holds the planet back
-  kEarlyResearch = 9,  // research, industry only when the labs are done sooner with it
+  kEarlyIndustry = 7,  // research, industry first while it holds the planet back
+  kEarlyResearch = 8,  // research, industry only when the labs are done sooner with it
 };
-// The first value of a goal, the former industry goal, and the end of the values.
+// The first value of a goal, and the end of the values.
 inline constexpr std::uint8_t kPlanetGoalFirst = 6;
-inline constexpr std::uint8_t kPlanetGoalFormerIndustry = 7;
-inline constexpr std::uint8_t kPlanetGoalEnd = 10;
+inline constexpr std::uint8_t kPlanetGoalEnd = 9;
 
 constexpr std::array<PlanetGoal, kMaxPlanets> balanced_goals() {
   std::array<PlanetGoal, kMaxPlanets> goals{};

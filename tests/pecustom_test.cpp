@@ -339,24 +339,6 @@ TEST_CASE("the version-8 peCustom saves still load", "[game][content][pecustom]"
   CHECK(session.game->cosmos.day == 31);
 }
 
-TEST_CASE("the former Industry strategy loads as early industry focus, industry maximised", "[game][content][pecustom]") {
-  OA_REQUIRE_TABLES(t);
-  Session session(*t);
-  play(session, Variant::kPeCustom, 30);
-  const auto home = static_cast<std::size_t>(player_planet(session));
-  constexpr std::uint8_t kFormerIndustry = 7;
-  session.game->planet_goals.at(home) = static_cast<PlanetGoal>(kFormerIndustry);
-  session.game->planet_management.at(home).final_outputs[PlanetManagement::kResearch] = {FinalMode::kAtLeast, 4,
-                                                                                         kFinalWeights};
-  Session loaded(*t);
-  load_game(loaded, parse_save(serialize_save(save_game(session))));
-  CHECK(loaded.game->planet_goals.at(home) == PlanetGoal::kEarlyIndustry);
-  const PlanetManagement& m = loaded.game->planet_management.at(home);
-  CHECK(m.final_outputs[PlanetManagement::kIndustry].mode == FinalMode::kMaximise);
-  CHECK(m.final_outputs[PlanetManagement::kIndustry].weight == kFinalWeights);
-  CHECK(m.final_outputs[PlanetManagement::kResearch] == FinalOutput{FinalMode::kAtLeast, 4, kFinalWeights});
-}
-
 TEST_CASE("the strategies cycle balanced, early industry, early research, off", "[pecustom]") {
   std::optional<PlanetGoal> g = planet_next_strategy(std::nullopt, 1);
   CHECK(g == PlanetGoal::kBalanced);

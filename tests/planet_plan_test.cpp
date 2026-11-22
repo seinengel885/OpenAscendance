@@ -26,8 +26,9 @@ using plan_test::PlanRig;
 constexpr int kDays = 600;
 constexpr std::array<int, 2> kSeeds{7, 11};
 // The day each size is full by: the latest of the rules of 2026-11-21
-// (seeds 7, 11, all strategies) and a tenth more, at most `kDays`.
-constexpr std::array<int, 5> kFullBy{120, 155, 335, 370, kDays};
+// (seeds 7, 11, all strategies) and a tenth more, at most `kDays`; small
+// planets a few days more for the last 5 buildings toward the final layout.
+constexpr std::array<int, 5> kFullBy{120, 165, 335, 370, kDays};
 
 bool housing_or_growth(const GameTables& t, std::uint8_t item) {
   const PlanItem& it = t.planitems.items.at(item);
@@ -38,7 +39,9 @@ bool housing_or_growth(const GameTables& t, std::uint8_t item) {
 std::vector<std::string> faults(const GameTables& t, PlanRig& rig) {
   std::vector<std::string> out;
   const std::optional<int> full = rig.full_day();
-  if (const int by = kFullBy.at(rig.planet().size); !full || *full > by) {
+  // Early research focus fills slower (Patrick takes that).
+  if (const int by = kFullBy.at(rig.planet().size);
+      planet_goal(rig.session(), rig.planet()) != PlanetGoal::kEarlyResearch && (!full || *full > by)) {
     out.push_back(std::format("full on day {}, not by day {}", full.value_or(-1), by));
   }
   int idle = 0;
@@ -73,7 +76,7 @@ std::vector<std::string> faults(const GameTables& t, PlanRig& rig) {
   return out;
 }
 
-TEST_CASE("a managed colony builds without idling, early demolition or ping-pong", "[pecustom][plan][!mayfail]") {
+TEST_CASE("a managed colony builds without idling, early demolition or ping-pong", "[pecustom][plan]") {
   OA_REQUIRE_TABLES(t);
   for (const int seed : kSeeds) {
     for (int size = 0; size < 5; ++size) {
@@ -167,9 +170,8 @@ TEST_CASE("close to full a managed colony builds only what its final layout want
         for (std::size_t o = 0; o < missing.size(); ++o) {
           missing[o] = std::max(0, target.squares[o] - built[o]);
         }
-        // The last fifth of the usable squares (at least 2).
-        const bool follow = !rig.days.empty() &&
-                            rig.days.back().empty <= std::max(2, (rig.usable_squares() * 2 + 5) / 10);
+        // The last 5 buildings.
+        const bool follow = !rig.days.empty() && rig.days.back().empty <= 5;
         const std::size_t before = rig.steps.size();
         rig.day();
         for (std::size_t k = before; follow && k < rig.steps.size(); ++k) {
