@@ -221,4 +221,41 @@ inline std::int32_t build_days(std::int32_t cost, std::int32_t industry) {
   return industry > 0 ? (10 * cost + industry - 1) / industry : 100000;
 }
 
+// `steps` built one after another on a copy of `s` (idle), each started
+// once a worker is free for it, for `horizon` days: the goal's outputs
+// summed day by day and the day the last is built (-1: not by then).
+struct StepsRun {
+  double output = 0.0;
+  std::int32_t done = -1;
+};
+inline StepsRun run_steps(Sim s, std::span<const Action> steps, std::int32_t horizon, Weights w,
+                          bool until_done = false) {
+  StepsRun out;
+  out.done = steps.empty() ? 0 : -1;
+  std::size_t next = 0;
+  for (std::int32_t d = 1; d <= horizon; ++d) {
+    if (s.planet.project_item == kNoItem && next < steps.size() &&
+        s.free_population() >= s.item(steps[next].item).used_population) {
+      s.start(steps[next++]);
+    }
+    s.day();
+    out.output += s.rate(w);
+    if (out.done < 0 && next == steps.size() && s.planet.project_item == kNoItem) {
+      out.done = d;
+      if (until_done) {
+        break;
+      }
+    }
+  }
+  return out;
+}
+// The goal's outputs until `horizon` while `steps` are built (`run_steps`).
+inline double output_until(const Sim& s, std::span<const Action> steps, std::int32_t horizon, Weights w) {
+  return run_steps(s, steps, horizon, w).output;
+}
+// The day the last of `steps` is built, -1 if not within `limit` days.
+inline std::int32_t steps_done(const Sim& s, std::span<const Action> steps, std::int32_t limit) {
+  return run_steps(s, steps, limit, {}, true).done;
+}
+
 }  // namespace oa::game::plan_detail

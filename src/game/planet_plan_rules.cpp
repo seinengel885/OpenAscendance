@@ -24,6 +24,11 @@
 //    than it takes itself.
 // 7. Goal: the building that adds most of the goal's outputs per day of
 //    building, on the square of its colour.
+// In 6 and 7 a large building (Megafacility, Research Campus) stands in for
+// its small one once it beats small → Agriplot → small in its output summed
+// until the longer is built, and a boost (Hyperpower Plant, Internet,
+// Fertilization Plant) comes only once it brings more of its output than the
+// best building of that output on its square.
 // 8. Replacement (no empty square left): the building whose replacement
 //    gains the goal most, if the gain makes up for the loss while
 //    rebuilding; the prosperity needed (a Shipyard's: an inhabitant within a
@@ -47,6 +52,7 @@
 #include <iterator>
 #include <limits>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include "game/address.h"
@@ -86,6 +92,18 @@ constexpr std::int32_t kShortWait = 5;
 // 15 gave the most early research against balanced without losing much
 // later).
 constexpr std::int32_t kLabDays = 15;
+// The large buildings, the small ones they stand for and the output they
+// are weighed by: the large one only while it beats small → Agriplot →
+// small until the longer is built (`worthwhile`).
+struct Tier {
+  std::uint8_t small;
+  std::uint8_t large;
+  Weights output;
+};
+constexpr std::uint8_t kAgriplot = 1;
+constexpr std::array<Tier, 2> kTiers{{{0, 6, {1.0, 0.0}}, {2, 8, {0.0, 1.0}}}};
+// The longest the rules look ahead when weighing buildings over time.
+constexpr std::int32_t kLookAhead = 1000;
 // The share of the planet built from which single buildings set to come
 // along are built.
 constexpr double kAlongShare = 0.5;
@@ -447,6 +465,78 @@ class Rules {
 
   static bool is_boost(std::uint8_t it) {
     return it == kItemHyperpowerPlant || it == kItemFertilizationPlant || it == kItemInternet || it == kCloningPlant;
+  }
+
+  // `options` (for `role`) with each large building in place of its small
+  // one once it is worth it, else without it, and without the boosts not
+  // worth it.
+  std::vector<Action> worthwhile(std::vector<Action> options, Role role) {
+    for (const Tier& tier : kTiers) {
+      const auto large = std::ranges::find(options, tier.large, &Action::item);
+      const auto small = std::ranges::find(options, tier.small, &Action::item);
+      if (large != options.end() && small != options.end()) {
+        options.erase(large_worth(*small, *large, role, tier.output) ? small : large);
+      }
+    }
+    std::erase_if(options, [&](const Action& a) { return is_boost(a.item) && !boost_worth(a); });
+    return options;
+  }
+  // Whether `large` brings at least as much of `output` as `small` →
+  // Agriplot → `small` (each on a square of its own, reached once the one
+  // before is built), summed until the longer is built; with no squares for
+  // those it does.
+  bool large_worth(const Action& small, const Action& large, Role role, Weights output) {
+    std::array<Action, 3> steps{small, Action{kAgriplot, kNoSquare}, Action{small.item, kNoSquare}};
+    const std::vector<Square> saved = b_.squares;
+    for (std::size_t k = 1; k < steps.size(); ++k) {
+      b_.squares[steps[k - 1].square].item = steps[k - 1].item;
+      b_.squares[steps[k - 1].square].flags = kSquareBuilt;
+      distance_ = {};
+      steps[k].square = place(steps[k].item, k == 1 ? Role::kGrowth : role);
+      if (steps[k].square == kNoSquare) {
+        break;
+      }
+    }
+    b_.squares = saved;
+    distance_ = {};
+    if (steps[1].square == kNoSquare || steps[2].square == kNoSquare) {
+      return true;
+    }
+    const std::array<Action, 1> big{large};
+    const std::int32_t big_done = steps_done(b_, big, kLookAhead);
+    const std::int32_t steps_end = steps_done(b_, steps, kLookAhead);
+    if (big_done < 0 || steps_end < 0) {
+      return steps_end < 0;
+    }
+    const std::int32_t horizon = std::max(big_done, steps_end);
+    return output_until(b_, big, horizon, output) >= output_until(b_, steps, horizon, output);
+  }
+  // Whether the boost `a` brings more of its output than the best building
+  // of that output on its square (the Cloning Plant: growth, not weighed
+  // here).
+  bool boost_worth(const Action& a) {
+    const auto of = [&](const Sim& s) {
+      return a.item == kItemHyperpowerPlant ? planet_industry_tenths(s.planet)
+             : a.item == kItemInternet      ? u16(s.planet.research)
+                                            : planet_prosperity_tenths(s.planet);
+    };
+    const auto makes = [&](const PlanItem& it) {
+      return a.item == kItemHyperpowerPlant ? it.industry > 0
+             : a.item == kItemInternet      ? it.research > 0
+                                            : it.prosperity > 0;
+    };
+    if (a.item == kCloningPlant) {
+      return true;
+    }
+    const std::int32_t now = of(b_);
+    const std::int32_t gain = b_.with(a, of) - now;
+    for (const std::uint8_t it : kBuildings) {
+      if (!is_boost(it) && makes(b_.item(it)) && b_.can_place(it, a.square) &&
+          b_.with(Action{it, a.square}, of) - now >= gain) {
+        return false;
+      }
+    }
+    return true;
   }
 
   using PM = PlanetManagement;
@@ -854,6 +944,7 @@ class Rules {
   // The goal's building: the best output gain per day of building (once
   // the final layout must be followed, of the outputs it wants).
   std::optional<Action> best_goal_building(std::vector<Action> options) {
+    options = worthwhile(std::move(options), Role::kGoal);
     const bool target = must_follow_target();
     const auto worth = [&](const Sim& s) { return target ? wanted_value(s) : value(s); };
     std::optional<Action> best;
@@ -868,6 +959,12 @@ class Rules {
     return best;
   }
 
+  // The factories that may come now (rules 6 and early research focus).
+  std::vector<Action> industry_buildings() {
+    return worthwhile(toward_target(candidates(Role::kIndustry, [](const PlanItem& it) { return it.industry > 0; })),
+                      Role::kIndustry);
+  }
+
   // 4 (early research focus, as Patrick plays it): the goal's building
   // unless it takes longer than `kLabDays`; then the factory that speeds it
   // up most.
@@ -877,7 +974,7 @@ class Rules {
     }
     std::optional<Action> best;
     std::int32_t best_industry = industry();
-    for (const Action& a : toward_target(candidates(Role::kIndustry, [](const PlanItem& it) { return it.industry > 0; }))) {
+    for (const Action& a : industry_buildings()) {
       const std::int32_t after = b_.with(a, [](const Sim& s) { return planet_industry_tenths(s.planet); });
       if (after > best_industry) {
         best = a;
@@ -909,7 +1006,7 @@ class Rules {
     const double remaining = empty_ * cost;
     std::optional<Action> best;
     double best_saved = 0.0;
-    for (const Action& a : toward_target(candidates(Role::kIndustry, [](const PlanItem& it) { return it.industry > 0; }))) {
+    for (const Action& a : industry_buildings()) {
       const double after = b_.with(a, [](const Sim& s) { return s.exact_industry(); });
       if (after <= now) {
         continue;
