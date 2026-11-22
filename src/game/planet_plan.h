@@ -38,12 +38,10 @@ PlanetGoal planet_goal(const Session& session, const Planet& planet);
 PlanetManagement planet_management(const Session& session, const Planet& planet);
 // `own` (a planet's settings) with `standard` filled in where it has none.
 PlanetManagement planet_management_resolved(PlanetManagement own, const PlanetManagement& standard);
-// The standards of `planet`: planetary and orbital defence along with the
-// growth, a Shipyard first on the owner's first planet, the dig along where
-// there are ruins; by size (tiny .. enormous) Surface Shields
-// 2 / 3 / 4 / 6 / 8, orbital weapons 1 / 1 / 2 / 3 / 4 and shields
-// 1 / 2 / 2 / 3 / 4; the final build-out of the Shipyard preset on the first
-// planet, else of the research one.
+// The standards of `planet`: no buildings (the player sets per planet what
+// it wants), but a Shipyard first on the owner's first planet; the final
+// build-out of the Shipyard preset on the first planet, else of the
+// research one.
 PlanetManagement planet_management_standard(const Session& session, const Planet& planet);
 
 // The final build-out's presets (`PlanetManagement::final_outputs`).

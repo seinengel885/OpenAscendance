@@ -99,8 +99,10 @@ std::vector<PlanetIndex> ai_shipyard_planets(const Session& session, const Race&
   return out;
 }
 
-// The AI's strategy and management of `planet` (`race` its owner): a
-// Shipyard along on its Shipyard planets (first while it has none)
+// The AI's strategy and management of `planet` (`race` its owner): planetary
+// and orbital defence along (Surface Shields 2 / 3 / 4 / 6 / 8, orbital
+// weapons 1 / 1 / 2 / 3 / 4 and shields 1 / 2 / 2 / 3 / 4 by size), the dig
+// along where there are ruins, a Shipyard along on its Shipyard planets (first while it has none)
 // (`ai_shipyard_planets`), which focus on industry early and maximise it;
 // its first planet balanced with its standard management; the others by
 // their squares' colours: blue ones focus on research early and maximise
@@ -110,7 +112,18 @@ std::vector<PlanetIndex> ai_shipyard_planets(const Session& session, const Race&
 AiPlan ai_plan(const Session& session, const Race& race, const Planet& planet) {
   const Cosmos& cosmos = session.game->cosmos;
   const auto index = planet_index(cosmos, planet);
+  constexpr std::array<std::int16_t, 5> kShields{2, 3, 4, 6, 8};
+  constexpr std::array<std::int16_t, 5> kOrbitalWeapons{1, 1, 2, 3, 4};
+  constexpr std::array<std::int16_t, 5> kOrbitalShields{1, 2, 2, 3, 4};
+  const std::size_t size = std::min<std::size_t>(planet.size, 4);
   AiPlan plan{PlanetGoal::kBalanced, planet_management_standard(session, planet)};
+  plan.management.levels[PlanetManagement::kPlanetaryDefence] = BuildLevel::kAlong;
+  plan.management.levels[PlanetManagement::kOrbitalDefence] = BuildLevel::kAlong;
+  plan.management.levels[PlanetManagement::kDig] =
+      ruins_square(session, planet) != kNoSquare ? BuildLevel::kAlong : BuildLevel::kNo;
+  plan.management.counts[PlanetManagement::kSurfaceShields] = kShields[size];
+  plan.management.counts[PlanetManagement::kOrbitalWeapons] = kOrbitalWeapons[size];
+  plan.management.counts[PlanetManagement::kOrbitalShields] = kOrbitalShields[size];
   const std::vector<PlanetIndex> yards = ai_shipyard_planets(session, race);
   const bool yard = std::ranges::find(yards, index) != yards.end();
   // The species' first Shipyard comes first: its ships colonize.
@@ -176,15 +189,11 @@ std::string_view planet_goal_name(PlanetGoal goal) {
 }
 
 PlanetManagement planet_management_standard(const Session& session, const Planet& planet) {
-  constexpr std::array<std::int16_t, 5> kShields{2, 3, 4, 6, 8};
-  constexpr std::array<std::int16_t, 5> kOrbitalWeapons{1, 1, 2, 3, 4};
-  constexpr std::array<std::int16_t, 5> kOrbitalShields{1, 2, 2, 3, 4};
-  const std::size_t size = std::min<std::size_t>(planet.size, 4);
   const bool first = first_planet(session, planet);
   PlanetManagement m;
-  m.levels = {BuildLevel::kAlong, BuildLevel::kAlong, first ? BuildLevel::kFirst : BuildLevel::kNo, BuildLevel::kNo,
-              ruins_square(session, planet) != kNoSquare ? BuildLevel::kAlong : BuildLevel::kNo};
-  m.counts = {kShields[size], 0, 0, 0, kOrbitalWeapons[size], 0, kOrbitalShields[size]};
+  m.levels.fill(BuildLevel::kNo);
+  m.levels[PlanetManagement::kShipyard] = first ? BuildLevel::kFirst : BuildLevel::kNo;
+  m.counts.fill(0);
   m.final_outputs = planet_final_preset(first ? FinalPreset::kShipyard : FinalPreset::kResearch, planet);
   return m;
 }

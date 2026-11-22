@@ -370,5 +370,31 @@ TEST_CASE("the strategies cycle balanced, early industry, early research, off", 
   CHECK(planet_goal_name(PlanetGoal::kEarlyResearch) == "Early research focus");
 }
 
+TEST_CASE("a planet's buildings are none by standard, the home planet's Shipyard first", "[game][content][pecustom]") {
+  OA_REQUIRE_TABLES(t);
+  Session session(*t);
+  play(session, Variant::kPeCustom, 0);
+  const Cosmos& cosmos = session.game->cosmos;
+  const Planet& home = cosmos.planets[static_cast<std::size_t>(player_planet(session))];
+  const Planet* other = nullptr;
+  for (PlanetIndex i = 0; i < cosmos.planet_count && other == nullptr; ++i) {
+    other = cosmos.planets[static_cast<std::size_t>(i)].owner == kNoOwner ? &cosmos.planets[static_cast<std::size_t>(i)]
+                                                                         : nullptr;
+  }
+  REQUIRE(other != nullptr);
+  const PlanetManagement h = planet_management_standard(session, home);
+  const PlanetManagement o = planet_management_standard(session, *other);
+  for (std::size_t b = 0; b < o.levels.size(); ++b) {
+    CAPTURE(b);
+    CHECK(o.levels[b] == BuildLevel::kNo);
+    CHECK(h.levels[b] == (b == PlanetManagement::kShipyard ? BuildLevel::kFirst : BuildLevel::kNo));
+  }
+  for (std::size_t c = 0; c < o.counts.size(); ++c) {
+    CAPTURE(c);
+    CHECK(o.counts[c] == 0);
+    CHECK(h.counts[c] == 0);
+  }
+}
+
 }  // namespace
 }  // namespace oa::game
