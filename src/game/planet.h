@@ -34,13 +34,30 @@ std::uint16_t planet_init_surface(Session& session, Planet& planet, std::uint16_
 // player gets industry x1.3 (Neutral, Hostile) and research x1.3 (Hostile),
 // and the Tractor Beam counts as a shield.
 void planet_recalc_output(const Session& session, Planet& planet);
-// The same from `squares` (the planet's, or a planner's copy of them);
-// `industry_sum`, if given, gets the industry before the output curve.
-void planet_recalc_output(const Session& session, Planet& planet, std::span<const Square> squares,
-                          std::int32_t* industry_sum = nullptr);
-// The output curve of industry and prosperity before the rounding down:
-// `(sum + 1) ** 0.85`, 0 for 0.
-double planet_output_curve(std::int32_t sum);
+// The same from `squares` (the planet's, or a planner's copy of them).
+void planet_recalc_output(const Session& session, Planet& planet, std::span<const Square> squares);
+
+// peCustom's output curve of industry and prosperity in tenths:
+// `sum ** 0.85` cut to tenths, 0 for 0 (the original's is `(sum + 1) **
+// 0.85` cut to whole units; peCustom: no building adds nothing).
+std::int32_t planet_output_tenths(std::int32_t sum);
+// The industry and prosperity a day in tenths: the whole units and, in
+// peCustom, the tenths. Every day's sum of industry or growth uses these.
+std::int32_t planet_industry_tenths(const Planet& planet);
+std::int32_t planet_prosperity_tenths(const Planet& planet);
+// The growth a day in tenths: the prosperity, +1 for an AI planet of
+// prosperity under 4.
+std::int32_t planet_growth_tenths(const Session& session, const Planet& planet);
+// Adds a day's `rate` tenths to `counter` (whole units) and `carry`
+// (tenths); returns whether `goal` tenths are reached: then `counter` is 0
+// and `carry` the excess, at most `rate` (peCustom's day of a project or of
+// the growth).
+bool planet_add_tenths(std::uint16_t& counter, std::uint16_t& carry, std::int32_t rate, std::int32_t goal);
+// Days the planet takes to build `cost` from its progress (0xffff without
+// industry): the planet screen's and the ship design window's days.
+std::int32_t planet_build_days(const Planet& planet, std::int32_t cost);
+// Days until the planet's next inhabitant (0xffff without growth).
+std::int32_t planet_growth_days(const Session& session, const Planet& planet);
 
 // Returns the first square holding `item`, `kNoSquare` if none
 // (`Planet_find_item` 0x34a1c).

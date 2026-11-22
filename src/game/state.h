@@ -147,6 +147,15 @@ struct Planet {
   RawAddress fire_target = 0;         // +0x6f battle scratch
   std::uint32_t fire_result = 0;      // +0x73 battle scratch
   std::int32_t ship_cost = 0;         // +0x77 design being built here
+  // peCustom (`planet_recalc_output`, `planet_daily_update`; not in the
+  // record, the peCustom save trailer from format 9): the tenths of the
+  // industry and prosperity, and the tenths of industry and growth made but
+  // not yet added to `progress` and `growth` (the excess of a finished
+  // project or inhabitant, at most a day's). 0 in the other variants.
+  std::uint8_t industry_tenths = 0;
+  std::uint8_t prosperity_tenths = 0;
+  std::uint16_t progress_carry = 0;
+  std::uint16_t growth_carry = 0;
 };
 inline constexpr std::uint8_t kNoOwner = 0xff;
 inline constexpr std::uint8_t kPlanetRuins = 2;

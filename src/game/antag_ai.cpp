@@ -687,7 +687,7 @@ void antag_race_ai_design_ship(Session& session, Race& race, Ship& ship, Planet&
     if (planet.industry == 0) {
       planet.industry = 1;  // written to the planet (original side effect)
     }
-    if ((k * ship.slot_count + cost) / static_cast<std::uint16_t>(planet.industry) + 1 < race.ship_patience) {
+    if (10 * (k * ship.slot_count + cost) / planet_industry_tenths(planet) + 1 < race.ship_patience) {
       break;
     }
   }

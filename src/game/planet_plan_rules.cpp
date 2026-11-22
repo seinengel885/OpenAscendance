@@ -81,6 +81,11 @@ constexpr std::int32_t kTargetLead = 6;
 // Close to the final layout, each building may wait up to these days for
 // its worker before growth takes a square the layout wants for more.
 constexpr std::int32_t kShortWait = 5;
+// The longest a building of the early research focus's goal may take
+// before a factory goes first (Patrick's play: 17 days fine, 25 too long;
+// 15 gave the most early research against balanced without losing much
+// later).
+constexpr std::int32_t kLabDays = 15;
 // The share of the planet built from which single buildings set to come
 // along are built.
 constexpr double kAlongShare = 0.5;
@@ -245,7 +250,8 @@ class Rules {
     return b_.empty(square) && (b_.squares[square].color != 0 || black_usable_);
   }
 
-  std::int32_t industry() const { return u16(b_.planet.industry); }
+  // The industry a day in tenths.
+  std::int32_t industry() const { return planet_industry_tenths(b_.planet); }
   std::int32_t days(std::uint8_t item) const { return build_days(b_.item(item).cost, industry()); }
   // The goal's outputs a day (balanced: both alike, so each square gets the
   // building of its colour).
@@ -272,7 +278,7 @@ class Rules {
     if (s.room() <= 0 || rate <= 0) {
       return kNever;
     }
-    return std::max(0, (s.pop_growth() - static_cast<std::int32_t>(s.planet.growth) + rate - 1) / rate);
+    return std::max(0, (s.pop_growth() - s.growth_made() + rate - 1) / rate);
   }
   // The prosperity of the buildings before the population's share is taken
   // (`planet_recalc_output`).
@@ -302,7 +308,7 @@ class Rules {
   // The inhabitants born within `days`.
   std::int32_t births(const Sim& s, std::int32_t within) const {
     const std::int32_t per = s.built(s.find(kCloningPlant)) ? 2 : 1;
-    return (static_cast<std::int32_t>(s.planet.growth) + s.growth_rate() * within) / s.pop_growth() * per;
+    return (s.growth_made() + s.growth_rate() * within) / s.pop_growth() * per;
   }
 
   // Days until the next inhabitant if `a` is started now (the growth goes
@@ -316,7 +322,7 @@ class Rules {
     }
     const std::int32_t d = days(a.item);
     const std::int32_t r0 = before.growth_rate();
-    const std::int32_t need = before.pop_growth() - static_cast<std::int32_t>(before.planet.growth);
+    const std::int32_t need = before.pop_growth() - before.growth_made();
     const std::int32_t r1 = b_.with(a, [](const Sim& s) { return s.growth_rate(); });
     if (r1 <= 0) {
       return kNever;
@@ -576,7 +582,7 @@ class Rules {
     std::int32_t best_days = days(item);
     std::optional<Action> best = direct;
     for (const Action& a : candidates(Role::kIndustry, [](const PlanItem& it) { return it.industry > 0; })) {
-      const std::int32_t after = b_.with(a, [](const Sim& s) { return u16(s.planet.industry); });
+      const std::int32_t after = b_.with(a, [](const Sim& s) { return planet_industry_tenths(s.planet); });
       if (const std::int32_t d = days(a.item) + build_days(cost, after); d < best_days) {
         best_days = d;
         best = a;
@@ -862,64 +868,20 @@ class Rules {
     return best;
   }
 
-  // The day (from today) the `labs`-th of the goal's buildings (`lab_cost`)
-  // is done with the planet's industry at `industry`, after a factory
-  // `factory_days` long (0: none): each starts once a worker is free for it
-  // (the free ones, then births as far as there is room), housing
-  // (`house`, its worker not counted) first where the room is full.
-  std::int32_t labs_done(std::int32_t factory_days, std::int32_t industry, std::int32_t lab_cost, std::int32_t labs,
-                         const std::optional<Action>& house) const {
-    const std::int32_t free = b_.free_population();
-    std::int32_t room = b_.room();
-    std::int32_t day = 0;
-    std::int32_t started = 0;
-    const auto start = [&](std::int32_t length) {
-      ++started;
-      while (free + std::min(births(b_, day), room) < started && day < kNever) {
-        ++day;
-      }
-      day = std::min(kNever, day + length);
-    };
-    if (factory_days > 0) {
-      start(factory_days);
-    }
-    for (std::int32_t i = 0; i < labs; ++i) {
-      if (house && free + room <= started) {
-        const PlanItem& h = b_.item(house->item);
-        day = std::min(kNever, day + build_days(h.cost, industry));
-        room += h.max_population;
-      }
-      start(build_days(lab_cost, industry));
-    }
-    return day;
-  }
-
-  // 4 (early research focus). A factory first only when the goal's
-  // buildings for the workers to come (and their housing) are done sooner
-  // with it.
+  // 4 (early research focus, as Patrick plays it): the goal's building
+  // unless it takes longer than `kLabDays`; then the factory that speeds it
+  // up most.
   std::optional<Action> sooner_labs(const Action& next) {
-    const std::int32_t squares = std::max(1, empty_ - 1);
-    const std::int32_t free = b_.free_population();
-    // The goal's buildings for the workers there are and those born while
-    // they are built.
-    std::int32_t labs = std::clamp(free, 1, squares);
-    for (std::int32_t more = 0; more < squares; ++more) {
-      const std::int32_t workers = std::clamp(free + births(b_, labs * days(next.item)), 1, squares);
-      if (workers <= labs) {
-        break;
-      }
-      labs = workers;
+    if (days(next.item) <= kLabDays) {
+      return std::nullopt;
     }
-    const std::int32_t lab_cost = b_.item(next.item).cost;
-    const std::vector<Action> houses = candidates(Role::kHousing, [](const PlanItem& it) { return it.max_population > 0; });
-    const std::optional<Action> house = houses.empty() ? std::nullopt : std::optional(houses.front());
     std::optional<Action> best;
-    std::int32_t best_day = labs_done(0, industry(), lab_cost, labs, house);
+    std::int32_t best_industry = industry();
     for (const Action& a : toward_target(candidates(Role::kIndustry, [](const PlanItem& it) { return it.industry > 0; }))) {
-      const std::int32_t after = b_.with(a, [](const Sim& s) { return static_cast<std::int32_t>(u16(s.planet.industry)); });
-      if (const std::int32_t day = labs_done(days(a.item), after, lab_cost, labs, house); day < best_day) {
+      const std::int32_t after = b_.with(a, [](const Sim& s) { return planet_industry_tenths(s.planet); });
+      if (after > best_industry) {
         best = a;
-        best_day = day;
+        best_industry = after;
       }
     }
     return best;
@@ -988,11 +950,14 @@ class Rules {
   // The prosperity a day kept: a Shipyard's (while no more workers than
   // those for ships are free).
   std::int32_t kept_growth() const { return b_.free_population() <= ship_workers() ? ship_growth() : 0; }
-  // The points of `output` its buildings may not go below when making way:
-  // all while kept, the final build-out's minimum (`FinalOutput`).
-  std::int32_t kept_points(PlanetManagement::Output output, std::int32_t now) const {
+  // The points of `output` its buildings may not go below when making way,
+  // `now` and the result in units of `unit` points: all while kept, the
+  // final build-out's minimum (`FinalOutput`).
+  std::int32_t kept_points(PlanetManagement::Output output, std::int32_t now, std::int32_t unit) const {
     const FinalOutput& f = m_.final_outputs[output];
-    return std::min<std::int32_t>(now, f.mode == FinalMode::kKeep ? now : f.mode == FinalMode::kAtLeast ? f.value : 0);
+    return std::min<std::int32_t>(now, f.mode == FinalMode::kKeep      ? now
+                                       : f.mode == FinalMode::kAtLeast ? unit * f.value
+                                                                       : 0);
   }
   // The prosperity a day for an inhabitant within a ship's building time
   // (0 without a Shipyard).
@@ -1021,8 +986,8 @@ class Rules {
     std::vector<Victim> all;
     const std::int32_t need = needed_growth();
     const std::int32_t rate = b_.growth_rate();
-    const std::int32_t min_industry = kept_points(PlanetManagement::kIndustry, industry());
-    const std::int32_t min_research = kept_points(PlanetManagement::kResearch, u16(b_.planet.research));
+    const std::int32_t min_industry = kept_points(PlanetManagement::kIndustry, industry(), 10);
+    const std::int32_t min_research = kept_points(PlanetManagement::kResearch, u16(b_.planet.research), 1);
     const double now = value(b_);
     for (std::uint16_t i = 0; i < b_.planet.surface_squares; ++i) {
       const std::uint8_t it = b_.squares[i].item;
@@ -1031,7 +996,7 @@ class Rules {
       }
       const auto [loss, ok] = b_.with(Action{kNoItem, i, i}, [&](const Sim& s) {
         const bool keeps = (b_.item(it).prosperity <= 0 || s.growth_rate() >= std::min(need, rate)) &&
-                           (b_.item(it).industry <= 0 || u16(s.planet.industry) >= min_industry) &&
+                           (b_.item(it).industry <= 0 || planet_industry_tenths(s.planet) >= min_industry) &&
                            (b_.item(it).research <= 0 || u16(s.planet.research) >= min_research);
         return std::pair{now - value(s), keeps};
       });

@@ -256,7 +256,7 @@ PlanetAlarm planet_alarm(const Session& session, const Planet& planet) {
   const bool empty = std::ranges::any_of(squares.first(planet.surface_squares), [](const Square& sq) {
     return sq.item == kNoItem && sq.color != 0 && (sq.color & kSquareRuins) == 0;
   });
-  if (empty && planet.prosperity <= 0 && planet.population < planet.max_population &&
+  if (empty && planet_prosperity_tenths(planet) <= 0 && planet.population < planet.max_population &&
       planet.population <= planet.used_population) {
     return PlanetAlarm::kGrowthStopped;
   }

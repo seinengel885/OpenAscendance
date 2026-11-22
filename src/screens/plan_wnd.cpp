@@ -1220,6 +1220,9 @@ void PlSquareWnd::draw(int /*mode*/) {
   // growth line.
   std::string label;
   std::int32_t value = 0;
+  // peCustom: the industry's and prosperity's tenths (-1: none shown).
+  std::int32_t tenths = -1;
+  const bool pe_custom = s->game->variant == game::Variant::kPeCustom;
   bool second = false;
   std::string topic;
   std::string verb;
@@ -1244,14 +1247,14 @@ void PlSquareWnd::draw(int /*mode*/) {
     case kIndustry: {
       label = wm_.static_string(kStringIndustry);
       value = static_cast<std::uint16_t>(p.industry);
+      tenths = pe_custom ? p.industry_tenths : -1;
       const std::uint16_t sq = p.project_square;
       const std::uint8_t item = sq < 0xffff ? game::planet_squares(cosmos, p)[sq].item : game::kNoItem;
       if (item != game::kNoItem) {
         topic = s->tables->planitems.items[item].name;
         second = true;
-        days = game::research_days_left(
-            static_cast<std::int32_t>(game::planet_project_cost(*s, p, sq, game::kNoItem) & 0xffff), p.progress,
-            static_cast<std::uint16_t>(p.industry));
+        days = game::planet_build_days(
+            p, static_cast<std::int32_t>(game::planet_project_cost(*s, p, sq, game::kNoItem) & 0xffff));
       }
       verb = wm_.static_string(kStringBeCompleted);
       stalled = wm_.static_string(kStringNoProgressOn);
@@ -1260,12 +1263,12 @@ void PlSquareWnd::draw(int /*mode*/) {
     case kProsperity:
       label = wm_.static_string(kStringProsperity);
       value = static_cast<std::uint16_t>(p.prosperity);
+      tenths = pe_custom ? p.prosperity_tenths : -1;
       topic = wm_.static_string(kStringPopulation);
       verb = wm_.static_string(kStringGrow);
       second = true;
       if (p.population < p.max_population) {
-        days = game::research_days_left(s->tables->planitems.pop_growth, p.growth,
-                                        static_cast<std::uint16_t>(p.prosperity));
+        days = game::planet_growth_days(*s, p);
         if ((days & 0xffff) == 0xffff) {
           stalled = wm_.static_string(kStringNotGrowing);
         }
@@ -1302,7 +1305,9 @@ void PlSquareWnd::draw(int /*mode*/) {
       break;
   }
   if (!label.empty()) {
-    line(0xf, c_format(wm_.static_string(kStringPerDay), name_of(p.name).c_str(), label.c_str(), value));
+    line(0xf, tenths < 0 ? c_format(wm_.static_string(kStringPerDay), name_of(p.name).c_str(), label.c_str(), value)
+                         : c_format(wm_.remake_text("%s %s: %d.%d per day"), name_of(p.name).c_str(), label.c_str(),
+                                    value, tenths));
     if (second) {
       if ((days & 0xffff) == 0xffff) {
         line(0x50, c_format(stalled, topic.c_str()));
@@ -1378,9 +1383,8 @@ void PlSquareWnd::draw_square(const game::Session& s, const game::Planet& p, Gam
   const std::string on = orbital ? "" : c_format(wm_.static_string(kStringOnSquare), color.c_str());
   font.draw_wrapped(screen, 0, 0xf, automated + name + on, kFontCenterH, kDefault, kDefault, 0);
   if (sq.flags == 0) {
-    const std::int32_t days = game::research_days_left(
-        static_cast<std::int32_t>(game::planet_project_cost(s, p, square_, game::kNoItem) & 0xffff), p.progress,
-        static_cast<std::uint16_t>(p.industry));
+    const std::int32_t days = game::planet_build_days(
+        p, static_cast<std::int32_t>(game::planet_project_cost(s, p, square_, game::kNoItem) & 0xffff));
     const std::string text = days == 0xffff
                                  ? wm_.static_string(kStringNoProgressSquare)
                                  : c_format(wm_.static_string(kStringSquareDays), days,

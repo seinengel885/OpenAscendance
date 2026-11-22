@@ -83,14 +83,9 @@ class Sim {
   std::int32_t room() const {
     return static_cast<std::int32_t>(planet.max_population) - static_cast<std::int32_t>(planet.population);
   }
-  // The goal's outputs a day. The industry counts its fraction lost to the
-  // rounding down: one more Factory often adds less than 1, but always some.
-  // The industry a day before it is rounded down (without the AI's boost).
-  double exact_industry() const { return planet_output_curve(industry_sum_); }
-  double rate(const Weights& w) const {
-    const double exact = planet_output_curve(industry_sum_);
-    return w.industry * (u16(planet.industry) + (exact - std::floor(exact))) + w.research * u16(planet.research);
-  }
+  // The industry a day with its tenths, and the goal's outputs a day.
+  double exact_industry() const { return planet_industry_tenths(planet) / 10.0; }
+  double rate(const Weights& w) const { return w.industry * exact_industry() + w.research * u16(planet.research); }
 
   bool built(std::uint16_t square) const {
     return square != kNoSquare && squares[square].item != kNoItem && (squares[square].flags & kSquareBuilt) != 0;
@@ -115,16 +110,14 @@ class Sim {
     return sq.item != kNoItem && item(sq.item).max_population <= room();
   }
 
-  void recalc() { planet_recalc_output(*session_, planet, squares, &industry_sum_); }
+  void recalc() { planet_recalc_output(*session_, planet, squares); }
 
-  // The growth needed per inhabitant, and the growth a day: the
-  // prosperity, +1 for an AI planet of prosperity under 4
+  // The growth needed per inhabitant, and the growth a day, in tenths
   // (`planet_daily_update`).
-  std::int32_t pop_growth() const { return session_->tables->planitems.pop_growth; }
-  std::int32_t growth_rate() const {
-    const std::int32_t p = u16(planet.prosperity);
-    return p + (planet.owner != session_->player_race && p < 4 ? 1 : 0);
-  }
+  std::int32_t pop_growth() const { return 10 * session_->tables->planitems.pop_growth; }
+  std::int32_t growth_rate() const { return planet_growth_tenths(*session_, planet); }
+  // The growth gathered toward the next inhabitant, in tenths.
+  std::int32_t growth_made() const { return 10 * planet.growth + planet.growth_carry; }
 
   // Starts `a` as the project.
   void start(const Action& a) {
@@ -144,7 +137,6 @@ class Sim {
   template <typename F>
   auto with(const Action& a, F look) {
     const Planet saved = planet;
-    const std::int32_t saved_sum = industry_sum_;
     const std::uint16_t victim = a.victim != kNoSquare ? a.victim : a.square;
     const Square old_victim = squares[victim];
     const Square square = squares[a.square];
@@ -160,7 +152,6 @@ class Sim {
     recalc();
     auto result = look(*this);
     planet = saved;
-    industry_sum_ = saved_sum;
     squares[a.square] = square;
     squares[victim] = old_victim;
     return result;
@@ -171,8 +162,8 @@ class Sim {
   bool day() {
     bool changed = false;
     if (planet.project_item != kNoItem) {
-      planet.progress = static_cast<std::uint16_t>(planet.progress + planet.industry);
-      if (planet.progress >= item(planet.project_item).cost) {
+      if (planet_add_tenths(planet.progress, planet.progress_carry, planet_industry_tenths(planet),
+                            10 * item(planet.project_item).cost)) {
         Square& sq = squares[planet.project_square];
         if (planet.project_item == kItemTerraforming) {
           sq = Square{1, kNoItem, 0};
@@ -186,9 +177,10 @@ class Sim {
       }
     }
     bool reset = planet.population >= planet.max_population;
-    if (!reset) {
-      planet.growth = static_cast<std::uint16_t>(planet.growth + growth_rate());
-      if (pop_growth() <= static_cast<std::int32_t>(planet.growth)) {
+    if (reset) {
+      planet.growth_carry = 0;
+    } else {
+      if (planet_add_tenths(planet.growth, planet.growth_carry, growth_rate(), pop_growth())) {
         planet.population = static_cast<std::uint16_t>(planet.population + 1);
         if (built(find(kCloningPlant))) {
           planet.population = static_cast<std::uint16_t>(planet.population + 1);
@@ -222,12 +214,11 @@ class Sim {
  private:
   const Session* session_;
   const Neighbours* neighbours_;
-  std::int32_t industry_sum_ = 0;
 };
 
-// Days to build `cost` at `industry`.
+// Days to build `cost` at `industry` tenths a day.
 inline std::int32_t build_days(std::int32_t cost, std::int32_t industry) {
-  return industry > 0 ? (cost + industry - 1) / industry : 100000;
+  return industry > 0 ? (10 * cost + industry - 1) / industry : 100000;
 }
 
 }  // namespace oa::game::plan_detail

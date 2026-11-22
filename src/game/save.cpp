@@ -13,6 +13,7 @@
 #include "core/byte_reader.h"
 #include "core/error.h"
 #include "core/fixed_width.h"
+#include "game/planet.h"
 #include "game/race.h"
 
 namespace oa::game {
@@ -666,6 +667,17 @@ SaveImage parse_save(std::span<const std::uint8_t> data, std::optional<RawAddres
           }
         }
       }
+      if (image.pe_custom_version >= 9) {
+        for (Planet& p : image.planets) {
+          p.industry_tenths = in.u8();
+          p.prosperity_tenths = in.u8();
+          p.progress_carry = in.u16();
+          p.growth_carry = in.u16();
+          if (p.industry_tenths > 9 || p.prosperity_tenths > 9) {
+            in.fail(std::format("planet output tenths {} {}", p.industry_tenths, p.prosperity_tenths));
+          }
+        }
+      }
     }
     if (!in.at_end()) {
       in.fail("data after the variant trailer");
@@ -789,6 +801,12 @@ std::vector<std::uint8_t> serialize_save(const SaveImage& image) {
         w.i16(f.value);
         w.i8(f.weight);
       }
+    }
+    for (const Planet& p : image.planets) {
+      w.u8(p.industry_tenths);
+      w.u8(p.prosperity_tenths);
+      w.u16(p.progress_carry);
+      w.u16(p.growth_carry);
     }
   }
   return std::move(out);
@@ -958,6 +976,15 @@ void load_game(Session& session, const SaveImage& image) {
   game.variant = image.variant == Variant::kStandard && image.cosmos_address == kAntagCosmosAddress
                      ? Variant::kAntagonizer
                      : image.variant;
+  // A peCustom save before format 9: the outputs of its own curve, in tenths.
+  if (game.variant == Variant::kPeCustom && image.pe_custom_version < 9) {
+    for (std::int16_t i = 0; i < cosmos.planet_count; ++i) {
+      Planet& planet = cosmos.planets[static_cast<std::size_t>(i)];
+      if (planet.owner != kNoOwner) {
+        planet_recalc_output(session, planet);
+      }
+    }
+  }
   session.stale_header = image.header;
   session.window_state = image.window_state;
 }

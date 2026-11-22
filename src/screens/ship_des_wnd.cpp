@@ -7,6 +7,7 @@
 
 #include "core/c_format.h"
 #include "core/error.h"
+#include "game/planet.h"
 #include "game/research.h"
 #include "game/session.h"
 #include "game/ship.h"
@@ -330,8 +331,7 @@ void ShipDesWnd::draw_info(const game::Session& s, const game::Ship& ship) {
   if (&ship != &template_ && modified_ && cosmos.selected_planet != game::kNone) {
     const game::Planet& planet = cosmos.planets.at(static_cast<std::size_t>(cosmos.selected_planet));
     const std::int32_t cost = mode_ == kRefit ? refit_cost(s) : game::ship_industry_cost(s, ship);
-    const std::int32_t days =
-        game::research_days_left(cost, planet.progress, static_cast<std::uint16_t>(planet.industry));
+    const std::int32_t days = game::planet_build_days(planet, cost);
     if (days != 0xffff) {
       days_text = c_format(wm_.static_string(kStringDays), static_cast<int>(days),
                            wm_.static_string(days == 1 ? kStringNoEnding : kStringPlural).c_str());

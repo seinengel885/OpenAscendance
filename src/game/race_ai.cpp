@@ -455,7 +455,7 @@ void race_ai_manage_planet(Session& session, Race& race, Planet& planet) {
     if (planet_find_item(cosmos, planet, c.item) == kNoSquare) {
       // The first item the planet lacks ends the scan; it is taken when it
       // costs less than 70 days (the best so far stays chosen otherwise).
-      if (items.items[c.item].cost / planet.industry < 70) {
+      if (10 * items.items[c.item].cost / planet_industry_tenths(planet) < 70) {
         chosen = c.item;
       }
       break;
@@ -753,7 +753,7 @@ void race_ai_design_ship(Session& session, Race& race, Ship& ship, Planet& plane
     if (planet.industry == 0) {
       planet.industry = 1;  // original quirk: written to the planet
     }
-    if ((k * ship.slot_count + cost) / static_cast<std::uint16_t>(planet.industry) + 1 < race.ship_patience) {
+    if (10 * (k * ship.slot_count + cost) / planet_industry_tenths(planet) + 1 < race.ship_patience) {
       break;
     }
   }
@@ -961,7 +961,7 @@ Ship* race_ai_new_ship(Session& session, Race& race, Planet& planet) {
   const auto cost = static_cast<std::uint16_t>(ship_industry_cost(session, *ship));
   ship->location_kind = ShipLocation::kBuilding;
   ship->location = planet_index(cosmos, planet);
-  ship->built_day = static_cast<std::int32_t>(cost / static_cast<std::uint16_t>(planet.industry)) + cosmos.day + 1;
+  ship->built_day = 10 * cost / planet_industry_tenths(planet) + cosmos.day + 1;
   return ship;
 }
 

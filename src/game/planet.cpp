@@ -1,5 +1,6 @@
 #include "game/planet.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <optional>
@@ -50,7 +51,7 @@ void set_weapon_shots(const GameTables& tables, Square& sq, std::uint8_t item) {
 
 // Returns `trunc((sum + 1) ** 0.85)` for a non-zero `sum`, else 0: the
 // output curve of industry and prosperity (pow 0x73f30, `__CHP`).
-std::int32_t curve(std::int32_t sum) { return sum == 0 ? 0 : chop(planet_output_curve(sum)); }
+std::int32_t curve(std::int32_t sum) { return sum == 0 ? 0 : chop(std::pow(static_cast<double>(sum + 1), 0.85)); }
 
 // The first square of `squares` holding `item`, `kNoSquare` if none.
 std::uint16_t find_item(std::span<const Square> squares, std::uint8_t item) {
@@ -183,10 +184,48 @@ void planet_recalc_output(const Session& session, Planet& planet) {
   planet_recalc_output(session, planet, planet_squares(session.game->cosmos, planet));
 }
 
-double planet_output_curve(std::int32_t sum) { return sum == 0 ? 0.0 : std::pow(static_cast<double>(sum + 1), 0.85); }
+std::int32_t planet_output_tenths(std::int32_t sum) {
+  return sum == 0 ? 0 : chop(10.0 * std::pow(static_cast<double>(sum), 0.85));
+}
 
-void planet_recalc_output(const Session& session, Planet& planet, std::span<const Square> squares,
-                          std::int32_t* industry_sum) {
+std::int32_t planet_industry_tenths(const Planet& planet) {
+  return 10 * static_cast<std::uint16_t>(planet.industry) + planet.industry_tenths;
+}
+
+std::int32_t planet_prosperity_tenths(const Planet& planet) {
+  return 10 * static_cast<std::uint16_t>(planet.prosperity) + planet.prosperity_tenths;
+}
+
+std::int32_t planet_growth_tenths(const Session& session, const Planet& planet) {
+  const bool weak_ai = planet.owner != session.player_race && static_cast<std::uint16_t>(planet.prosperity) < 4;
+  return planet_prosperity_tenths(planet) + (weak_ai ? 10 : 0);
+}
+
+bool planet_add_tenths(std::uint16_t& counter, std::uint16_t& carry, std::int32_t rate, std::int32_t goal) {
+  const std::int32_t total = 10 * counter + carry + rate;
+  if (total >= goal) {
+    counter = 0;
+    carry = wrap_u16(std::min(total - goal, rate));
+    return true;
+  }
+  counter = wrap_u16(total / 10);
+  carry = wrap_u16(total % 10);
+  return false;
+}
+
+std::int32_t planet_build_days(const Planet& planet, std::int32_t cost) {
+  return research_days_left(10 * cost, 10 * planet.progress + planet.progress_carry, planet_industry_tenths(planet));
+}
+
+std::int32_t planet_growth_days(const Session& session, const Planet& planet) {
+  // Original bug, fixed in peCustom: the days ignored an AI planet's +1.
+  const std::int32_t rate = session.game->variant == Variant::kPeCustom ? planet_growth_tenths(session, planet)
+                                                                         : planet_prosperity_tenths(planet);
+  return research_days_left(10 * session.tables->planitems.pop_growth, 10 * planet.growth + planet.growth_carry,
+                            rate);
+}
+
+void planet_recalc_output(const Session& session, Planet& planet, std::span<const Square> squares) {
   const GameTables& tables = *session.tables;
   const Cosmos& cosmos = session.game->cosmos;
   const bool antagonizer = antagonizer_rules(session.game->variant);
@@ -261,31 +300,47 @@ void planet_recalc_output(const Session& session, Planet& planet, std::span<cons
     default:
       break;
   }
-  if (industry_sum != nullptr) {
-    *industry_sum = industry;
-  }
-  industry = curve(industry);
-  prosperity = curve(prosperity) - (planet.population >> 2);
-  if (prosperity < 0) {
-    prosperity = 0;
+  const bool boosted = antagonizer && planet.owner != session.player_race && !session.autoplay &&
+                       cosmos.atmosphere != Atmosphere::kPeaceful;
+  const bool pe_custom = session.game->variant == Variant::kPeCustom;
+  std::int32_t industry_tenths = 0;
+  std::int32_t prosperity_tenths = 0;
+  if (pe_custom) {
+    // peCustom: in tenths, the AI's boost on them.
+    industry_tenths = planet_output_tenths(industry);
+    if (boosted) {
+      industry_tenths = chop(static_cast<double>(industry_tenths) * 1.3);
+    }
+    prosperity_tenths = std::max(0, planet_output_tenths(prosperity) - 10 * (planet.population >> 2));
+    industry = industry_tenths / 10;
+    prosperity = prosperity_tenths / 10;
+  } else {
+    industry = curve(industry);
+    prosperity = curve(prosperity) - (planet.population >> 2);
+    if (prosperity < 0) {
+      prosperity = 0;
+    }
   }
   planet.free_surface = free_surface;
   planet.free_black = free_black;
   planet.free_orbital = free_orbital;
   planet.industry = wrap_i16(industry);
+  planet.industry_tenths = static_cast<std::uint8_t>(industry_tenths % 10);
   planet.research = wrap_i16(research);
-  if (antagonizer && planet.owner != session.player_race && !session.autoplay &&
-      cosmos.atmosphere != Atmosphere::kPeaceful) {
+  if (boosted) {
     // The stored words, read back unsigned, times the double 1.3 (0x91db5).
     const auto boost = [](std::int16_t& v) {
       v = wrap_i16(chop(static_cast<double>(static_cast<std::uint16_t>(v)) * 1.3));
     };
-    boost(planet.industry);
+    if (!pe_custom) {
+      boost(planet.industry);
+    }
     if (cosmos.atmosphere == Atmosphere::kHostile) {
       boost(planet.research);
     }
   }
   planet.prosperity = wrap_i16(prosperity);
+  planet.prosperity_tenths = static_cast<std::uint8_t>(prosperity_tenths % 10);
   planet.max_population = wrap_u16(max_population);
   planet.used_population = wrap_u16(used);
   planet.weapon_count = weapons;
@@ -595,16 +650,22 @@ void planet_daily_update(Session& session, Planet& planet) {
       }
     }
     if (planet.project_item != kNoItem && (item_of(tables, planet.project_item).flags & kItemContinuous) == 0) {
-      // Hostile: +1 production for a weak AI planet (not in the Antagonizer,
-      // ANTAG 0x352e0).
-      if (!antagonizer_rules(session.game->variant) && planet.owner != session.player_race &&
-          cosmos.atmosphere == Atmosphere::kHostile && static_cast<std::uint16_t>(planet.industry) < 4) {
-        planet.progress = wrap_u16(planet.progress + 1);
-      }
-      planet.progress = wrap_u16(planet.progress + planet.industry);
       const std::uint16_t cost =
           wrap_u16(planet_project_cost(session, planet, planet.project_square, planet.project_item));
-      if (planet.progress >= cost) {
+      bool done = false;
+      if (session.game->variant == Variant::kPeCustom) {
+        done = planet_add_tenths(planet.progress, planet.progress_carry, planet_industry_tenths(planet), 10 * cost);
+      } else {
+        // Hostile: +1 production for a weak AI planet (not in the
+        // Antagonizer, ANTAG 0x352e0).
+        if (!antagonizer_rules(session.game->variant) && planet.owner != session.player_race &&
+            cosmos.atmosphere == Atmosphere::kHostile && static_cast<std::uint16_t>(planet.industry) < 4) {
+          planet.progress = wrap_u16(planet.progress + 1);
+        }
+        planet.progress = wrap_u16(planet.progress + planet.industry);
+        done = planet.progress >= cost;
+      }
+      if (done) {
         const std::uint8_t item = planet.project_item;
         if (planet.owner == session.player_race && item == kItemLaboratory &&
             session.game->research.project[session.player_race] == -1 &&
@@ -664,12 +725,21 @@ void planet_daily_update(Session& session, Planet& planet) {
       }
     }
     bool reset_growth = planet.population >= planet.max_population;
-    if (!reset_growth) {
-      planet.growth = wrap_u16(planet.growth + planet.prosperity);
-      if (planet.owner != session.player_race && static_cast<std::uint16_t>(planet.prosperity) < 4) {
-        planet.growth = wrap_u16(planet.growth + 1);
+    if (reset_growth) {
+      planet.growth_carry = 0;
+    } else {
+      bool grown = false;
+      if (session.game->variant == Variant::kPeCustom) {
+        grown = planet_add_tenths(planet.growth, planet.growth_carry, planet_growth_tenths(session, planet),
+                                  10 * tables.planitems.pop_growth);
+      } else {
+        planet.growth = wrap_u16(planet.growth + planet.prosperity);
+        if (planet.owner != session.player_race && static_cast<std::uint16_t>(planet.prosperity) < 4) {
+          planet.growth = wrap_u16(planet.growth + 1);
+        }
+        grown = tables.planitems.pop_growth <= static_cast<std::int32_t>(planet.growth);
       }
-      if (tables.planitems.pop_growth <= static_cast<std::int32_t>(planet.growth)) {
+      if (grown) {
         if (planet.owner == session.player_race && session.screen != 17 &&
             planet.population == planet.used_population && !completed && planet.self_managed == 0 &&
             (planet.project_item == kNoItem || (item_of(tables, planet.project_item).flags & kItemContinuous) != 0)) {
@@ -730,8 +800,7 @@ std::uint32_t planet_project_cost(const Session& session, const Planet& planet, 
 
 std::int32_t planet_project_eta(const Session& session, const Planet& planet) {
   const std::uint32_t cost = planet_project_cost(session, planet, planet.project_square, planet.project_item);
-  return research_days_left(static_cast<std::int32_t>(cost & 0xffff), planet.progress,
-                            static_cast<std::uint16_t>(planet.industry));
+  return planet_build_days(planet, static_cast<std::int32_t>(cost & 0xffff));
 }
 
 ShipIndex planet_square_ship(const Session& session, const Planet& planet, std::uint16_t square) {

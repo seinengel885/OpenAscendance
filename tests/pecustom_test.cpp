@@ -20,6 +20,7 @@
 #include "core/error.h"
 #include "game/cosmos.h"
 #include "game/new_game.h"
+#include "game/planet.h"
 #include "game/planet_plan.h"
 #include "game/save.h"
 #include "game/session.h"
@@ -102,6 +103,10 @@ TEST_CASE("a peCustom game saves and loads as peCustom", "[game][content][pecust
   session.game->peace_offer_days[1] = 29;  // format 6 on
   management.bell = 1;                     // format 7 on
   management.final_outputs[PlanetManagement::kResearch] = {FinalMode::kMaximise, 0, 3};  // format 8 on
+  // The tenths carried (format 9 on); the outputs' tenths are the planet's.
+  Planet& planet = session.game->cosmos.planets.at(static_cast<std::size_t>(home));
+  planet.progress_carry = 13;
+  planet.growth_carry = 7;
   const std::vector<std::uint8_t> bytes = serialize_save(save_game(session));
   if (const char* out = std::getenv("OA_WRITE_PECUSTOM_FIXTURE"); out != nullptr && *out != '\0') {
     std::ofstream(out, std::ios::binary)
@@ -130,6 +135,11 @@ TEST_CASE("a peCustom game saves and loads as peCustom", "[game][content][pecust
   CHECK(loaded.game->peace_offer_days[1] == 29);
   CHECK(loaded.game->peace_offer_days[2] == kNoAttackDay);
   CHECK(m.bell == 1);
+  const Planet& p = loaded.game->cosmos.planets.at(static_cast<std::size_t>(home));
+  CHECK(p.progress_carry == 13);
+  CHECK(p.growth_carry == 7);
+  CHECK(p.industry_tenths == planet.industry_tenths);
+  CHECK(p.prosperity_tenths == planet.prosperity_tenths);
   // Saved again: the same file but for what loading resets (the AI target
   // counts, the clusters), as for the original's saves.
   SaveImage expected = image;
@@ -334,6 +344,38 @@ TEST_CASE("the version-8 peCustom saves still load", "[game][content][pecustom]"
   const PlanetManagement& m = session.game->planet_management.at(static_cast<std::size_t>(player_planet(session)));
   CHECK(m.final_outputs[PlanetManagement::kIndustry] == FinalOutput{FinalMode::kAtLeast, 7, kFinalWeights});
   CHECK(m.final_outputs[PlanetManagement::kResearch] == FinalOutput{FinalMode::kMaximise, 0, 3});
+  // The outputs of peCustom's curve, in tenths, from the start.
+  for (PlanetIndex i = 0; i < session.game->cosmos.planet_count; ++i) {
+    const Planet& p = session.game->cosmos.planets[static_cast<std::size_t>(i)];
+    if (p.owner == kNoOwner) {
+      continue;
+    }
+    Planet again = p;
+    planet_recalc_output(session, again);
+    CAPTURE(i);
+    CHECK(planet_industry_tenths(p) == planet_industry_tenths(again));
+    CHECK(planet_prosperity_tenths(p) == planet_prosperity_tenths(again));
+    CHECK(p.progress_carry == 0);
+  }
+  cosmos_next_turn(session);
+  session.events.take();
+  CHECK(session.game->cosmos.day == 31);
+}
+
+TEST_CASE("the version-9 peCustom saves still load", "[game][content][pecustom]") {
+  OA_REQUIRE_TABLES(t);
+  const auto saved = versioned_save(9);
+  if (!saved) {
+    SKIP("OA_PECUSTOM_SAVES is not set to the folder of pecustom_v9.sav");
+  }
+  const SaveImage image = parse_save(*saved);
+  CHECK(image.pe_custom_version == 9);
+  Session session(*t);
+  load_game(session, image);
+  // The tenths carried the save was written with.
+  const Planet& p = session.game->cosmos.planets.at(static_cast<std::size_t>(player_planet(session)));
+  CHECK(p.progress_carry == 13);
+  CHECK(p.growth_carry == 7);
   cosmos_next_turn(session);
   session.events.take();
   CHECK(session.game->cosmos.day == 31);

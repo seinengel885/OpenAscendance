@@ -53,7 +53,10 @@ inline constexpr RawAddress kAntagCosmosAddress = 0x219f6c;
 // 7: the project bell of each planet's management.
 // 8: the final build-out of each planet's management (format 4's minima
 //    read into it).
-inline constexpr std::uint32_t kPeCustomSaveVersion = 8;
+// 9: each planet's tenths of industry and prosperity and its carried
+//    tenths of progress and growth (`Planet::industry_tenths` ...); earlier
+//    saves load with none and the outputs recomputed.
+inline constexpr std::uint32_t kPeCustomSaveVersion = 9;
 
 // Size of the window state of the v1.6.5 window table (`COSMOSWnd` 0xbe,
 // 4 values, a 7-entry list box, 1 value, `BatModeWnd` 0x1a08, 2 values, the

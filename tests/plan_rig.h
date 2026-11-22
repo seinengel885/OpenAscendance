@@ -33,7 +33,7 @@ struct DayRecord {
   int day = 0;
   std::int32_t industry = 0;
   std::int32_t research = 0;
-  std::int32_t prosperity = 0;
+  std::int32_t prosperity = 0;  // in tenths
   std::int32_t population = 0;
   std::int32_t free_workers = 0;
   bool project = false;  // a project at the day's end
@@ -116,7 +116,7 @@ class PlanRig {
     r.day = day_;
     r.industry = static_cast<std::uint16_t>(planet_->industry);
     r.research = static_cast<std::uint16_t>(planet_->research);
-    r.prosperity = static_cast<std::uint16_t>(planet_->prosperity);
+    r.prosperity = planet_prosperity_tenths(*planet_);
     r.population = planet_->population;
     r.free_workers = planet_->population - planet_->used_population;
     r.project = planet_->project_item != kNoItem;
