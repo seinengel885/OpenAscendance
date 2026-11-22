@@ -666,5 +666,34 @@ TEST_CASE("a full colony moves its inhabitants from Outposts into Metroplexes on
   CHECK(at_final_layout(rig));
 }
 
+TEST_CASE("a full colony without a free worker set to dig first digs soon once the dig is known", "[pecustom][plan]") {
+  OA_REQUIRE_TABLES(t);
+  PlanRig rig(*t, 7, 1);
+  REQUIRE(rig.ready());
+  // Ruins on the last empty usable square.
+  const std::span<Square> sq = planet_squares(rig.session().game->cosmos, rig.planet());
+  std::uint16_t ruins = kNoSquare;
+  for (std::uint16_t i = 0; i < rig.planet().surface_squares; ++i) {
+    ruins = sq[i].item == kNoItem && (sq[i].color & 7u) != 0 ? i : ruins;
+  }
+  REQUIRE(ruins != kNoSquare);
+  sq[ruins].color |= kSquareRuins;
+  rig.management().levels[PlanetManagement::kDig] = BuildLevel::kFirst;
+  full_colony(rig);
+  // No worker free and no growth (as a research colony grows full).
+  REQUIRE(planet_prosperity_tenths(rig.planet()) == 0);
+  rig.planet().population = rig.planet().used_population;
+  rig.learn(kItemXenoDig);
+  const int known = rig.days.back().day;
+  rig.run(60);
+  int dug = 0;
+  for (const BuildStep& s : rig.steps) {
+    dug = dug == 0 && s.item == kItemXenoDig ? s.day : dug;
+  }
+  CAPTURE(known, dug);
+  CHECK(dug > known);
+  CHECK(dug <= known + 30);
+}
+
 }  // namespace
 }  // namespace oa::game

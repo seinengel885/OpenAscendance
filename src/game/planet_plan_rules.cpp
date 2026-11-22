@@ -243,8 +243,10 @@ class Rules {
         day += days(target_items_[o]);
       }
     }
-    // And the workers of the layout's housing still to come.
-    while (started < layout_workers_ && target_house_ != kNoItem) {
+    // And the workers of the layout's housing and of the buildings coming
+    // besides (orbital buildings, the dig) still to come.
+    const std::int32_t housing = target_house_ != kNoItem ? std::max(0, layout_workers_ - started) : 0;
+    for (std::int32_t i = 0; i < housing + coming_workers(); ++i) {
       ++started;
       const std::int32_t ready = day;
       while (free + births(b_, day) < started) {
@@ -252,7 +254,7 @@ class Rules {
           return false;
         }
       }
-      day += days(target_house_);
+      day += i < housing ? days(target_house_) : build_days(kTypicalCost, industry());
     }
     return true;
   }
@@ -311,7 +313,7 @@ class Rules {
   std::int32_t wanted_population() const {
     return std::min(100, static_cast<std::int32_t>(b_.planet.used_population) + std::max(empty_, layout_workers_) +
                              ship_workers() +
-                             orbital_workers());
+                             coming_workers());
   }
   // Free workers for a new building (a Shipyard's planet keeps its ship
   // workers once it is full).
@@ -577,8 +579,9 @@ class Rules {
     }
     return out;
   }
-  // The workers for the orbital buildings still to come (not set to never).
-  std::int32_t orbital_workers() const {
+  // The workers for the orbital buildings and the dig still to come (not
+  // set to never).
+  std::int32_t coming_workers() const {
     std::int32_t n = 0;
     if (wanted(PM::kOrbitalDefence)) {
       const std::array<std::int32_t, 3> wanted_counts = orbital_counts();
@@ -588,7 +591,20 @@ class Rules {
     }
     n += wanted(PM::kShipyard) && !shipyard_ ? 1 : 0;
     n += wanted(PM::kOrbitalDock) && !has(kOrbitalDocks) ? 1 : 0;
+    // And the dig's (its ruins square is no usable square).
+    n += wanted(PM::kDig) && dig_square() != kNoSquare ? 1 : 0;
     return n;
+  }
+  // The ruins square to dig on once the dig is known (`kNoSquare`: none).
+  std::uint16_t dig_square() const {
+    if (!race_knows_item(*session_, b_.planet, kItemXenoDig)) {
+      return kNoSquare;
+    }
+    std::uint16_t ruins = kNoSquare;
+    for (std::uint16_t i = 0; i < b_.planet.surface_squares; ++i) {
+      ruins = (b_.squares[i].color & kSquareRuins) != 0 && b_.squares[i].item == kNoItem ? i : ruins;
+    }
+    return ruins;
   }
 
   // How many of `n` are due at `level`: all coming first, the share of the
@@ -672,15 +688,20 @@ class Rules {
   }
 
   // `item` in orbit, or first the industry building that has it done
-  // sooner (its own days and those of `item` after it).
+  // sooner.
   std::optional<Action> sooner(std::uint8_t item) {
     const std::optional<Action> direct = orbital(item);
-    if (!direct || direct->victim != kNoSquare) {
+    return direct ? faster(*direct) : direct;
+  }
+  // `direct`, or first the industry building that has it done sooner (its
+  // own days and those of `direct` after it; not when a building makes way).
+  Action faster(const Action& direct) {
+    if (direct.victim != kNoSquare || direct.item == kNoItem) {
       return direct;
     }
-    const std::int32_t cost = b_.item(item).cost;
-    std::int32_t best_days = days(item);
-    std::optional<Action> best = direct;
+    const std::int32_t cost = b_.item(direct.item).cost;
+    std::int32_t best_days = days(direct.item);
+    Action best = direct;
     for (const Action& a : candidates(Role::kIndustry, [](const PlanItem& it) { return it.industry > 0; })) {
       const std::int32_t after = b_.with(a, [](const Sim& s) { return planet_industry_tenths(s.planet); });
       if (const std::int32_t d = days(a.item) + build_days(cost, after); d < best_days) {
@@ -693,16 +714,14 @@ class Rules {
 
   // The dig: Transport Tubes to the ruins, then the dig itself.
   std::optional<Action> dig() {
-    std::uint16_t ruins = kNoSquare;
-    for (std::uint16_t i = 0; i < b_.planet.surface_squares; ++i) {
-      ruins = (b_.squares[i].color & kSquareRuins) != 0 && b_.squares[i].item == kNoItem ? i : ruins;
-    }
-    if (ruins == kNoSquare || !race_knows_item(*session_, b_.planet, kItemXenoDig)) {
+    const std::uint16_t ruins = dig_square();
+    if (ruins == kNoSquare) {
       return std::nullopt;
     }
     if (b_.touches_built(ruins)) {
-      return free_workers() >= 1 && b_.can_place(kItemXenoDig, ruins) ? std::optional<Action>(Action{kItemXenoDig, ruins})
-                                                                     : std::nullopt;
+      return free_workers() >= 1 && b_.can_place(kItemXenoDig, ruins)
+                 ? std::optional<Action>(faster(Action{kItemXenoDig, ruins}))
+                 : std::nullopt;
     }
     // Breadth first from the ruins over empty squares to the nearest one
     // Transport Tubes may go on now.
@@ -851,7 +870,17 @@ class Rules {
         best_score = score;
       }
     }
-    return best;
+    // A factory first when it has the housing done sooner.
+    return best ? std::optional<Action>(faster(*best)) : best;
+  }
+
+  // Whether an Endless Party brings inhabitants (its prosperity, a quarter
+  // of the industry, may not outweigh the population's share).
+  bool party_grows() const {
+    Sim party = b_;
+    party.planet.project_item = kItemEndlessParty;
+    party.recalc();
+    return next_inhabitant(party) != kNever;
   }
 
   // 2. Growth before the workers run out.
@@ -883,9 +912,9 @@ class Rules {
     }
     if (options.empty()) {
       // No worker or no square: a party rather than a building taken down
-      // (it ends once a worker is free), else the least needed buildings
-      // may make way.
-      if (knows(kItemEndlessParty)) {
+      // if it brings inhabitants (it ends once a worker is free), else the
+      // least needed buildings may make way.
+      if (knows(kItemEndlessParty) && party_grows()) {
         return Action{kItemEndlessParty, kNoSquare};
       }
       options = make_way(Role::kGrowth, grows);
