@@ -27,7 +27,7 @@ constexpr int kDays = 600;
 constexpr std::array<int, 2> kSeeds{7, 11};
 // The day each size is full by: the latest of the rules of 2026-11-21
 // (seeds 7, 11, all strategies) and a tenth more, at most `kDays`; small
-// planets a few days more for the last 5 buildings toward the final layout.
+// planets a few days more for the last 6 buildings toward the final layout.
 constexpr std::array<int, 5> kFullBy{120, 165, 335, 370, kDays};
 
 bool housing_or_growth(const GameTables& t, std::uint8_t item) {
@@ -170,8 +170,8 @@ TEST_CASE("close to full a managed colony builds only what its final layout want
         for (std::size_t o = 0; o < missing.size(); ++o) {
           missing[o] = std::max(0, target.squares[o] - built[o]);
         }
-        // The last 5 buildings.
-        const bool follow = !rig.days.empty() && rig.days.back().empty <= 5;
+        // The last 6 buildings.
+        const bool follow = !rig.days.empty() && rig.days.back().empty <= 6;
         const std::size_t before = rig.steps.size();
         rig.day();
         for (std::size_t k = before; follow && k < rig.steps.size(); ++k) {

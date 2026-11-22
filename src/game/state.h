@@ -371,7 +371,8 @@ constexpr RaceDays no_attack_days() {
 // peCustom: what a self-managed planet of the player builds for
 // (`Game::planet_goals`, `game/planet_plan.h`). The values are saved: never
 // change them, append new goals. 0..5 were the goals of a former planner,
-// never played: saves holding them load as balanced.
+// never played, but saves of peCustom format 3 on hold them: they load as
+// balanced.
 enum class PlanetGoal : std::uint8_t {
   kBalanced = 6,       // industry and research alike
   kEarlyIndustry = 7,  // research, industry first while it holds the planet back

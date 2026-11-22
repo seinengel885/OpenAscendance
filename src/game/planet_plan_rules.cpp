@@ -77,9 +77,9 @@ constexpr std::int32_t kTypicalCost = 50;
 // The empty usable squares (the last buildings) from which the planet
 // builds only what its final layout wants: any other building would make
 // way again soon.
-constexpr std::int32_t kTargetLead = 5;
-// Close to the final layout, growth waits up to these days for the next
-// inhabitant before it takes a square the layout wants for more.
+constexpr std::int32_t kTargetLead = 6;
+// Close to the final layout, each building may wait up to these days for
+// its worker before growth takes a square the layout wants for more.
 constexpr std::int32_t kShortWait = 5;
 // The share of the planet built from which single buildings set to come
 // along are built.
@@ -164,6 +164,7 @@ class Rules {
       missing_[o] = std::max(0, target.squares[o] - outputs[o]);
     }
     missing_housing_ = std::max(0, target.housing - housing);
+    target_items_ = target.items;
     // Per building how many more there are than the layout wants (fewer:
     // negative).
     surplus_.assign(session.tables->planitems.items.size(), 0);
@@ -192,6 +193,27 @@ class Rules {
       return missing_[*o] > 0;
     }
     return planet_final_housing(item) && missing_housing_ > 0;
+  }
+  // Whether the growth of now brings the workers of the buildings the final
+  // layout still wants in time: built one after another, each waits
+  // `kShortWait` days at most for its worker.
+  bool growth_suffices() const {
+    const std::int32_t free = std::max(0, free_workers());
+    std::int32_t day = 0;
+    std::int32_t started = 0;
+    for (std::size_t o = 0; o < missing_.size(); ++o) {
+      for (std::int32_t i = 0; target_items_[o] != kNoItem && i < missing_[o]; ++i) {
+        ++started;
+        const std::int32_t ready = day;
+        while (free + births(b_, day) < started) {
+          if (++day - ready > kShortWait) {
+            return false;
+          }
+        }
+        day += days(target_items_[o]);
+      }
+    }
+    return true;
   }
   // `options` without what the final layout does not want, once it must be
   // followed.
@@ -740,9 +762,9 @@ class Rules {
       return std::nullopt;
     }
     const std::int32_t wait = next_inhabitant(b_);
-    // Close to the final layout a few days' wait rather than a square it
-    // wants for more.
-    if (!kept && wait <= kShortWait && must_follow_target() && missing_[PlanetManagement::kProsperity] == 0) {
+    // Close to the final layout no growth building it would take down
+    // again while the growth of now brings the workers in time.
+    if (!kept && must_follow_target() && missing_[PlanetManagement::kProsperity] == 0 && growth_suffices()) {
       return std::nullopt;
     }
     const auto grows = [](const PlanItem& it) { return it.prosperity > 0; };
@@ -1113,6 +1135,8 @@ class Rules {
   // it does not lay out: 0).
   std::vector<std::int32_t> surplus_;
   std::int32_t missing_housing_ = 0;
+  // The final layout's building per output (`kNoItem`: none).
+  std::array<std::uint8_t, PlanetManagement::kOutputs> target_items_{kNoItem, kNoItem, kNoItem};
   std::array<std::vector<std::int32_t>, 5> distance_{};
 };
 
