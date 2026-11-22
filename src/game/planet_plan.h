@@ -25,7 +25,8 @@ PlanetManagement planet_management(const Session& session, const Planet& planet)
 PlanetManagement planet_management_resolved(PlanetManagement own, const PlanetManagement& standard);
 // The standards of `planet`: no buildings (the player sets per planet what
 // it wants), but a Shipyard first on the owner's first planet; the final
-// build-out of the research preset.
+// build-out on the first planet industry and research maximised alike,
+// prosperity at least 2, else of the research preset.
 PlanetManagement planet_management_standard(const Session& session, const Planet& planet);
 
 // The final build-out's presets (`PlanetManagement::final_outputs`).

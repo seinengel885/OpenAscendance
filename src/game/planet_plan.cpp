@@ -166,7 +166,11 @@ PlanetManagement planet_management_standard(const Session& session, const Planet
   m.levels.fill(BuildLevel::kNo);
   m.levels[PlanetManagement::kShipyard] = first ? BuildLevel::kFirst : BuildLevel::kNo;
   m.counts.fill(0);
-  m.final_outputs = planet_final_preset(FinalPreset::kResearch, planet);
+  // The home planet: industry and research alike (ships and research),
+  // some prosperity.
+  constexpr FinalOutput kMax{FinalMode::kMaximise, 0, kFinalWeights};
+  m.final_outputs = first ? std::array{kMax, kMax, FinalOutput{FinalMode::kAtLeast, 2, kFinalWeights}}
+                          : planet_final_preset(FinalPreset::kResearch, planet);
   return m;
 }
 

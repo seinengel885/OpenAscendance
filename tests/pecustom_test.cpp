@@ -416,6 +416,12 @@ TEST_CASE("a planet's buildings are none by standard, the home planet's Shipyard
     CHECK(o.counts[c] == 0);
     CHECK(h.counts[c] == 0);
   }
+  // The home planet's final build-out: industry and research alike, some
+  // prosperity; the others the research preset.
+  CHECK(h.final_outputs[PlanetManagement::kIndustry] == FinalOutput{FinalMode::kMaximise, 0, kFinalWeights});
+  CHECK(h.final_outputs[PlanetManagement::kResearch] == FinalOutput{FinalMode::kMaximise, 0, kFinalWeights});
+  CHECK(h.final_outputs[PlanetManagement::kProsperity] == FinalOutput{FinalMode::kAtLeast, 2, kFinalWeights});
+  CHECK(o.final_outputs == planet_final_preset(FinalPreset::kResearch, *other));
 }
 
 }  // namespace
