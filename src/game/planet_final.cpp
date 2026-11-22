@@ -22,9 +22,10 @@ constexpr std::uint8_t kWhite = 1;
 constexpr std::array<std::uint8_t, PlanetManagement::kOutputs> kColour{2, 4, 3};
 
 // The buildings the final build-out lays out anew: per output its plain
-// buildings, then housing. Everything else on the planet stays.
+// buildings, then housing (Habitat, Metroplex, Outpost). Everything else on
+// the planet stays.
 constexpr std::array<std::uint8_t, 6> kOutputItems{0, 1, 2, 6, 7, 8};
-constexpr std::array<std::uint8_t, 2> kHousingItems{3, plan_detail::kOutpost};
+constexpr std::array<std::uint8_t, 3> kHousingItems{3, 4, plan_detail::kOutpost};
 // The planetary defences of `PlanetManagement::counts` and their items.
 constexpr std::array<std::pair<PlanetManagement::Count, std::uint8_t>, 4> kDefences{
     {{PlanetManagement::kSurfaceShields, plan_detail::kSurfaceShield},
@@ -48,7 +49,10 @@ class Layout {
     const std::span<const Square> real = planet_squares(session.game->cosmos, planet);
     base_.assign(real.begin(), real.end());
     cap_ = planet.base_population;
-    const bool black_usable = session.game->cosmos.races.at(planet.owner).ability == 2;
+    // Black squares are usable by Orfa's ability, and by all once
+    // Terraforming is known (they will be terraformed).
+    const bool black_usable = session.game->cosmos.races.at(planet.owner).ability == 2 ||
+                              race_knows_item(session, planet, kItemTerraforming);
     std::int32_t defences_built = 0;
     std::array<std::int32_t, PlanetManagement::kOutputs> kept{};
     for (std::uint16_t i = 0; i < base_.size(); ++i) {
@@ -86,19 +90,39 @@ class Layout {
     }
   }
 
+  // The layout with the known housing that gives the maximised outputs
+  // the most points (a Metroplex adds output, an Outpost or Habitat more
+  // room).
   FinalLayout run() {
+    FinalLayout best = run(kNoItem);
+    double best_value = -1.0;
+    for (const std::uint8_t house : kHousingItems) {
+      if (!race_knows_item(session_, planet_, house) || net_room(house) <= 0) {
+        continue;
+      }
+      FinalLayout layout = run(house);
+      if (const double v = value(layout); v > best_value) {
+        best = layout;
+        best_value = v;
+      }
+    }
+    return best;
+  }
+
+ private:
+  // The layout with `house` as its housing (`kNoItem`: none).
+  FinalLayout run(std::uint8_t house) {
     FinalLayout out;
     const auto f = static_cast<std::int32_t>(free_.size());
     // Housing for the workers of all squares.
-    const std::uint8_t house = best_housing();
     std::int32_t housing = 0;
     if (house != kNoItem) {
-      const PlanItem& h = item(house);
-      const std::int32_t net = h.max_population - ((h.flags & kItemNoPopulation) == 0 ? h.used_population : 0);
+      const std::int32_t net = net_room(house);
       housing = std::clamp<std::int32_t>((f + workers_ - cap_ + net) / (net + 1), 0, f);
     }
     const std::int32_t squares = f - housing;
     // The squares each output asks for: kept, at least, maximised.
+    const bool maximised = std::ranges::any_of(m_.final_outputs, [](const FinalOutput& fo) { return fo.mode == FinalMode::kMaximise; });
     std::array<std::int32_t, PlanetManagement::kOutputs> ask{};
     std::array<std::int32_t, PlanetManagement::kOutputs> weight{};
     for (std::size_t o = 0; o < ask.size(); ++o) {
@@ -110,7 +134,9 @@ class Layout {
       } else if (fo.mode == FinalMode::kKeep) {
         ask[o] = kept_[o];
       } else if (fo.mode == FinalMode::kAtLeast) {
-        ask[o] = squares_for(o, fo.value, squares);
+        // At most half the squares while another output is maximised (a
+        // small planet's minimum would take them all).
+        ask[o] = squares_for(o, fo.value, maximised ? (squares + 1) / 2 : squares);
       } else {
         weight[o] = std::max<std::int32_t>(1, fo.weight);
       }
@@ -147,7 +173,6 @@ class Layout {
     return out;
   }
 
- private:
   const PlanItem& item(std::uint8_t i) const { return session_.tables->planitems.items.at(i); }
 
   // How little a square is worth to the outputs: black, white, colours.
@@ -168,19 +193,20 @@ class Layout {
     }
     return best;
   }
-  // The known housing that adds the most room for workers.
-  std::uint8_t best_housing() const {
-    std::uint8_t best = kNoItem;
-    std::int32_t best_net = 0;
-    for (const std::uint8_t i : kHousingItems) {
-      const PlanItem& h = item(i);
-      const std::int32_t net = h.max_population - ((h.flags & kItemNoPopulation) == 0 ? h.used_population : 0);
-      if (race_knows_item(session_, planet_, i) && net > best_net) {
-        best = i;
-        best_net = net;
-      }
+  // The room for workers `house` adds (its own worker taken).
+  std::int32_t net_room(std::uint8_t house) const {
+    const PlanItem& h = item(house);
+    return h.max_population - ((h.flags & kItemNoPopulation) == 0 ? h.used_population : 0);
+  }
+  // The points of the maximised outputs by their weights (the others count
+  // a little, to tell equal layouts apart).
+  double value(const FinalLayout& layout) const {
+    double v = 0.0;
+    for (std::size_t o = 0; o < layout.points.size(); ++o) {
+      const FinalOutput& fo = m_.final_outputs[o];
+      v += layout.points[o] * (fo.mode == FinalMode::kMaximise ? std::max<std::int32_t>(1, fo.weight) : 0.01);
     }
-    return best;
+    return v;
   }
 
   // Puts `n` of `it` on the open squares: of `colour` first, then white,

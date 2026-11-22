@@ -149,7 +149,7 @@ PlanetManagement ai_plan(const Session& session, const Race& race, const Planet&
     m.levels[PlanetManagement::kOrbitalDock] = BuildLevel::kAlong;
   } else {
     constexpr FinalOutput kMax{FinalMode::kMaximise, 0, kFinalWeights};
-    m.final_outputs = {kMax, kMax, FinalOutput{FinalMode::kKeep, 0, kFinalWeights}};
+    m.final_outputs = {kMax, kMax, FinalOutput{FinalMode::kAtLeast, 0, kFinalWeights}};
   }
   return m;
 }
@@ -182,7 +182,7 @@ std::array<FinalOutput, PlanetManagement::kOutputs> planet_final_preset(FinalPre
   const FinalOutput keep{FinalMode::kKeep, 0, kFinalWeights};
   switch (preset) {
     case FinalPreset::kShipyard:
-      return {maximise, keep, keep};
+      return {maximise, keep, none};
     case FinalPreset::kDock:
       return {maximise, keep, none};
     default:

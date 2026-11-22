@@ -593,5 +593,78 @@ TEST_CASE("a managed home planet launches its first interstellar colony ship in 
   }
 }
 
+
+// The buildings of `item` on the planet's surface.
+int count_items(PlanRig& rig, std::uint8_t item) {
+  int n = 0;
+  for (const Square& sq : planet_squares(rig.session().game->cosmos, rig.planet()).first(rig.planet().surface_squares)) {
+    n += sq.item == item ? 1 : 0;
+  }
+  return n;
+}
+
+constexpr std::uint8_t kMetroplex = 4;
+constexpr std::uint8_t kOutpostItem = 20;
+
+TEST_CASE("the final layout houses in Metroplexes once known, for their output", "[pecustom][plan]") {
+  OA_REQUIRE_TABLES(t);
+  PlanRig rig(*t, 7, 2);
+  REQUIRE(rig.ready());
+  PlanetManagement m = planet_management(rig.session(), rig.planet());
+  m.final_outputs = planet_final_preset(FinalPreset::kDock, rig.planet());
+  CHECK(planet_final_layout(rig.session(), rig.planet(), m).house != kMetroplex);
+  rig.learn(kMetroplex);
+  CHECK(planet_final_layout(rig.session(), rig.planet(), m).house == kMetroplex);
+}
+
+TEST_CASE("the final layout counts black squares once Terraforming is known", "[pecustom][plan]") {
+  OA_REQUIRE_TABLES(t);
+  PlanRig rig(*t, 11, 3);
+  REQUIRE(rig.ready());
+  int black = 0;
+  for (const Square& sq : planet_squares(rig.session().game->cosmos, rig.planet()).first(rig.planet().surface_squares)) {
+    black += (sq.color & kSquareRuins) == 0 && (sq.color & 7u) == 0 && sq.item == kNoItem ? 1 : 0;
+  }
+  REQUIRE(black > 0);
+  const PlanetManagement m = planet_management(rig.session(), rig.planet());
+  const auto laid_out = [&] {
+    const FinalLayout f = planet_final_layout(rig.session(), rig.planet(), m);
+    return f.squares[0] + f.squares[1] + f.squares[2] + f.housing + f.open;
+  };
+  const int before = laid_out();
+  rig.learn(kItemTerraforming);
+  CHECK(laid_out() == before + black);
+}
+
+TEST_CASE("a minimum takes at most half the squares while research is maximised", "[pecustom][plan]") {
+  OA_REQUIRE_TABLES(t);
+  PlanRig rig(*t, 7, 2);
+  REQUIRE(rig.ready());
+  PlanetManagement m = planet_management(rig.session(), rig.planet());
+  m.final_outputs = planet_final_preset(FinalPreset::kResearch, rig.planet());
+  m.final_outputs[PlanetManagement::kIndustry].value = 100;
+  const FinalLayout f = planet_final_layout(rig.session(), rig.planet(), m);
+  const int squares = f.squares[0] + f.squares[1] + f.squares[2] + f.open;
+  CAPTURE(f.squares[0], f.squares[1], squares);
+  CHECK(f.squares[PlanetManagement::kIndustry] == (squares + 1) / 2);
+  CHECK(f.squares[PlanetManagement::kResearch] == squares - (squares + 1) / 2);
+}
+
+TEST_CASE("a full colony moves its inhabitants from Outposts into Metroplexes once known", "[pecustom][plan]") {
+  OA_REQUIRE_TABLES(t);
+  PlanRig rig(*t, 7, 2);
+  REQUIRE(rig.ready());
+  rig.management().final_outputs = planet_final_preset(FinalPreset::kDock, rig.planet());
+  full_colony(rig);
+  const int outposts = count_items(rig, kOutpostItem);
+  REQUIRE(outposts > 0);
+  rig.learn(kMetroplex);
+  rig.run(600);
+  CAPTURE(outposts, count_items(rig, kOutpostItem), count_items(rig, kMetroplex));
+  CHECK(count_items(rig, kOutpostItem) == 0);
+  CHECK(count_items(rig, kMetroplex) > 0);
+  CHECK(at_final_layout(rig));
+}
+
 }  // namespace
 }  // namespace oa::game

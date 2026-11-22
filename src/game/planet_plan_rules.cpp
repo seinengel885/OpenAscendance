@@ -7,6 +7,8 @@
 //    no worker waits for a building, housing in time (when the room left
 //    fills before housing is built); without room and worker, the least
 //    needed building makes way for it.
+//    The workers wanted: one per empty square, or the more the final
+//    layout needs (its housing with workers in place of Outposts).
 // 2. Growth: when workers come slower than the goal's buildings are done
 //    (or as slow), or too slow for a Shipyard's ships or the growth kept,
 //    the growth building that brings inhabitants soonest; without a worker,
@@ -37,7 +39,8 @@
 //    rebuilding; the prosperity needed (a Shipyard's: an inhabitant within a
 //    ship's building time, two workers free for ships; the growth kept), the
 //    industry and research kept (research on blue squares) and the housing
-//    in use stay. Each
+//    in use stay (housing in surplus that cannot make way: another building
+//    makes way for the layout's housing first). Each
 //    replacement raises the goal's outputs, so buildings never replace each
 //    other back and forth.
 // Orbital squares: one each for the Shipyard, a ship and the Orbital Dock
@@ -165,7 +168,7 @@ class Rules {
     for (std::uint16_t i = 0; i < planet.surface_squares; ++i) {
       const std::uint8_t it = b_.squares[i].item;
       const bool displaced = blue_research() && (b_.squares[i].color & 7u) == kBlue && it != kNoItem &&
-                             b_.item(it).research <= 0;
+                             !research_building(b_.item(it));
       if (const std::optional<PlanetManagement::Output> o = planet_final_output(it); o && !displaced) {
         ++outputs[*o];
       }
@@ -175,9 +178,22 @@ class Rules {
       missing_[o] = std::max(0, target.squares[o] - outputs[o]);
     }
     missing_housing_ = std::max(0, target.housing - housing);
+    // The workers the final layout needs more than its buildings now (an
+    // Outpost making way for a Metroplex takes one).
+    const auto works = [&](std::uint8_t it) { return it != kNoItem && (b_.item(it).flags & kItemNoPopulation) == 0 ? 1 : 0; };
+    std::int32_t workers = 0;
+    for (std::uint16_t i = 0; i < planet.surface_squares; ++i) {
+      const std::uint8_t it = b_.squares[i].item;
+      workers += planet_final_output(it) || planet_final_housing(it) ? works(it) : 0;
+    }
+    const std::int32_t layout_workers = target.squares[PlanetManagement::kIndustry] +
+                                        target.squares[PlanetManagement::kResearch] +
+                                        target.squares[PlanetManagement::kProsperity] + works(target.house) * target.housing;
+    layout_workers_ = std::max(0, layout_workers - workers);
     weights_ = {target.squares[PlanetManagement::kIndustry] > 0 || research_complete ? 1.0 : 0.0,
                 target.squares[PlanetManagement::kResearch] > 0 && !research_complete ? 1.0 : 0.0};
     target_items_ = target.items;
+    target_house_ = target.house;
     // Per building how many more there are than the layout wants (fewer:
     // negative).
     // Research kept counts on blue squares only.
@@ -227,6 +243,17 @@ class Rules {
         day += days(target_items_[o]);
       }
     }
+    // And the workers of the layout's housing still to come.
+    while (started < layout_workers_ && target_house_ != kNoItem) {
+      ++started;
+      const std::int32_t ready = day;
+      while (free + births(b_, day) < started) {
+        if (++day - ready > kShortWait) {
+          return false;
+        }
+      }
+      day += days(target_house_);
+    }
     return true;
   }
   // `options` without what the final layout does not want, once it must be
@@ -244,7 +271,7 @@ class Rules {
   // kept.
   bool off_blue(std::uint16_t square) const {
     const Square& sq = b_.squares[square];
-    return blue_research() && sq.item != kNoItem && b_.item(sq.item).research > 0 && (sq.color & 7u) != kBlue;
+    return blue_research() && sq.item != kNoItem && research_building(b_.item(sq.item)) && (sq.color & 7u) != kBlue;
   }
 
   // Whether no usable square is left empty.
@@ -279,10 +306,11 @@ class Rules {
 
   // The workers kept for ships by a planet with a Shipyard (`kShipWorkers`).
   std::int32_t ship_workers() const { return shipyard_ ? kShipWorkers : 0; }
-  // The workers the planet wants: one per empty usable square more, and
-  // those kept for ships.
+  // The workers the planet wants: one per empty usable square more (or the
+  // more the final layout needs), and those kept for ships.
   std::int32_t wanted_population() const {
-    return std::min(100, static_cast<std::int32_t>(b_.planet.used_population) + empty_ + ship_workers() +
+    return std::min(100, static_cast<std::int32_t>(b_.planet.used_population) + std::max(empty_, layout_workers_) +
+                             ship_workers() +
                              orbital_workers());
   }
   // Free workers for a new building (a Shipyard's planet keeps its ship
@@ -429,7 +457,7 @@ class Rules {
     // industry nor housing there (growth may wait there for research until
     // the final layout must be followed).
     const PlanItem& it = b_.item(item);
-    const bool research = it.research > 0;
+    const bool research = research_building(it);
     const bool other = it.industry > 0 || it.max_population > 0 || must_follow_target();
     for (const std::uint8_t colour : colours(item, role)) {
       if (blue_research() && (research ? colour != kBlue : other && colour == kBlue)) {
@@ -472,6 +500,9 @@ class Rules {
     return out;
   }
 
+  // Whether `it` is a research building (housing with research, the
+  // Metroplex, is housing).
+  static bool research_building(const PlanItem& it) { return it.research > 0 && it.max_population == 0; }
   static bool is_boost(std::uint8_t it) {
     return it == kItemHyperpowerPlant || it == kItemFertilizationPlant || it == kItemInternet || it == kCloningPlant;
   }
@@ -1094,7 +1125,7 @@ class Rules {
         const bool keeps =
             (b_.item(it).prosperity <= 0 || s.growth_rate() >= std::min(need, rate)) &&
             (b_.item(it).industry <= 0 || planet_industry_tenths(s.planet) >= min_industry) &&
-            (b_.item(it).research <= 0 || (blue_research() ? !blue : u16(s.planet.research) >= min_research));
+            (!research_building(b_.item(it)) || (blue_research() ? !blue : u16(s.planet.research) >= min_research));
         return std::pair{now - value(s), keeps};
       });
       if (ok) {
@@ -1144,14 +1175,27 @@ class Rules {
     }
     std::optional<Action> best;
     double best_score = 0.0;
+    // Housing the layout has too much of that cannot make way (its
+    // inhabitants have no room elsewhere) while it wants other housing: any
+    // building may make way for that housing first, so the housing in
+    // surplus can follow.
+    bool stuck_housing = false;
+    for (std::uint16_t i = 0; i < b_.planet.surface_squares; ++i) {
+      const std::uint8_t it = b_.squares[i].item;
+      stuck_housing = stuck_housing || (b_.built(i) && it < surplus_.size() && planet_final_housing(it) &&
+                                        surplus_[it] > 0 && !b_.removable(i));
+    }
+    const bool housing_wanted = target_house_ < surplus_.size() && surplus_[target_house_] < 0;
     for (const std::uint16_t victim : victims()) {
       const Square there = b_.squares[victim];
       // Research kept: research off the blue squares makes way, as does
       // another building on a blue square research still wants.
       const std::uint8_t research = target_items_[PlanetManagement::kResearch];
-      const bool blue_wanted = blue_research() && (there.color & 7u) == kBlue && b_.item(there.item).research <= 0 &&
+      const bool blue_wanted = blue_research() && (there.color & 7u) == kBlue && !research_building(b_.item(there.item)) &&
                                research < surplus_.size() && surplus_[research] < 0;
-      if (surplus_[there.item] <= 0 && !off_blue(victim) && !blue_wanted) {
+      const bool for_housing = stuck_housing && housing_wanted && surplus_[there.item] <= 0 &&
+                               !planet_final_housing(there.item);
+      if (surplus_[there.item] <= 0 && !off_blue(victim) && !blue_wanted && !for_housing) {
         continue;
       }
       b_.clear(victim);
@@ -1163,7 +1207,7 @@ class Rules {
       std::ranges::copy(candidates(Role::kHousing, [](const PlanItem& it) { return it.max_population > 0; }),
                         std::back_inserter(options));
       for (Action a : options) {
-        if (a.item >= surplus_.size() || surplus_[a.item] >= 0) {
+        if (a.item >= surplus_.size() || surplus_[a.item] >= 0 || (for_housing && a.item != target_house_)) {
           continue;
         }
         const double gain = b_.with(a, all_outputs) - without;
@@ -1201,6 +1245,10 @@ class Rules {
   // it does not lay out: 0).
   std::vector<std::int32_t> surplus_;
   std::int32_t missing_housing_ = 0;
+  // The workers the final layout needs more than the buildings now, and its
+  // housing.
+  std::int32_t layout_workers_ = 0;
+  std::uint8_t target_house_ = kNoItem;
   // The final layout's building per output (`kNoItem`: none).
   std::array<std::uint8_t, PlanetManagement::kOutputs> target_items_{kNoItem, kNoItem, kNoItem};
   std::array<std::vector<std::int32_t>, 5> distance_{};

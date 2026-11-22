@@ -32,7 +32,7 @@ PlanetManagement planet_management_standard(const Session& session, const Planet
 // The final build-out's presets (`PlanetManagement::final_outputs`).
 enum class FinalPreset : std::uint8_t {
   kResearch,  // industry at least 3 / 4 / 5 / 6 / 8 by size, research maximised, no prosperity
-  kShipyard,  // industry maximised, research kept (blue squares), prosperity kept
+  kShipyard,  // industry maximised, research kept (blue squares), no prosperity (the ships' growth stays)
   kDock,      // industry maximised, research kept (blue squares), no prosperity
 };
 std::array<FinalOutput, PlanetManagement::kOutputs> planet_final_preset(FinalPreset preset, const Planet& planet);

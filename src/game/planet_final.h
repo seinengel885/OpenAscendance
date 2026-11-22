@@ -30,11 +30,13 @@ struct FinalLayout {
 
 // The final layout of `planet` with `management` (resolved) and the
 // buildings its owner knows: the defences it is set to have stay, housing
-// enough for the workers of all squares, the minima first (shortened alike
-// when the squares do not suffice for them), then the squares left by the
-// weights of the maximised outputs; each output's best building on squares
-// of its colour first. The points are the game's (colour bonus, output
-// curve, planet-wide boosts already built).
+// enough for the workers of all squares (the known housing that gives the
+// maximised outputs most), the minima first (at most half the squares while
+// another output is maximised; shortened alike when the squares do not
+// suffice for them), then the squares left by the weights of the maximised
+// outputs; each output's best building on squares of its colour first.
+// Black squares count once Terraforming is known. The points are the
+// game's (colour bonus, output curve, planet-wide boosts already built).
 FinalLayout planet_final_layout(const Session& session, const Planet& planet, const PlanetManagement& management);
 
 // The output whose squares the final layout lays out `item` on (none: not
