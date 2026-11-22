@@ -19,7 +19,6 @@
 
 #include "game/planet.h"
 #include "game/planet_final.h"
-#include "game/planet_plan_sim.h"
 #include "game_oracle.h"
 #include "plan_rig.h"
 
@@ -301,8 +300,8 @@ TEST_CASE("a colony of a species knowing all research takes over no scientists",
 
 // Test B's hand calculation, on the planet as it was when the planner chose
 // (the new project taken off again): the game's outputs of the squares
-// (`planet_recalc_output`), the days of building one after another and of
-// waiting for workers worked out by hand, not with the planner's copy.
+// (`planet_recalc_output`) and the days of building worked out by hand, not
+// with the planner's copy.
 class Hand {
  public:
   enum Output { kIndustry, kResearch, kProsperity };
@@ -342,46 +341,10 @@ class Hand {
                                                                        : planet_prosperity_tenths(p);
   }
 
-  // Whether `large` beats `small` → Agriplot → `small` in `o` summed until
-  // the longer of the two is built (`small` → … impossible: it does).
-  bool large_worth(std::uint8_t small, std::uint8_t large, Output o) const {
-    const std::uint8_t colour = o == kIndustry ? 2 : 4;
-    const std::uint16_t s1 = square(small, colour, {});
-    const std::uint16_t sa = s1 != kNoSquare ? square(kAgri, 3, {{s1, small}}) : kNoSquare;
-    const std::uint16_t s2 = sa != kNoSquare ? square(small, colour, {{s1, small}, {sa, kAgri}}) : kNoSquare;
-    if (s1 == kNoSquare || sa == kNoSquare || s2 == kNoSquare) {
-      return true;
-    }
-    const std::int32_t now = output(o, {});
-    const std::int32_t i0 = output(kIndustry, {});
-    const std::int32_t i1 = output(kIndustry, {{s1, small}});
-    const std::int32_t t1 = days(small, i0);
-    // The workers: one free for the first, then one born for each.
-    const std::int32_t free = p_.population - p_.used_population;
-    const std::int32_t room = p_.max_population - p_.population;
-    const std::int32_t made = 10 * p_.growth + p_.growth_carry;
-    const std::int32_t g0 = output(kProsperity, {});
-    const std::int32_t pop_growth = 10 * s_.tables->planitems.pop_growth;
-    if (free + room < 3 || g0 <= 0) {
-      return true;
-    }
-    const auto ready = [&](std::int32_t from, std::int32_t need, std::int32_t agri_done, std::int32_t g1) {
-      for (std::int32_t t = from;; ++t) {
-        const std::int32_t gathered = agri_done < 0 || t <= agri_done ? made + g0 * t : made + g0 * agri_done + g1 * (t - agri_done);
-        if (free + gathered / pop_growth >= need) {
-          return t;
-        }
-      }
-    };
-    const std::int32_t ta = ready(t1, 2, -1, 0) + days(kAgri, i1);
-    const std::int32_t g1 = output(kProsperity, {{s1, small}, {sa, kAgri}});
-    const std::int32_t t2 = ready(ta, 3, ta, g1) + days(small, i1);
-    const std::int32_t one = output(o, {{s1, small}}) - now;
-    const std::int32_t two = output(o, {{s1, small}, {sa, kAgri}, {s2, small}}) - output(o, {{s1, small}, {sa, kAgri}});
-    const std::int32_t tl = days(large, i0);
-    const std::int32_t big = output(o, {{s1, large}}) - now;
-    const std::int32_t h = std::max(t2, tl);
-    return big * (h - tl) >= one * (h - t1) + two * (h - t2);
+  // Whether `large` may go on a square of the colour of `o` (else white,
+  // else any) and takes at most 50 days at the industry of now.
+  bool large_soon(std::uint8_t large, Output o) const {
+    return square(large, o == kIndustry ? 2 : 4, {}) != kNoSquare && days(large, output(kIndustry, {})) <= 50;
   }
 
   // Whether the boost on `square` brings more `o` than the best building of
@@ -401,7 +364,6 @@ class Hand {
   }
 
  private:
-  static constexpr std::uint8_t kAgri = 1;
   // The squares with `built` built.
   std::vector<Square> with(std::initializer_list<std::pair<std::uint16_t, std::uint8_t>> built) const {
     std::vector<Square> sq = sq_;
@@ -420,36 +382,10 @@ class Hand {
   std::vector<Square> sq_;
 };
 
-TEST_CASE("output_until sums the outputs while the steps are built one after another", "[pecustom][plan]") {
-  OA_REQUIRE_TABLES(t);
-  PlanRig rig(*t, 7, 2, PlanetGoal::kBalanced);
-  REQUIRE(rig.ready());
-  // Not managed: idle, its worker free.
-  rig.planet().self_managed = 0;
-  rig.run(20);
-  Planet& p = rig.planet();
-  REQUIRE(p.project_item == kNoItem);
-  const plan_detail::Neighbours n = plan_detail::surface_neighbours(t->planitems, p);
-  const plan_detail::Sim sim(rig.session(), p, n);
-  const Hand hand(rig, kNoSquare);
-  const std::uint16_t square = hand.square(0, 2, {});
-  REQUIRE(square != kNoSquare);
-  REQUIRE(p.population > p.used_population);
-  const std::int32_t i0 = planet_industry_tenths(p);
-  const std::int32_t i1 = hand.output(Hand::kIndustry, {{square, 0}});
-  const std::int32_t d = (10 * t->planitems.items.at(0).cost + i0 - 1) / i0;
-  const plan_detail::Action factory{0, square};
-  // By hand: the industry of now until the day it is built, then the new.
-  const double expected = ((d - 1) * i0 + (60 - d + 1) * i1) / 10.0;
-  CHECK(std::abs(plan_detail::output_until(sim, std::span(&factory, 1), 60, {1.0, 0.0}) - expected) < 1e-9);
-  CHECK(plan_detail::steps_done(sim, std::span(&factory, 1), 60) == d);
-}
-
 // Test B: on later planets (technology found on fixed days) the
-// Megafacility and the Research Campus come once they beat small → Agriplot
-// → small until the longer is built (within 5 days of the hand calculation),
-// the boosts only once they bring more than the best building of their
-// output on their square.
+// Megafacility and the Research Campus come in place of the Factory and the
+// Laboratory whenever they take at most 50 days, the boosts only once they
+// bring more than the best building of their output on their square.
 TEST_CASE("large buildings and boosts come once they are worth it", "[pecustom][plan]") {
   OA_REQUIRE_TABLES(t);
   constexpr std::uint8_t kFactory = 0;
@@ -468,15 +404,14 @@ TEST_CASE("large buildings and boosts come once they are worth it", "[pecustom][
   constexpr std::array<Boost, 3> kBoosts{{{kItemHyperpowerPlant, Hand::kIndustry},
                                          {kItemInternet, Hand::kResearch},
                                          {kItemFertilizationPlant, Hand::kProsperity}}};
+  int larges = 0;
+  int smalls = 0;
   for (const int seed : kSeeds) {
     for (const int size : {2, 3}) {
       for (const PlanetGoal goal : {PlanetGoal::kBalanced, PlanetGoal::kEarlyIndustry, PlanetGoal::kEarlyResearch}) {
         PlanRig rig(*t, seed, size, goal);
         REQUIRE(rig.ready());
         rig.stop_research();
-        // Per tier the first day small → … loses and the first large one.
-        std::array<std::optional<int>, kTiers.size()> worth{};
-        std::array<std::optional<int>, kTiers.size()> large{};
         for (int d = 1; d <= kDays && (rig.days.empty() || rig.days.back().empty > 0); ++d) {
           if (d == 60) {
             rig.learn(kMegafacility);
@@ -495,14 +430,11 @@ TEST_CASE("large buildings and boosts come once they are worth it", "[pecustom][
               continue;
             }
             const Hand hand(rig, s.square);
-            for (std::size_t i = 0; i < kTiers.size(); ++i) {
-              if (d >= 60 && !large[i] && (s.item == kTiers[i].small || s.item == kTiers[i].large)) {
-                if (!worth[i] && hand.large_worth(kTiers[i].small, kTiers[i].large, kTiers[i].output)) {
-                  worth[i] = s.day;
-                }
-                if (s.item == kTiers[i].large) {
-                  large[i] = s.day;
-                }
+            for (const Tier& tier : kTiers) {
+              if (d >= 60 && (s.item == tier.small || s.item == tier.large)) {
+                CAPTURE(seed, size, static_cast<int>(goal), s.day, t->planitems.items.at(s.item).name);
+                CHECK((s.item == tier.large) == hand.large_soon(tier.large, tier.output));
+                ++(s.item == tier.large ? larges : smalls);
               }
             }
             for (const Boost& b : kBoosts) {
@@ -513,17 +445,12 @@ TEST_CASE("large buildings and boosts come once they are worth it", "[pecustom][
             }
           }
         }
-        for (std::size_t i = 0; i < kTiers.size(); ++i) {
-          CAPTURE(seed, size, static_cast<int>(goal), t->planitems.items.at(kTiers[i].large).name,
-                  worth[i].value_or(-1), large[i].value_or(-1));
-          CHECK(worth[i].has_value() == large[i].has_value());
-          if (worth[i] && large[i]) {
-            CHECK(std::abs(*large[i] - *worth[i]) <= 5);
-          }
-        }
       }
     }
   }
+  // Both came, the small ones while the large took too long.
+  CHECK(larges > 0);
+  CHECK(smalls > 0);
 }
 
 }  // namespace
