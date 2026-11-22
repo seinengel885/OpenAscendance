@@ -1170,15 +1170,15 @@ class Rules {
   }
 
   // 7. A project without end once nothing is left to build: the
-  // scientists take over while research is maximised and not complete; a
-  // full planet with a Shipyard, no worker free but room, parties for
-  // workers.
+  // scientists take over while research is not complete (where research
+  // is maximised, or no Shipyard wants the industry for ships); a full
+  // planet with a Shipyard, no worker free but room, parties for workers.
   std::optional<Action> endless() {
     if (!built_up()) {
       return std::nullopt;
     }
-    if (m_.final_outputs[PlanetManagement::kResearch].mode == FinalMode::kMaximise && !research_complete_ &&
-        knows(kItemScientistTakeover)) {
+    if ((m_.final_outputs[PlanetManagement::kResearch].mode == FinalMode::kMaximise || !shipyard_) &&
+        !research_complete_ && knows(kItemScientistTakeover)) {
       return Action{kItemScientistTakeover, kNoSquare};
     }
     if (shipyard_ && b_.free_population() == 0 && b_.room() > 0 && knows(kItemEndlessParty)) {

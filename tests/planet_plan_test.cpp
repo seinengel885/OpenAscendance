@@ -605,6 +605,8 @@ int count_items(PlanRig& rig, std::uint8_t item) {
 
 constexpr std::uint8_t kMetroplex = 4;
 constexpr std::uint8_t kOutpostItem = 20;
+constexpr std::uint8_t kSurfaceShieldItem = 18;
+constexpr std::uint8_t kSurfaceMegaShieldItem = 19;
 
 TEST_CASE("the final layout houses in Metroplexes once known, for their output", "[pecustom][plan]") {
   OA_REQUIRE_TABLES(t);
@@ -693,6 +695,51 @@ TEST_CASE("a full colony without a free worker set to dig first digs soon once t
   CAPTURE(known, dug);
   CHECK(dug > known);
   CHECK(dug <= known + 30);
+}
+
+TEST_CASE("a built-up colony maximising industry without a Shipyard takes over the scientists", "[pecustom][plan]") {
+  OA_REQUIRE_TABLES(t);
+  PlanRig rig(*t, 7, 2);
+  REQUIRE(rig.ready());
+  rig.management().final_outputs = planet_final_preset(FinalPreset::kShipyard, rig.planet());
+  full_colony(rig);
+  REQUIRE(planet_find_item(rig.session().game->cosmos, rig.planet(), kItemShipyard) == kNoSquare);
+  rig.learn(kItemScientistTakeover);
+  rig.run(200);
+  CHECK(rig.planet().project_item == kItemScientistTakeover);
+}
+
+TEST_CASE("the balanced preset maximises industry and research alike, no prosperity minimum", "[pecustom][plan]") {
+  OA_REQUIRE_TABLES(t);
+  PlanRig rig(*t, 7, 2);
+  REQUIRE(rig.ready());
+  constexpr FinalOutput kMax{FinalMode::kMaximise, 0, kFinalWeights};
+  CHECK(planet_final_preset(FinalPreset::kBalanced, rig.planet()) ==
+        std::array{kMax, kMax, FinalOutput{FinalMode::kAtLeast, 0, kFinalWeights}});
+}
+
+TEST_CASE("an AI colony builds no more Surface Shields than its management wants", "[pecustom][plan]") {
+  OA_REQUIRE_TABLES(t);
+  // `ai_plan`'s Surface Shields by planet size.
+  constexpr std::array<int, 5> kShields{2, 3, 4, 6, 8};
+  for (const int seed : {7, 23}) {
+    PlanRig rig(*t, seed, 2);
+    REQUIRE(rig.ready());
+    rig.run(900);
+    const Cosmos& c = rig.session().game->cosmos;
+    for (PlanetIndex i = 0; i < c.planet_count; ++i) {
+      const Planet& p = c.planets[static_cast<std::size_t>(i)];
+      if (p.owner >= c.race_count || p.owner == rig.session().player_race) {
+        continue;
+      }
+      int shields = 0;
+      for (const Square& sq : planet_squares(c, p).first(p.surface_squares)) {
+        shields += sq.item == kSurfaceShieldItem || sq.item == kSurfaceMegaShieldItem ? 1 : 0;
+      }
+      CAPTURE(seed, i, p.size);
+      CHECK(shields <= kShields.at(std::min<std::size_t>(p.size, 4)));
+    }
+  }
 }
 
 }  // namespace

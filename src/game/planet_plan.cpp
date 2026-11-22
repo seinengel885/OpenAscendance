@@ -148,8 +148,7 @@ PlanetManagement ai_plan(const Session& session, const Race& race, const Planet&
     take(FinalPreset::kDock);
     m.levels[PlanetManagement::kOrbitalDock] = BuildLevel::kAlong;
   } else {
-    constexpr FinalOutput kMax{FinalMode::kMaximise, 0, kFinalWeights};
-    m.final_outputs = {kMax, kMax, FinalOutput{FinalMode::kAtLeast, 0, kFinalWeights}};
+    take(FinalPreset::kBalanced);
   }
   return m;
 }
@@ -185,6 +184,8 @@ std::array<FinalOutput, PlanetManagement::kOutputs> planet_final_preset(FinalPre
       return {maximise, keep, none};
     case FinalPreset::kDock:
       return {maximise, keep, none};
+    case FinalPreset::kBalanced:
+      return {FinalOutput{FinalMode::kMaximise, 0, kFinalWeights}, FinalOutput{FinalMode::kMaximise, 0, kFinalWeights}, none};
     default:
       return {FinalOutput{FinalMode::kAtLeast, industry, kFinalWeights}, FinalOutput{FinalMode::kMaximise, 0, kFinalWeights},
               none};
@@ -264,11 +265,7 @@ void pe_manage_planet(Session& session, Race& race, Planet& planet) {
     return;
   }
   if (!is_player_planet(session, planet)) {
-    // The AI: the Antagonizer's specials, the rest by the rules for the
-    // strategy and management it picks.
-    if (antag_race_ai_planet_specials(session, race, planet)) {
-      return;
-    }
+    // The AI: the player's rules, with the management it picks.
     pe_manage_planet_rules(session, planet, ai_plan(session, race, planet));
     return;
   }
