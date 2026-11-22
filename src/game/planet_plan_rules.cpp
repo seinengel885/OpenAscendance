@@ -1,5 +1,5 @@
-// peCustom's rule-based planet management (the strategies `PlanetGoal`, the
-// settings of `PlanetManagement`): the next project of an idle planet is decided by a
+// peCustom's rule-based planet management (the settings of
+// `PlanetManagement`, its final build-out above all): the next project of an idle planet is decided by a
 // few rules in a fixed order, each looking only at the planet as it is and
 // at the project's direct effects (the game's own rules on a copy,
 // `plan_detail::Sim`):
@@ -99,7 +99,7 @@ constexpr std::int32_t kLabDays = 17;
 // The large buildings (Megafacility, Research Campus) and the small ones
 // they stand for (Factory, Laboratory): the large one while it takes at most
 // `kLargeDays`, else the small one and a factory more in between (Patrick's
-// play: 45 to 60 days alike, best for every strategy; 30 too short).
+// play: 45 to 60 days alike, best for every strategy then; 30 too short).
 struct Tier {
   std::uint8_t small;
   std::uint8_t large;
@@ -160,8 +160,13 @@ class Rules {
     const FinalLayout target = planet_final_layout(session, planet, m_);
     std::array<std::int32_t, PlanetManagement::kOutputs> outputs{};
     std::int32_t housing = 0;
+    // Research kept: another building on a blue square makes way for it, so
+    // its output is still missing elsewhere.
     for (std::uint16_t i = 0; i < planet.surface_squares; ++i) {
-      if (const std::optional<PlanetManagement::Output> o = planet_final_output(b_.squares[i].item)) {
+      const std::uint8_t it = b_.squares[i].item;
+      const bool displaced = blue_research() && (b_.squares[i].color & 7u) == kBlue && it != kNoItem &&
+                             b_.item(it).research <= 0;
+      if (const std::optional<PlanetManagement::Output> o = planet_final_output(it); o && !displaced) {
         ++outputs[*o];
       }
       housing += planet_final_housing(b_.squares[i].item) ? 1 : 0;
@@ -420,10 +425,14 @@ class Rules {
   // Where `item` for `role` goes: the reachable empty square of the best
   // colour, nearest to the unreached squares of that colour.
   std::uint16_t place(std::uint8_t item, Role role) {
-    // Research kept: its buildings on blue squares only.
-    const bool blue_only = b_.item(item).research > 0 && blue_research();
+    // Research kept: its buildings on the blue squares only, and no
+    // industry nor housing there (growth may wait there for research until
+    // the final layout must be followed).
+    const PlanItem& it = b_.item(item);
+    const bool research = it.research > 0;
+    const bool other = it.industry > 0 || it.max_population > 0 || must_follow_target();
     for (const std::uint8_t colour : colours(item, role)) {
-      if (blue_only && colour != kBlue) {
+      if (blue_research() && (research ? colour != kBlue : other && colour == kBlue)) {
         continue;
       }
       std::uint16_t best = kNoSquare;
@@ -823,8 +832,11 @@ class Rules {
       return std::nullopt;
     }
     const std::int32_t free = free_workers();
-    // Workers: only when they come slower than the buildings are done.
-    if (!kept && (free >= 2 || (free == 1 && interval(b_) < next_days()))) {
+    // Workers: only when they come slower than the buildings are done; on
+    // the last square reachable already then (else growth would have to
+    // take a building down soon).
+    const bool slower = interval(b_) >= next_days();
+    if (!kept && (free >= 2 || (free == 1 && !slower)) && !(reachable_ == 1 && slower)) {
       return std::nullopt;
     }
     const std::int32_t wait = next_inhabitant(b_);
@@ -929,7 +941,7 @@ class Rules {
     return best;
   }
 
-  // The factories that may come now (rules 6 and early research focus).
+  // The factories that may come now (rule 6).
   std::vector<Action> industry_buildings() {
     return worthwhile(toward_target(candidates(Role::kIndustry, [](const PlanItem& it) { return it.industry > 0; })));
   }

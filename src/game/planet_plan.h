@@ -1,8 +1,8 @@
 // peCustom's planet management (this fork's own, not in the original): the
 // project of an idle planet the AI runs or the player lets manage itself,
-// chosen by a few rules (`planet_plan_rules.cpp`) for the planet's strategy
-// (`PlanetGoal`, `Game::planet_goals`) and settings (`PlanetManagement`). No
-// building comes for free.
+// chosen by a few rules (`planet_plan_rules.cpp`) for the planet's settings
+// (`PlanetManagement`, its final build-out above all). No building comes for
+// free.
 #pragma once
 
 #include <array>
@@ -15,23 +15,8 @@
 
 namespace oa::game {
 
-// The goals in the order the menus list them.
-inline constexpr std::array<PlanetGoal, 3> kPlanetGoals{PlanetGoal::kBalanced, PlanetGoal::kEarlyIndustry,
-                                                         PlanetGoal::kEarlyResearch};
-
-// The strategy `delta` steps after `current` in the order off (none), then
-// `kPlanetGoals`, wrapping.
-std::optional<PlanetGoal> planet_next_strategy(std::optional<PlanetGoal> current, int delta);
-
 // Whether `planet` has unexcavated ruins.
 bool planet_has_ruins(const Session& session, const Planet& planet);
-
-// The goal's English name (the remake text's key).
-std::string_view planet_goal_name(PlanetGoal goal);
-
-// The goal `planet`'s self-management follows: the player's choice, for the
-// AI's planets balanced (`pe_manage_planet` picks the AI's own).
-PlanetGoal planet_goal(const Session& session, const Planet& planet);
 
 // The management of `planet` with its standards filled in
 // (`PlanetManagement`, no -1 / `BuildLevel::kStandard` left).
@@ -78,7 +63,7 @@ void pe_manage_planet_rules(Session& session, Planet& planet, const PlanetManage
 
 // peCustom: chooses the project of an idle planet (or one running a
 // project without end, `pe_endless_project`) that the AI runs (by the
-// rules, for a strategy and management it picks itself) or that manages
+// rules, for a management it picks itself) or that manages
 // itself; a planet busy otherwise is left alone.
 void pe_manage_planet(Session& session, Race& race, Planet& planet);
 

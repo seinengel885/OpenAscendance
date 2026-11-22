@@ -89,9 +89,7 @@ TEST_CASE("a peCustom game saves and loads as peCustom", "[game][content][pecust
   OA_REQUIRE_TABLES(t);
   Session session(*t);
   play(session, Variant::kPeCustom, 30);
-  // A goal for the player's planet's self-management (format 3 on).
   const PlanetIndex home = player_planet(session);
-  session.game->planet_goals.at(static_cast<std::size_t>(home)) = PlanetGoal::kEarlyResearch;
   // Its management and a label (format 4 on).
   PlanetManagement& management = session.game->planet_management.at(static_cast<std::size_t>(home));
   management.levels[PlanetManagement::kShipyard] = BuildLevel::kFirst;
@@ -121,7 +119,6 @@ TEST_CASE("a peCustom game saves and loads as peCustom", "[game][content][pecust
   load_game(loaded, image);
   CHECK(loaded.game->variant == Variant::kPeCustom);
   CHECK(loaded.game->cosmos.day == 30);
-  CHECK(loaded.game->planet_goals.at(static_cast<std::size_t>(home)) == PlanetGoal::kEarlyResearch);
   const PlanetManagement& m = loaded.game->planet_management.at(static_cast<std::size_t>(home));
   CHECK(m.levels[PlanetManagement::kShipyard] == BuildLevel::kFirst);
   CHECK(m.levels[PlanetManagement::kDig] == BuildLevel::kStandard);
@@ -216,8 +213,6 @@ TEST_CASE("the version-2 peCustom saves still load", "[game][content][pecustom]"
   Session session(*t);
   load_game(session, image);
   CHECK(session.game->cosmos.day == 30);
-  // Saved before the planets' goals: all balanced.
-  CHECK(std::ranges::all_of(session.game->planet_goals, [](PlanetGoal g) { return g == PlanetGoal::kBalanced; }));
   cosmos_next_turn(session);
   session.events.take();
   CHECK(session.game->cosmos.day == 31);
@@ -236,9 +231,7 @@ TEST_CASE("the version-3 peCustom saves still load", "[game][content][pecustom]"
   Session session(*t);
   load_game(session, image);
   CHECK(session.game->cosmos.day == 30);
-  // The goal the save was written with.
-  // Saved with a goal of the former planner (research, 2): balanced now.
-  CHECK(session.game->planet_goals.at(static_cast<std::size_t>(player_planet(session))) == PlanetGoal::kBalanced);
+  // Saved with a goal of the former planner (read and dropped).
   // Saved before the planets' management: all standard, no labels.
   CHECK(std::ranges::all_of(session.game->planet_management,
                             [](const PlanetManagement& m) {
@@ -381,17 +374,22 @@ TEST_CASE("the version-9 peCustom saves still load", "[game][content][pecustom]"
   CHECK(session.game->cosmos.day == 31);
 }
 
-TEST_CASE("the strategies cycle balanced, early industry, early research, off", "[pecustom]") {
-  std::optional<PlanetGoal> g = planet_next_strategy(std::nullopt, 1);
-  CHECK(g == PlanetGoal::kBalanced);
-  g = planet_next_strategy(g, 1);
-  CHECK(g == PlanetGoal::kEarlyIndustry);
-  g = planet_next_strategy(g, 1);
-  CHECK(g == PlanetGoal::kEarlyResearch);
-  CHECK(planet_next_strategy(g, 1) == std::nullopt);
-  CHECK(planet_goal_name(PlanetGoal::kBalanced) == "Balanced");
-  CHECK(planet_goal_name(PlanetGoal::kEarlyIndustry) == "Early industry focus");
-  CHECK(planet_goal_name(PlanetGoal::kEarlyResearch) == "Early research focus");
+TEST_CASE("the version-10 peCustom saves still load", "[game][content][pecustom]") {
+  OA_REQUIRE_TABLES(t);
+  const auto saved = versioned_save(10);
+  if (!saved) {
+    SKIP("OA_PECUSTOM_SAVES is not set to the folder of pecustom_v10.sav");
+  }
+  const SaveImage image = parse_save(*saved);
+  CHECK(image.pe_custom_version == 10);
+  Session session(*t);
+  load_game(session, image);
+  const PlanetManagement& m =
+      session.game->planet_management.at(static_cast<std::size_t>(player_planet(session)));
+  CHECK(m.final_outputs[PlanetManagement::kResearch] == FinalOutput{FinalMode::kMaximise, 0, 3});
+  cosmos_next_turn(session);
+  session.events.take();
+  CHECK(session.game->cosmos.day == 31);
 }
 
 TEST_CASE("a planet's buildings are none by standard, the home planet's Shipyard first", "[game][content][pecustom]") {

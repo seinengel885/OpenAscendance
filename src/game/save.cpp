@@ -593,15 +593,14 @@ SaveImage parse_save(std::span<const std::uint8_t> data, std::optional<RawAddres
           }
         }
       }
-      if (image.pe_custom_version >= 3) {
-        image.planet_goals.resize(image.planets.size());
-        for (PlanetGoal& goal : image.planet_goals) {
-          const std::uint8_t g = in.u8();
-          if (g >= kPlanetGoalEnd) {
+      if (image.pe_custom_version >= 3 && image.pe_custom_version < 10) {
+        // The planets' former goals: the management follows the final
+        // build-out now.
+        constexpr std::uint8_t kGoalEnd = 9;
+        for (std::size_t i = 0; i < image.planets.size(); ++i) {
+          if (const std::uint8_t g = in.u8(); g >= kGoalEnd) {
             in.fail(std::format("unknown planet goal {}", g));
           }
-          // The former planner's goals: balanced.
-          goal = g < kPlanetGoalFirst ? PlanetGoal::kBalanced : static_cast<PlanetGoal>(g);
         }
       }
       if (image.pe_custom_version >= 4) {
@@ -758,9 +757,6 @@ std::vector<std::uint8_t> serialize_save(const SaveImage& image) {
       }
     }
     for (std::size_t i = 0; i < image.planets.size(); ++i) {
-      w.u8(static_cast<std::uint8_t>(i < image.planet_goals.size() ? image.planet_goals[i] : PlanetGoal::kBalanced));
-    }
-    for (std::size_t i = 0; i < image.planets.size(); ++i) {
       const PlanetManagement m = i < image.planet_management.size() ? image.planet_management[i] : PlanetManagement{};
       for (const BuildLevel level : m.levels) {
         w.u8(static_cast<std::uint8_t>(level));
@@ -877,7 +873,6 @@ SaveImage save_game(const Session& session) {
   if (game.variant == Variant::kPeCustom) {
     image.pe_custom_version = kPeCustomSaveVersion;
     image.last_attack_days = game.last_attack_days;
-    image.planet_goals.assign(game.planet_goals.begin(), game.planet_goals.begin() + cosmos.planet_count);
     image.planet_management.assign(game.planet_management.begin(),
                                    game.planet_management.begin() + cosmos.planet_count);
     image.planet_labels = game.planet_labels;
@@ -901,8 +896,6 @@ void load_game(Session& session, const SaveImage& image) {
   cosmos.score = image.score;
   game.last_trade_days = image.last_trade_days;
   game.last_attack_days = image.last_attack_days;
-  game.planet_goals.fill(PlanetGoal::kBalanced);
-  std::ranges::copy(image.planet_goals, game.planet_goals.begin());
   game.planet_management.fill(PlanetManagement{});
   std::ranges::copy(image.planet_management, game.planet_management.begin());
   game.planet_labels = image.planet_labels;

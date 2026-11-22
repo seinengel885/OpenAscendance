@@ -45,14 +45,14 @@ constexpr std::array<std::uint8_t, 3> kOutputColours{kSelectedColor, 0x27, 0x93}
 constexpr std::uint8_t kHousingColour = 0x09;
 constexpr std::uint8_t kOtherColour = 0x9d;
 
-// The window: its rectangle, the labels' left edge, the strategy's value
+// The window: its rectangle, the labels' left edge, the management's value
 // box, the two columns of the buildings (left edge, width, a sub-row's
 // indent, the value box in a column), the arrows of a value box and the
 // buttons.
 constexpr Pane kBox{60, 62, 579, 418};
 constexpr int kLabelX = 16;
 constexpr int kRight = 506;
-constexpr int kStrategyX0 = 300;
+constexpr int kManagedX0 = 300;
 constexpr std::array<int, 2> kColumnX{12, 264};
 constexpr int kColumnWidth = 246;
 constexpr int kIndent = 16;
@@ -76,7 +76,7 @@ constexpr std::uint16_t kScanBackspace = 0x0e;
 constexpr std::uint16_t kScanEnter = 0x1c;
 
 // What a row of the window sets.
-enum class Kind : std::uint8_t { kHead, kStrategy, kLevel, kCount, kFinal, kLayout };
+enum class Kind : std::uint8_t { kHead, kManaged, kLevel, kCount, kFinal, kLayout };
 
 struct Row {
   Row(Kind k, std::string l, int i = 0, bool s = false, std::vector<BuildLevel> v = {})
@@ -111,16 +111,16 @@ std::string_view level_name(BuildLevel level) {
 }
 
 // One planet of the management window: its settings as edited, its
-// standards, its strategy (none: self-management off).
+// standards, whether it manages itself.
 struct Target {
   game::Planet* planet;
   PlanetManagement own;
   PlanetManagement standard;
-  std::optional<game::PlanetGoal> strategy;
+  bool managed;
 };
 
-// The management window of one or more planets: the strategy
-// (self-management off or a goal) and the `PlanetManagement` (the buildings
+// The management window of one or more planets: self-management on or off
+// and the `PlanetManagement` (the buildings
 // in two columns, the final build-out with its presets and layout), each
 // value with arrows (a click on a number types it), a planet's standard
 // shown until changed. A row the planets
@@ -134,15 +134,15 @@ class ManagementBox final : public GWindow {
     bool ruins = false;
     for (game::Planet* p : planets) {
       const auto index = static_cast<std::size_t>(game::planet_index(session.game->cosmos, *p));
-      targets_.push_back({p, session.game->planet_management.at(index), game::planet_management_standard(session, *p),
-                          p->self_managed != 0 ? std::optional(game::planet_goal(session, *p)) : std::nullopt});
+      targets_.push_back(
+          {p, session.game->planet_management.at(index), game::planet_management_standard(session, *p), p->self_managed != 0});
       ruins = ruins || game::planet_has_ruins(session, *p);
     }
     const std::vector<BuildLevel> surface(kSurfaceLevels.begin(), kSurfaceLevels.end());
     const std::vector<BuildLevel> orbital(kOrbitalLevels.begin(), kOrbitalLevels.end());
-    // The strategy, the buildings in two columns (surface left, orbit
-    // right), the final build-out.
-    add({Kind::kStrategy, "Strategy"}, 0, -1);
+    // On or off, the buildings in two columns (surface left, orbit right),
+    // the final build-out.
+    add({Kind::kManaged, "Management"}, 0, -1);
     add({Kind::kHead, "Buildings (Never / Reserve / Along / First)"}, 1, -1);
     const std::array<Row, 5> surface_rows{
         Row{Kind::kLevel, "Planetary defence", PlanetManagement::kPlanetaryDefence, false, surface},
@@ -175,11 +175,11 @@ class ManagementBox final : public GWindow {
 
   bool ok() const { return ok_; }
 
-  // Applies the settings to the planets (the strategy only when changed).
+  // Applies the settings to the planets (on or off only when changed).
   void apply() {
     for (const Target& t : targets_) {
-      if (strategy_changed_) {
-        game::planet_set_management(session_, *t.planet, t.strategy);
+      if (managed_changed_) {
+        game::planet_set_managed(*t.planet, t.managed);
       }
       session_.game->planet_management.at(static_cast<std::size_t>(game::planet_index(session_.game->cosmos, *t.planet))) =
           t.own;
@@ -256,7 +256,7 @@ class ManagementBox final : public GWindow {
   }
   static std::pair<int, int> box_x(const Row& row) {
     if (row.column < 0) {
-      return {kStrategyX0, kRight};
+      return {kManagedX0, kRight};
     }
     const int x0 = kColumnX[static_cast<std::size_t>(row.column)];
     return {x0 + kColumnValueX0, x0 + kColumnWidth};
@@ -298,8 +298,8 @@ class ManagementBox final : public GWindow {
   std::string value(const Target& t, const Row& row) {
     const auto i = static_cast<std::size_t>(row.index);
     switch (row.kind) {
-      case Kind::kStrategy:
-        return t.strategy ? wm_.remake_text(game::planet_goal_name(*t.strategy)) : wm_.remake_text("Off");
+      case Kind::kManaged:
+        return wm_.remake_text(t.managed ? "On" : "Off");
       case Kind::kLevel: {
         const bool standard = t.own.levels[i] == BuildLevel::kStandard;
         return wm_.remake_text(level_name(standard ? t.standard.levels[i] : t.own.levels[i]));
@@ -365,7 +365,9 @@ class ManagementBox final : public GWindow {
       const bool chosen = f && static_cast<std::size_t>(f->mode) == m;
       vfx_pane_wipe(screen, p, chosen ? kSelectedColor : kBack);
       frame(p, kFrame);
-      const std::array<std::string_view, 3> names{"Keep", "At least", "Maximise"};
+      // Research kept: on the blue squares only.
+      const std::array<std::string_view, 3> names{o == PlanetManagement::kResearch ? "Blue only" : "Keep", "At least",
+                                                  "Maximise"};
       const std::string text = wm_.remake_text(names[m]);
       if (m == 1) {
         // The points' field, like the value boxes.
@@ -578,7 +580,7 @@ class ManagementBox final : public GWindow {
     return t.own.counts[static_cast<std::size_t>(row.index)];
   }
   static std::int16_t standard_number(const Target& t, const Row& row) {
-    Target copy{nullptr, t.standard, t.standard, std::nullopt};
+    Target copy{nullptr, t.standard, t.standard, false};
     return stored(copy, row);
   }
 
@@ -587,9 +589,9 @@ class ManagementBox final : public GWindow {
     const Target& first = targets_[0];
     for (Target& t : targets_) {
       switch (row.kind) {
-        case Kind::kStrategy:
-          t.strategy = first.strategy;
-          strategy_changed_ = true;
+        case Kind::kManaged:
+          t.managed = first.managed;
+          managed_changed_ = true;
           break;
         case Kind::kLevel:
           t.own.levels[static_cast<std::size_t>(row.index)] = first.own.levels[static_cast<std::size_t>(row.index)];
@@ -613,8 +615,8 @@ class ManagementBox final : public GWindow {
   void step(const Row& row, int delta) {
     Target& t = targets_[0];
     switch (row.kind) {
-      case Kind::kStrategy:
-        t.strategy = game::planet_next_strategy(t.strategy, delta);
+      case Kind::kManaged:
+        t.managed = !t.managed;
         break;
       case Kind::kLevel: {
         const auto i = static_cast<std::size_t>(row.index);
@@ -693,7 +695,7 @@ class ManagementBox final : public GWindow {
   game::Session& session_;
   std::vector<Target> targets_;
   std::vector<Row> rows_;
-  bool strategy_changed_ = false;
+  bool managed_changed_ = false;
   int editing_ = -1;
   std::string typed_;
   bool ok_ = false;
@@ -840,11 +842,8 @@ bool management_shown(const game::Session& session, const game::Planet& planet) 
   return session.game->variant == game::Variant::kPeCustom && planet.owner == session.player_race;
 }
 
-std::string management_label(const WinMgr& wm, const game::Session& session, const game::Planet& planet) {
-  const std::string state = planet.self_managed == 0
-                                ? wm.remake_text("Off")
-                                : wm.remake_text(game::planet_goal_name(game::planet_goal(session, planet)));
-  return c_format(wm.remake_text("Management: %s"), state.c_str());
+std::string management_label(const WinMgr& wm, const game::Planet& planet) {
+  return c_format(wm.remake_text("Management: %s"), wm.remake_text(planet.self_managed == 0 ? "Off" : "On").c_str());
 }
 
 bool run_management_menu(WinMgr& wm, game::Session& session, std::span<game::Planet* const> planets) {

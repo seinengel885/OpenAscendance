@@ -44,9 +44,9 @@ struct DayRecord {
 class PlanRig {
  public:
   // A new game (`seed`), the player's colony on an unowned planet of
-  // `size` with most of its surface not black (Colony Base, two inhabitants) with `goal` and the planet's
+  // `size` with most of its surface not black (Colony Base, two inhabitants) with the planet's
   // standard management; the player's other planets are not managed.
-  PlanRig(const GameTables& tables, int seed, int size, PlanetGoal goal) : session_(tables) {
+  PlanRig(const GameTables& tables, int seed, int size) : session_(tables) {
     start(seed);
     Cosmos& c = session_.game->cosmos;
     for (PlanetIndex i = 0; i < c.planet_count; ++i) {
@@ -66,12 +66,12 @@ class PlanRig {
     p.population = 2;
     planet_auto_build_item(session_, p, kItemColonyBase);
     planet_recalc_output(session_, p);
-    manage(goal, PlanetManagement{});
+    manage(PlanetManagement{});
   }
-  // A new game (`seed`), the player's home planet managed with `goal` and
-  // the standard management of a first planet (Shipyard first).
+  // A new game (`seed`), the player's home planet managed with the
+  // standard management of a first planet (Shipyard first).
   struct Home {};
-  PlanRig(const GameTables& tables, int seed, Home, PlanetGoal goal) : session_(tables) {
+  PlanRig(const GameTables& tables, int seed, Home) : session_(tables) {
     start(seed);
     Cosmos& c = session_.game->cosmos;
     for (PlanetIndex i = 0; i < c.planet_count && planet_ == nullptr; ++i) {
@@ -81,7 +81,7 @@ class PlanRig {
       }
     }
     if (planet_ != nullptr) {
-      manage(goal, planet_management_standard(session_, *planet_));
+      manage(planet_management_standard(session_, *planet_));
     }
   }
 
@@ -188,11 +188,10 @@ class PlanRig {
       }
     }
   }
-  // Puts the planet under `management` with `goal`, notes its usable squares.
-  void manage(PlanetGoal goal, const PlanetManagement& management) {
+  // Puts the planet under `management`, notes its usable squares.
+  void manage(const PlanetManagement& management) {
     Planet& p = *planet_;
     p.self_managed = -1;
-    session_.game->planet_goals[static_cast<std::size_t>(index_)] = goal;
     session_.game->planet_management[static_cast<std::size_t>(index_)] = management;
     usable_.assign(p.surface_squares, false);
     const bool black = session_.game->cosmos.races.at(p.owner).ability == 2;

@@ -32,8 +32,8 @@ void ship_abandon(Session& session, Ship& ship);
 // The planet screen's M key: toggles `planet.self_managed` (0 / -1).
 void planet_toggle_self_managed(Planet& planet);
 // peCustom's management menu (planet screen, planet list): turns the
-// planet's self-management off (no goal) or on with `goal`.
-void planet_set_management(Session& session, Planet& planet, std::optional<PlanetGoal> goal);
+// planet's self-management on or off.
+void planet_set_managed(Planet& planet, bool on);
 
 // What `planet_colonize` did, for its report (help topic `colonize`, or
 // `maxcolonize` when `best_race` is the player): the player's colony count

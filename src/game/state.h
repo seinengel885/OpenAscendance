@@ -377,26 +377,6 @@ constexpr RaceDays no_attack_days() {
   return days;
 }
 
-// peCustom: what a self-managed planet of the player builds for
-// (`Game::planet_goals`, `game/planet_plan.h`). The values are saved: never
-// change them, append new goals. 0..5 were the goals of a former planner,
-// never played, but saves of peCustom format 3 on hold them: they load as
-// balanced.
-enum class PlanetGoal : std::uint8_t {
-  kBalanced = 6,       // industry and research alike
-  kEarlyIndustry = 7,  // research, industry first while it holds the planet back
-  kEarlyResearch = 8,  // research, industry only when the labs are done sooner with it
-};
-// The first value of a goal, and the end of the values.
-inline constexpr std::uint8_t kPlanetGoalFirst = 6;
-inline constexpr std::uint8_t kPlanetGoalEnd = 9;
-
-constexpr std::array<PlanetGoal, kMaxPlanets> balanced_goals() {
-  std::array<PlanetGoal, kMaxPlanets> goals{};
-  goals.fill(PlanetGoal::kBalanced);
-  return goals;
-}
-
 // peCustom: how a managed planet treats a kind of building
 // (`PlanetManagement::levels`). The values are saved: never change them.
 enum class BuildLevel : std::uint8_t {
@@ -427,8 +407,8 @@ struct FinalOutput {
 // The largest weight of a maximised output.
 inline constexpr std::int8_t kFinalWeights = 5;
 
-// peCustom (save format 4): a planet's management beyond its strategy
-// (`Game::planet_goals`), read by `planet_plan_rules.cpp`. -1 / kStandard: the
+// peCustom (save format 4): a planet's management, read by
+// `planet_plan_rules.cpp`. -1 / kStandard: the
 // standard for the planet (`planet_plan.h`).
 struct PlanetManagement {
   enum Building : std::uint8_t { kPlanetaryDefence, kOrbitalDefence, kShipyard, kOrbitalDock, kDig, kBuildings };
@@ -477,9 +457,6 @@ struct Game {
   // peCustom: per race the day the player last offered it peace (once a
   // day; `kNoAttackDay` never).
   std::array<std::int32_t, kMaxRaces> peace_offer_days = no_peace_offer_days();
-  // peCustom: the goal of each planet's self-management (the player's
-  // planets; the AI picks its own).
-  std::array<PlanetGoal, kMaxPlanets> planet_goals = balanced_goals();
   // peCustom: the rest of each planet's management, and the player's planet
   // labels (at most `kMaxPlanetLabels`).
   std::array<PlanetManagement, kMaxPlanets> planet_management{};

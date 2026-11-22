@@ -88,7 +88,7 @@ TEST_CASE("peCustom's output curve: Colony Base 1.0, with a Factory 1.8", "[pecu
   CHECK(planet_output_tenths(3) == 25);
   CHECK(planet_output_tenths(10) == 70);
   OA_REQUIRE_TABLES(t);
-  PlanRig rig(*t, 7, 2, PlanetGoal::kBalanced);
+  PlanRig rig(*t, 7, 2);
   hand_colony(rig);
   build_now(rig, kFactory);
   const Planet& p = rig.planet();
@@ -101,7 +101,7 @@ TEST_CASE("peCustom's output curve: Colony Base 1.0, with a Factory 1.8", "[pecu
 
 TEST_CASE("a Factory at industry 1.8 takes 17 days, as shown and as the planner expects", "[pecustom][output]") {
   OA_REQUIRE_TABLES(t);
-  PlanRig rig(*t, 7, 2, PlanetGoal::kBalanced);
+  PlanRig rig(*t, 7, 2);
   hand_colony(rig);
   if (output_sum(rig, true) < 2) {
     build_now(rig, kFactory);
@@ -150,7 +150,7 @@ TEST_CASE("a finished project's excess carries over, at most a day's output", "[
 
 TEST_CASE("the population grows with the prosperity's tenths, as shown", "[pecustom][output]") {
   OA_REQUIRE_TABLES(t);
-  PlanRig rig(*t, 7, 2, PlanetGoal::kBalanced);
+  PlanRig rig(*t, 7, 2);
   hand_colony(rig);
   build_now(rig, kAgriplot);
   Planet& p = rig.planet();
@@ -173,7 +173,7 @@ TEST_CASE("the population grows with the prosperity's tenths, as shown", "[pecus
 
 TEST_CASE("a ship takes the days the planet shows", "[pecustom][output]") {
   OA_REQUIRE_TABLES(t);
-  PlanRig rig(*t, 7, 2, PlanetGoal::kBalanced);
+  PlanRig rig(*t, 7, 2);
   hand_colony(rig);
   // Room and workers for a Factory, the Shipyard and the crew.
   rig.planet().base_population = static_cast<std::uint16_t>(rig.planet().base_population + 6);
@@ -218,7 +218,7 @@ TEST_CASE("a ship takes the days the planet shows", "[pecustom][output]") {
 
 TEST_CASE("the AI's boost multiplies the industry's tenths", "[pecustom][output]") {
   OA_REQUIRE_TABLES(t);
-  PlanRig rig(*t, 7, 2, PlanetGoal::kBalanced);
+  PlanRig rig(*t, 7, 2);
   hand_colony(rig);
   build_now(rig, kFactory);
   Session& s = rig.session();

@@ -156,27 +156,8 @@ PlanetManagement ai_plan(const Session& session, const Race& race, const Planet&
 
 }  // namespace
 
-std::optional<PlanetGoal> planet_next_strategy(std::optional<PlanetGoal> current, int delta) {
-  const int n = static_cast<int>(kPlanetGoals.size()) + 1;
-  const int at = current ? static_cast<int>(std::ranges::find(kPlanetGoals, *current) - kPlanetGoals.begin()) + 1 : 0;
-  const int next = ((at + delta) % n + n) % n;
-  return next == 0 ? std::nullopt : std::optional(kPlanetGoals[static_cast<std::size_t>(next - 1)]);
-}
-
 bool planet_has_ruins(const Session& session, const Planet& planet) {
   return ruins_square(session, planet) != kNoSquare;
-}
-
-std::string_view planet_goal_name(PlanetGoal goal) {
-  switch (goal) {
-    case PlanetGoal::kBalanced:
-      return "Balanced";
-    case PlanetGoal::kEarlyIndustry:
-      return "Early industry focus";
-    case PlanetGoal::kEarlyResearch:
-      return "Early research focus";
-  }
-  return "Balanced";
 }
 
 PlanetManagement planet_management_standard(const Session& session, const Planet& planet) {
@@ -270,13 +251,6 @@ std::string_view planet_alarm_text(PlanetAlarm alarm) {
       break;
   }
   return "";
-}
-
-PlanetGoal planet_goal(const Session& session, const Planet& planet) {
-  if (!is_player_planet(session, planet)) {
-    return PlanetGoal::kBalanced;
-  }
-  return session.game->planet_goals.at(static_cast<std::size_t>(planet_index(session.game->cosmos, planet)));
 }
 
 bool pe_endless_project(std::uint8_t item) { return item == kItemEndlessParty || item == kItemScientistTakeover; }

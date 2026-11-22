@@ -46,7 +46,7 @@ inline constexpr RawAddress kAntagCosmosAddress = 0x219f6c;
 // The format version of the peCustom saves this build writes, the newest it
 // loads. Raise it when appending data to the peCustom trailer.
 // 2: `Game::last_attack_days`.
-// 3: `Game::planet_goals` (a byte per planet).
+// 3: the goal of each planet's self-management (a byte per planet, 0..8).
 // 4: `Game::planet_management` (per planet) and `Game::planet_labels`.
 // 5: the orbital shields count of each planet's management.
 // 6: `Game::peace_offer_days`.
@@ -56,7 +56,8 @@ inline constexpr RawAddress kAntagCosmosAddress = 0x219f6c;
 // 9: each planet's tenths of industry and prosperity and its carried
 //    tenths of progress and growth (`Planet::industry_tenths` ...); earlier
 //    saves load with none and the outputs recomputed.
-inline constexpr std::uint32_t kPeCustomSaveVersion = 9;
+// 10: no planet goals (formats 3 to 9 hold them: read and dropped).
+inline constexpr std::uint32_t kPeCustomSaveVersion = 10;
 
 // Size of the window state of the v1.6.5 window table (`COSMOSWnd` 0xbe,
 // 4 values, a 7-entry list box, 1 value, `BatModeWnd` 0x1a08, 2 values, the
@@ -93,7 +94,6 @@ struct SaveImage {
   // peCustom version 2 on (never attacked before).
   RaceDays last_attack_days = no_attack_days();
   // peCustom version 3 on (balanced before): a goal per planet.
-  std::vector<PlanetGoal> planet_goals;
   // peCustom version 4 on (standards before): per planet, and the labels.
   std::vector<PlanetManagement> planet_management;
   std::vector<std::string> planet_labels;

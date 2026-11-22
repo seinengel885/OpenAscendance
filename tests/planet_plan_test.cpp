@@ -34,6 +34,8 @@ using plan_test::PlanRig;
 
 constexpr int kDays = 600;
 constexpr std::array<int, 2> kSeeds{7, 11};
+// The final build-out presets the scenario tests run with.
+constexpr std::array<FinalPreset, 3> kPresets{FinalPreset::kResearch, FinalPreset::kShipyard, FinalPreset::kDock};
 // The day each size is full by: the latest of the rules of 2026-11-21
 // (seeds 7, 11, all strategies) and a tenth more, at most `kDays`; small
 // planets a few days more for the last 6 buildings toward the final layout.
@@ -48,9 +50,7 @@ bool housing_or_growth(const GameTables& t, std::uint8_t item) {
 std::vector<std::string> faults(const GameTables& t, PlanRig& rig) {
   std::vector<std::string> out;
   const std::optional<int> full = rig.full_day();
-  // Early research focus fills slower (Patrick takes that).
-  if (const int by = kFullBy.at(rig.planet().size);
-      planet_goal(rig.session(), rig.planet()) != PlanetGoal::kEarlyResearch && (!full || *full > by)) {
+  if (const int by = kFullBy.at(rig.planet().size); !full || *full > by) {
     out.push_back(std::format("full on day {}, not by day {}", full.value_or(-1), by));
   }
   int idle = 0;
@@ -89,17 +89,18 @@ TEST_CASE("a managed colony builds without idling, early demolition or ping-pong
   OA_REQUIRE_TABLES(t);
   for (const int seed : kSeeds) {
     for (int size = 0; size < 5; ++size) {
-      for (const PlanetGoal goal : kPlanetGoals) {
-        PlanRig rig(*t, seed, size, goal);
+      for (const FinalPreset preset : kPresets) {
+        PlanRig rig(*t, seed, size);
         if (!rig.ready()) {
           continue;
         }
+        rig.management().final_outputs = planet_final_preset(preset, rig.planet());
         rig.run(kDays);
         const std::optional<int> full = rig.full_day();
-        std::printf("C seed %d size %d goal %d squares %d full %d pop %d I %d R %d\n", seed, size,
-                    static_cast<int>(goal), rig.planet().surface_squares, full.value_or(-1),
+        std::printf("C seed %d size %d preset %d squares %d full %d pop %d I %d R %d\n", seed, size,
+                    static_cast<int>(preset), rig.planet().surface_squares, full.value_or(-1),
                     rig.days.back().population, rig.days.back().industry, rig.days.back().research);
-        CAPTURE(seed, size, static_cast<int>(goal));
+        CAPTURE(seed, size, static_cast<int>(preset));
         const std::vector<std::string> found = faults(*t, rig);
         for (const std::string& f : found) {
           UNSCOPED_INFO(f);
@@ -126,8 +127,8 @@ std::pair<long, long> sums(const PlanRig& rig, int days) {
 TEST_CASE("a final layout maximising research has research sooner, one maximising industry industry",
           "[pecustom][plan]") {
   OA_REQUIRE_TABLES(t);
-  PlanRig research(*t, 7, 3, PlanetGoal::kBalanced);
-  PlanRig industry(*t, 7, 3, PlanetGoal::kBalanced);
+  PlanRig research(*t, 7, 3);
+  PlanRig industry(*t, 7, 3);
   REQUIRE(research.ready());
   industry.management().final_outputs = planet_final_preset(FinalPreset::kDock, industry.planet());
   research.run(400);
@@ -161,7 +162,7 @@ std::vector<std::pair<std::uint8_t, std::uint8_t>> research_built(const GameTabl
 TEST_CASE("a final layout without research builds no research building on the way", "[pecustom][plan]") {
   OA_REQUIRE_TABLES(t);
   for (const int seed : {7, 11}) {
-    PlanRig rig(*t, seed, 3, PlanetGoal::kBalanced);
+    PlanRig rig(*t, seed, 3);
     REQUIRE(rig.ready());
     rig.management().final_outputs = planet_final_preset(FinalPreset::kShipyard, rig.planet());
     rig.management().final_outputs[PlanetManagement::kResearch] = FinalOutput{FinalMode::kAtLeast, 0, kFinalWeights};
@@ -174,7 +175,7 @@ TEST_CASE("a final layout without research builds no research building on the wa
 TEST_CASE("research kept to its own squares builds research only on blue squares", "[pecustom][plan]") {
   OA_REQUIRE_TABLES(t);
   for (const int seed : {7, 11}) {
-    PlanRig rig(*t, seed, 3, PlanetGoal::kBalanced);
+    PlanRig rig(*t, seed, 3);
     REQUIRE(rig.ready());
     rig.management().final_outputs = planet_final_preset(FinalPreset::kShipyard, rig.planet());
     REQUIRE(rig.management().final_outputs[PlanetManagement::kResearch].mode == FinalMode::kKeep);
@@ -208,7 +209,7 @@ TEST_CASE("close to full a managed colony builds only what its final layout want
   OA_REQUIRE_TABLES(t);
   for (const int size : {1, 4}) {
     for (const FinalPreset preset : {FinalPreset::kResearch, FinalPreset::kShipyard}) {
-      PlanRig rig(*t, 7, size, PlanetGoal::kBalanced);
+      PlanRig rig(*t, 7, size);
       REQUIRE(rig.ready());
       rig.management().final_outputs = planet_final_preset(preset, rig.planet());
       int unwanted = 0;
@@ -269,7 +270,7 @@ PlanRig& full_colony(PlanRig& rig) {
 
 TEST_CASE("a full colony rebuilds to a new final layout and stays", "[pecustom][plan]") {
   OA_REQUIRE_TABLES(t);
-  PlanRig rig(*t, 7, 2, PlanetGoal::kBalanced);
+  PlanRig rig(*t, 7, 2);
   REQUIRE(rig.ready());
   full_colony(rig);
   REQUIRE(rig.full_day().has_value());
@@ -292,7 +293,7 @@ TEST_CASE("a Research Campus found during the final build-out replaces the labs 
   OA_REQUIRE_TABLES(t);
   constexpr std::uint8_t kLaboratory = 2;
   constexpr std::uint8_t kCampus = 8;
-  PlanRig rig(*t, 7, 2, PlanetGoal::kBalanced);
+  PlanRig rig(*t, 7, 2);
   REQUIRE(rig.ready());
   full_colony(rig);
   rig.learn(kCampus);
@@ -312,7 +313,7 @@ TEST_CASE("a Research Campus found during the final build-out replaces the labs 
 
 TEST_CASE("a built-up colony maximising research takes over the scientists", "[pecustom][plan]") {
   OA_REQUIRE_TABLES(t);
-  PlanRig rig(*t, 7, 2, PlanetGoal::kBalanced);
+  PlanRig rig(*t, 7, 2);
   REQUIRE(rig.ready());
   full_colony(rig);
   rig.learn(kItemScientistTakeover);
@@ -327,7 +328,7 @@ TEST_CASE("a built-up colony maximising research takes over the scientists", "[p
 
 TEST_CASE("a colony of a species knowing all research takes over no scientists", "[pecustom][plan]") {
   OA_REQUIRE_TABLES(t);
-  PlanRig rig(*t, 7, 2, PlanetGoal::kBalanced);
+  PlanRig rig(*t, 7, 2);
   REQUIRE(rig.ready());
   full_colony(rig);
   Research& research = rig.session().game->research;
@@ -453,9 +454,10 @@ TEST_CASE("large buildings and boosts come once they are worth it", "[pecustom][
   int smalls = 0;
   for (const int seed : kSeeds) {
     for (const int size : {2, 3}) {
-      for (const PlanetGoal goal : {PlanetGoal::kBalanced, PlanetGoal::kEarlyIndustry, PlanetGoal::kEarlyResearch}) {
-        PlanRig rig(*t, seed, size, goal);
+      for (const FinalPreset preset : kPresets) {
+        PlanRig rig(*t, seed, size);
         REQUIRE(rig.ready());
+        rig.management().final_outputs = planet_final_preset(preset, rig.planet());
         rig.stop_research();
         for (int d = 1; d <= kDays && (rig.days.empty() || rig.days.back().empty > 0); ++d) {
           if (d == 60) {
@@ -477,14 +479,14 @@ TEST_CASE("large buildings and boosts come once they are worth it", "[pecustom][
             const Hand hand(rig, s.square);
             for (const Tier& tier : kTiers) {
               if (d >= 60 && (s.item == tier.small || s.item == tier.large)) {
-                CAPTURE(seed, size, static_cast<int>(goal), s.day, t->planitems.items.at(s.item).name);
+                CAPTURE(seed, size, static_cast<int>(preset), s.day, t->planitems.items.at(s.item).name);
                 CHECK((s.item == tier.large) == hand.large_soon(tier.large, tier.output));
                 ++(s.item == tier.large ? larges : smalls);
               }
             }
             for (const Boost& b : kBoosts) {
               if (s.item == b.item) {
-                CAPTURE(seed, size, static_cast<int>(goal), s.day, t->planitems.items.at(b.item).name);
+                CAPTURE(seed, size, static_cast<int>(preset), s.day, t->planitems.items.at(b.item).name);
                 CHECK(hand.boost_worth(s.square, b.item, b.output));
               }
             }
@@ -557,7 +559,7 @@ TEST_CASE("a managed home planet launches its first interstellar colony ship in 
   constexpr int kLimit = 1000;
   for (std::size_t si = 0; si < kShipSeeds.size(); ++si) {
     const int seed = kShipSeeds[si];
-    PlanRig rig(*t, seed, PlanRig::Home{}, PlanetGoal::kBalanced);
+    PlanRig rig(*t, seed, PlanRig::Home{});
     REQUIRE(rig.ready());
     Session& s = rig.session();
     Research& r = s.game->research;

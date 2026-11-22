@@ -364,7 +364,7 @@ Pane PlanWnd::management_pane() const {
     return Pane{0, 0, -1, -1};
   }
   GameFont& font = wm_.large_font();
-  const int width = font.string_width(management_label(wm_, *s, *p));
+  const int width = font.string_width(management_label(wm_, *p));
   const int height = font.font().height;
   return Pane{kManagementRight - width, kManagementBottom - height, kManagementRight, kManagementBottom};
 }
@@ -633,11 +633,8 @@ void PlanWnd::key(int scan) {
       if (!wm_.input().shift) {
         game::Session* s = wm_.services().game.core();
         if (game::Planet* p = planet(); p != nullptr && s != nullptr && management_shown(*s, *p)) {
-          // peCustom: the strategies in turn (off, then each one).
-          game::planet_set_management(
-              *s, *p,
-              game::planet_next_strategy(p->self_managed != 0 ? std::optional(game::planet_goal(*s, *p)) : std::nullopt,
-                                         1));
+          // peCustom: the management on or off, a project begun at once.
+          game::planet_toggle_self_managed(*p);
           game::pe_manage_planet_now(*s, *p);
         } else if (p != nullptr) {
           game::planet_toggle_self_managed(*p);
@@ -678,7 +675,7 @@ void PlanWnd::draw(int /*mode*/) {
     const int color = management_hot(wm_.input().x, wm_.input().y)
                           ? kHotColor
                           : s->game->cosmos.races.at(s->player_race).color * 4 + 0x13;
-    font.draw_wrapped(screen, area.x0, area.y0, management_label(wm_, *s, *p), 0, color, 0xff, 0);
+    font.draw_wrapped(screen, area.x0, area.y0, management_label(wm_, *p), 0, color, 0xff, 0);
     // Bottom left: the name, the label symbol and the labels.
     const Pane labels = label_pane();
     const int name_color = s->game->cosmos.races.at(s->player_race).color * 4 + 0x13;

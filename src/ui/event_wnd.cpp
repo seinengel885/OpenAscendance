@@ -178,8 +178,7 @@ void EventWnd::set_event(const game::GameEvent& event) {
     }
     case EventCode::kPlanetBuiltUp: {
       const game::Planet& p = planet(event.a);
-      const std::string strategy = wm_.remake_text(game::planet_goal_name(game::planet_goal(*session, p)));
-      text.text = c_format(format, name_of(p.name).c_str(), strategy.c_str());
+      text.text = c_format(format, name_of(p.name).c_str());
       set_picture(picture, kPlanetShapes, planet_frame(p));
       set_picture(second, kPlanetScreenShapes, kFreePopulationFrame);
       break;

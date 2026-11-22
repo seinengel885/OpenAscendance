@@ -88,10 +88,8 @@ void draw_frame(Image8& screen, const Pane& p, std::uint8_t color) {
   vfx_line_draw(screen, p, w, h, w, 0, color);
 }
 
-// A planet's strategy as a key for comparing (-1 off).
-int strategy_key(const game::Session& session, const game::Planet& planet) {
-  return planet.self_managed == 0 ? -1 : static_cast<int>(game::planet_goal(session, planet));
-}
+// Whether a planet manages itself (for comparing).
+bool managed(const game::Planet& planet) { return planet.self_managed != 0; }
 
 // The outputs' picture frame: `chop(value ** 0.75)` as a `u16`, at most 20.
 std::size_t output_frame(std::uint16_t value) {
@@ -243,7 +241,7 @@ std::vector<std::pair<std::string, Pane>> StatusWnd::pe_buttons() const {
   if (label_filter_ >= 0 && label_filter_ < static_cast<int>(session.game->planet_labels.size())) {
     label = session.game->planet_labels[static_cast<std::size_t>(label_filter_)];
   }
-  const std::array<std::string, kPeButtons> captions{wm_.remake_text("All"), wm_.remake_text("Same strategy"), size,
+  const std::array<std::string, kPeButtons> captions{wm_.remake_text("All"), wm_.remake_text("Same management"), size,
                                                      label, wm_.remake_text("Only"),
                                                      wm_.remake_text("Management ...")};
   GameFont& font = const_cast<WinMgr&>(wm_).small_font();
@@ -287,20 +285,20 @@ void StatusWnd::pe_click(int button) {
       }
       break;
     }
-    case kSameStrategy: {
-      // The strategy of the first marked planet shown (else the first one).
+    case kSameManagement: {
+      // Managed or not as the first marked planet shown (else the first one).
       int first = 0;
       while (first < row_count() && !marked_.contains(row_planet(first))) {
         ++first;
       }
-      std::optional<int> key;
+      std::optional<bool> key;
       if (row_count() > 0) {
         first = first < row_count() ? first : 0;
-        key = strategy_key(session, cosmos.planets.at(static_cast<std::size_t>(row_planet(first))));
+        key = managed(cosmos.planets.at(static_cast<std::size_t>(row_planet(first))));
       }
       marked_.clear();
       for (int r = 0; key && r < row_count(); ++r) {
-        if (strategy_key(session, cosmos.planets.at(static_cast<std::size_t>(row_planet(r)))) == *key) {
+        if (managed(cosmos.planets.at(static_cast<std::size_t>(row_planet(r)))) == *key) {
           marked_.insert(row_planet(r));
         }
       }
@@ -448,7 +446,7 @@ void StatusWnd::draw_row(const Pane& row, game::PlanetIndex index, bool hilite) 
   int y = 0x1e;
   if (managed) {
     // peCustom: the management, always shown; a click opens its menu.
-    const std::string label = management_label(wm_, *session, planet);
+    const std::string label = management_label(wm_, planet);
     const bool hot =
         hilite && management_areas_.contains(index) && management_areas_[index].contains(wm_.input().x, wm_.input().y);
     small.draw_wrapped(screen, 0x113, 0x1e, label, 0, hot ? kTextColor : planet_color, 0xff, 0);

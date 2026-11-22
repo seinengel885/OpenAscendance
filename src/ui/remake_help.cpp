@@ -204,7 +204,7 @@ msg 0
 
 help oa_event_built_up
 text
-%s is built up for its strategy %s.
+%s is built up.
 endtext
 pos 10 120
 

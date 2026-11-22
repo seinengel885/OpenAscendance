@@ -21,8 +21,8 @@ struct Session;
 // planets in a peCustom game.
 bool management_shown(const game::Session& session, const game::Planet& planet);
 
-// "Management: Off" or "Management: <goal>".
-std::string management_label(const WinMgr& wm, const game::Session& session, const game::Planet& planet);
+// "Management: Off" or "Management: On".
+std::string management_label(const WinMgr& wm, const game::Planet& planet);
 
 // Runs the management window of `planets` (one or more: a change sets its
 // row on all of them) and applies it on OK; returns whether OK was clicked.

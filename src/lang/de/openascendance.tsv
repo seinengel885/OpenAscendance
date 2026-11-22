@@ -37,12 +37,9 @@ O35	Mood	Stimmung
 O36	How this species feels about you: the mark shows its mood, the zones what it does there. \nRed: declares war when it has a reason and expects to win. \nOrange: refuses peace. \nYellow: accepts peace. \nGrey-green: offers peace, but breaks an alliance. \nLight green: keeps an alliance. \nGreen: accepts an alliance. \nBright green: offers an alliance.	Wie diese Spezies zu dir steht: Die Marke zeigt ihre Stimmung, die Bereiche, was sie dort tut. \nRot: erklärt Krieg, wenn sie einen Anlass hat und sich Chancen ausrechnet. \nOrange: lehnt Frieden ab. \nGelb: nimmt Frieden an. \nGraugrün: bietet Frieden an, bricht aber ein Bündnis. \nHellgrün: hält ein Bündnis. \nGrün: nimmt ein Bündnis an. \nLeuchtgrün: bietet selbst ein Bündnis an.
 O37	Management: %s	Verwaltung: %s
 O38	Management of %s	Verwaltung von %s
-O39	Balanced	Ausgeglichen
 O40	Industry	Industrie
 O41	Research	Forschung
 O43	Shipyard	Werft
-O48	%s is built up for its strategy %s.	%s ist für die Strategie %s ausgebaut.
-O49	Strategy	Strategie
 O50	Buildings (Never / Reserve / Along / First)	Bauten (Nein / Vorsehen / Mitwachsend / Vorrang)
 O51	Never	Nein
 O52	Reserve	Vorsehen
@@ -69,7 +66,6 @@ O76	danger at the star	Gefahr am Stern
 O77	growth stopped	Wachstum steht
 O78	no project, free workers	kein Projekt, Arbeiter frei
 O79	All	Alle
-O80	Same strategy	Gleiche Strategie
 O81	Size	Größe
 O82	Only	Nur
 O83	Management ...	Verwaltung ...
@@ -89,6 +85,9 @@ O96	New label	Neues Label
 O97	Other	Sonstige
 O98	Open	Frei
 O99	Final layout: shown for one planet	Endausbau: Vorschau nur für einen Planeten
-O100	Early industry focus	Früher Industriefokus
-O101	Early research focus	Früher Forschungsfokus
 O102	%s %s: %d.%d per day	%s - %s: %d,%d pro Tag
+O103	On	An
+O104	Management	Verwaltung
+O105	Same management	Gleiche Verwaltung
+O106	%s is built up.	%s ist ausgebaut.
+O107	Blue only	Nur blau

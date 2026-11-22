@@ -15,8 +15,8 @@ namespace oa::game {
 
 // The final layout of a planet: per output (industry, research,
 // prosperity) its squares and points, the squares of housing, of the other
-// buildings (defences, specials, the Colony Base) and those left to the
-// strategy (no output maximised).
+// buildings (defences, specials, the Colony Base) and those left open (no
+// output maximised).
 struct FinalLayout {
   // Per output its building (`kNoItem`: none known) and squares.
   std::array<std::uint8_t, PlanetManagement::kOutputs> items{kNoItem, kNoItem, kNoItem};
