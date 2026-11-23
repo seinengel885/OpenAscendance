@@ -17,6 +17,8 @@
 #include <map>
 #include <vector>
 
+#include "game/antag_planet.h"
+#include "game/cosmos.h"
 #include "game/planet.h"
 #include "game/planet_final.h"
 #include "game/player_actions.h"
@@ -740,6 +742,130 @@ TEST_CASE("an AI colony builds no more Surface Shields than its management wants
       CHECK(shields <= kShields.at(std::min<std::size_t>(p.size, 4)));
     }
   }
+}
+
+TEST_CASE("under a lingering danger an AI colony builds orbital defence beyond its counts, as the player's", "[pecustom][plan]") {
+  OA_REQUIRE_TABLES(t);
+  constexpr std::uint8_t kOrbitalShieldItem = 26;
+  PlanRig rig(*t, 7, 2);
+  REQUIRE(rig.ready());
+  rig.run(300);
+  Session& session = rig.session();
+  Cosmos& c = session.game->cosmos;
+  // An AI colony with orbit to spare, its orbital defence of `ai_plan`'s
+  // counts (weapons 1 / 1 / 2 / 3 / 4, shields 1 / 2 / 2 / 3 / 4) built.
+  Planet* planet = nullptr;
+  for (PlanetIndex i = 0; i < c.planet_count && planet == nullptr; ++i) {
+    Planet& p = c.planets[static_cast<std::size_t>(i)];
+    if (p.owner < c.race_count && p.owner != session.player_race && p.industry > 0 &&
+        p.square_count - p.surface_squares >= 8) {
+      planet = &p;
+    }
+  }
+  REQUIRE(planet != nullptr);
+  Race& race = c.races.at(planet->owner);
+  for (const std::uint8_t item : {kItemMissileBase, kOrbitalShieldItem}) {
+    const std::uint8_t req = t->planitems.items.at(item).research_requirement;
+    session.game->research.items.at(req).known_mask |= static_cast<std::uint8_t>(1u << race.index);
+  }
+  // Builds `item` on a free orbital square at once.
+  const auto build = [&](std::uint8_t item) {
+    for (Square& q : planet_squares(c, *planet).subspan(planet->surface_squares)) {
+      if (q.item == kNoItem) {
+        q.item = item;
+        q.flags = kSquareBuilt;
+        planet_recalc_output(session, *planet);
+        return true;
+      }
+    }
+    return false;
+  };
+  const std::size_t size = std::min<std::size_t>(planet->size, 4);
+  for (int k = 0; k < std::array{1, 1, 2, 3, 4}[size]; ++k) {
+    REQUIRE(build(kItemMissileBase));
+  }
+  for (int k = 0; k < std::array{1, 2, 2, 3, 4}[size]; ++k) {
+    REQUIRE(build(kOrbitalShieldItem));
+  }
+  // A free worker for one: buildings without housing taken down.
+  for (Square& q : planet_squares(c, *planet).first(planet->surface_squares)) {
+    if (planet->population > planet->used_population) {
+      break;
+    }
+    const PlanItem& it = t->planitems.items.at(q.item == kNoItem ? 0 : q.item);
+    if (q.item != kNoItem && (q.flags & kSquareBuilt) != 0 && it.used_population > 0 && it.max_population == 0) {
+      q.item = kNoItem;
+      q.flags = 0;
+      planet_recalc_output(session, *planet);
+    }
+  }
+  REQUIRE(planet->population > planet->used_population);
+  // A ship of the player (in a free slot), at war with it, lingering at
+  // its star.
+  ShipIndex ship = -1;
+  for (std::size_t k = 0; k < c.ships.size() && ship < 0; ++k) {
+    if (c.ships[k].owner < 0) {
+      ship = static_cast<ShipIndex>(k);
+    }
+  }
+  REQUIRE(ship >= 0);
+  Ship& s = c.ships[static_cast<std::size_t>(ship)];
+  s.owner = static_cast<std::int16_t>(session.player_race);
+  ++c.ship_count;
+  s.location_kind = ShipLocation::kSystem;
+  s.location = planet->star;
+  ship_enter_star_system(session, c.stars[static_cast<std::size_t>(planet->star)], s);
+  session.ship_arrival_star[static_cast<std::size_t>(ship)] = planet->star;
+  session.ship_arrival_day[static_cast<std::size_t>(ship)] = c.day - 30;
+  race.relation[static_cast<std::size_t>(session.player_race)] = kWar;
+  REQUIRE(pe_danger_at(session, race, *planet));
+  if (planet->project_item != kNoItem) {
+    planet->project_item = kNoItem;
+    planet->project_square = kNoSquare;
+  }
+  pe_manage_planet(session, race, *planet);
+  CHECK((planet->project_item == kItemMissileBase || planet->project_item == kOrbitalShieldItem));
+}
+
+TEST_CASE("a built-up colony swaps a factory on blue and a laboratory on red back", "[pecustom][plan]") {
+  OA_REQUIRE_TABLES(t);
+  constexpr std::uint8_t kFactory = 0;
+  constexpr std::uint8_t kLaboratory = 2;
+  PlanRig rig(*t, 7, 3);
+  REQUIRE(rig.ready());
+  rig.management().final_outputs = planet_final_preset(FinalPreset::kBalanced, rig.planet());
+  full_colony(rig);
+  Session& session = rig.session();
+  const std::span<Square> sq = planet_squares(session.game->cosmos, rig.planet());
+  std::uint16_t red = kNoSquare;
+  std::uint16_t blue = kNoSquare;
+  for (std::uint16_t i = 0; i < rig.planet().surface_squares; ++i) {
+    red = red == kNoSquare && (sq[i].color & 7u) == 2 && sq[i].item == kFactory ? i : red;
+    blue = blue == kNoSquare && (sq[i].color & 7u) == 4 && sq[i].item == kLaboratory ? i : blue;
+  }
+  REQUIRE(red != kNoSquare);
+  REQUIRE(blue != kNoSquare);
+  std::swap(sq[red].item, sq[blue].item);
+  planet_recalc_output(session, rig.planet());
+  rig.run(150);
+  CAPTURE(red, blue, sq[red].item, sq[blue].item);
+  CHECK(t->planitems.items.at(sq[red].item).industry > 0);
+  CHECK(t->planitems.items.at(sq[blue].item).research > 0);
+}
+
+TEST_CASE("a colony short of room automates cheap buildings in place of housing", "[pecustom][plan]") {
+  OA_REQUIRE_TABLES(t);
+  PlanRig rig(*t, 7, 3);
+  REQUIRE(rig.ready());
+  rig.management().final_outputs = planet_final_preset(FinalPreset::kBalanced, rig.planet());
+  rig.stop_research();
+  rig.learn(kItemAutomation);
+  rig.run(400);
+  int automated = 0;
+  for (const Square& sq : planet_squares(rig.session().game->cosmos, rig.planet())) {
+    automated += (sq.flags & kSquareAutomated) != 0 ? 1 : 0;
+  }
+  CHECK(automated > 0);
 }
 
 }  // namespace

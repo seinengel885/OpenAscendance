@@ -30,7 +30,7 @@ struct FinalLayout {
 
 // The final layout of `planet` with `management` (resolved) and the
 // buildings its owner knows: the defences it is set to have stay, housing
-// enough for the workers of all squares (the known housing that gives the
+// enough for the workers of all squares but the automated ones (the known housing that gives the
 // maximised outputs most), the minima first (at most half the squares while
 // another output is maximised; shortened alike when the squares do not
 // suffice for them), then the squares left by the weights of the maximised

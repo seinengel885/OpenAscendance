@@ -119,10 +119,17 @@ class Sim {
   // The growth gathered toward the next inhabitant, in tenths.
   std::int32_t growth_made() const { return 10 * planet.growth + planet.growth_carry; }
 
-  // Starts `a` as the project.
+  // The cost of `a`'s project: Automation three times its building's.
+  std::int32_t cost(const Action& a) const {
+    return a.item == kItemAutomation ? 3 * item(squares[a.square].item).cost : item(a.item).cost;
+  }
+
+  // Starts `a` as the project (Automation leaves its building as it is).
   void start(const Action& a) {
-    squares[a.square].item = a.item;
-    squares[a.square].flags = 0;
+    if (a.item != kItemAutomation) {
+      squares[a.square].item = a.item;
+      squares[a.square].flags = 0;
+    }
     planet.project_item = a.item;
     planet.project_square = a.square;
     planet.progress = 0;
@@ -145,6 +152,8 @@ class Sim {
     }
     if (a.item == kItemTerraforming) {
       squares[a.square] = Square{1, kNoItem, 0};
+    } else if (a.item == kItemAutomation) {
+      squares[a.square].flags |= kSquareAutomated;
     } else if (a.item != kNoItem) {
       squares[a.square].item = a.item;
       squares[a.square].flags = kSquareBuilt;
@@ -163,10 +172,12 @@ class Sim {
     bool changed = false;
     if (planet.project_item != kNoItem) {
       if (planet_add_tenths(planet.progress, planet.progress_carry, planet_industry_tenths(planet),
-                            10 * item(planet.project_item).cost)) {
+                            10 * cost(Action{planet.project_item, planet.project_square}))) {
         Square& sq = squares[planet.project_square];
         if (planet.project_item == kItemTerraforming) {
           sq = Square{1, kNoItem, 0};
+        } else if (planet.project_item == kItemAutomation) {
+          sq.flags |= kSquareAutomated;
         } else {
           sq.flags |= kSquareBuilt;
         }

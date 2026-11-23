@@ -264,14 +264,11 @@ void pe_manage_planet(Session& session, Race& race, Planet& planet) {
   if (planet.industry == 0 || (planet.project_item != kNoItem && !pe_endless_project(planet.project_item))) {
     return;
   }
-  if (!is_player_planet(session, planet)) {
-    // The AI: the player's rules, with the management it picks.
-    pe_manage_planet_rules(session, planet, ai_plan(session, race, planet));
-    return;
-  }
+  // The AI: the player's rules, with the management it picks.
+  const PlanetManagement management =
+      is_player_planet(session, planet) ? planet_management(session, planet) : ai_plan(session, race, planet);
   // Under a lingering danger the orbital defences come first (unless the
   // planet's management never wants them).
-  const PlanetManagement management = planet_management(session, planet);
   if (management.levels[PlanetManagement::kOrbitalDefence] != BuildLevel::kNo && pe_danger_at(session, race, planet) &&
       pe_build_orbital_defence(session, race, planet)) {
     return;

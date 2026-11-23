@@ -59,7 +59,7 @@ constexpr int kIndent = 16;
 constexpr int kColumnValueX0 = 146;
 constexpr int kArrow = 16;
 constexpr int kButtonWidth = 100;
-constexpr int kPresetWidth = 92;
+constexpr int kPresetWidth = 76;
 // The line of the final build-out's head (with its presets) and the space
 // above it (as below its layout).
 constexpr int kFinalLine = 8;
@@ -117,6 +117,9 @@ struct Target {
   PlanetManagement own;
   PlanetManagement standard;
   bool managed;
+  // The final build-out last set by hand (not by a preset): "Own" takes it
+  // back.
+  std::array<FinalOutput, PlanetManagement::kOutputs> by_hand{};
 };
 
 // The management window of one or more planets: self-management on or off
@@ -134,8 +137,9 @@ class ManagementBox final : public GWindow {
     bool ruins = false;
     for (game::Planet* p : planets) {
       const auto index = static_cast<std::size_t>(game::planet_index(session.game->cosmos, *p));
+      const PlanetManagement& own = session.game->planet_management.at(index);
       targets_.push_back(
-          {p, session.game->planet_management.at(index), game::planet_management_standard(session, *p), p->self_managed != 0});
+          {p, own, game::planet_management_standard(session, *p), p->self_managed != 0, own.final_outputs});
       ruins = ruins || game::planet_has_ruins(session, *p);
     }
     const std::vector<BuildLevel> surface(kSurfaceLevels.begin(), kSurfaceLevels.end());
@@ -226,6 +230,11 @@ class ManagementBox final : public GWindow {
     for (std::size_t r = 0; r < rows_.size(); ++r) {
       draw_row(r);
     }
+    // The presets' caption, small above their buttons.
+    GameFont& small = wm_.small_font();
+    small.pane() = pane_;
+    small.draw_string(screen, preset_pane(0).x0, preset_pane(0).y0 - small.font().height - 2,
+                      wm_.remake_text("Presets for the final build-out:"), 0, kHead, 0xff);
     for (std::size_t k = 0; k < kPresets.size(); ++k) {
       draw_button(preset_pane(k), wm_.remake_text(kPresets[k].second));
     }
@@ -235,10 +244,14 @@ class ManagementBox final : public GWindow {
   void draw_hilite(int /*mode*/) override {}
 
  private:
-  // The final build-out's presets (the bottom row's buttons).
-  static constexpr std::array<std::pair<game::FinalPreset, std::string_view>, 4> kPresets{
-      {{game::FinalPreset::kBalanced, "Balanced"}, {game::FinalPreset::kResearch, "Research"},
-       {game::FinalPreset::kShipyard, "Shipyard"}, {game::FinalPreset::kDock, "Dock"}}};
+  // The final build-out's presets (buttons in its head), and the one set
+  // by hand last ("Own", no preset).
+  static constexpr std::array<std::pair<std::optional<game::FinalPreset>, std::string_view>, 5> kPresets{
+      {{game::FinalPreset::kBalanced, "Balanced"},
+       {game::FinalPreset::kResearch, "Research"},
+       {game::FinalPreset::kShipyard, "Shipyard"},
+       {game::FinalPreset::kDock, "Dock"},
+       {std::nullopt, "Own"}}};
 
   int width() const { return pane_.x1 - pane_.x0 + 1; }
   int height() const { return pane_.y1 - pane_.y0 + 1; }
@@ -500,7 +513,8 @@ class ManagementBox final : public GWindow {
       if (preset_pane(k).contains(x, y)) {
         commit_typing();
         for (Target& t : targets_) {
-          t.own.final_outputs = game::planet_final_preset(kPresets[k].first, *t.planet);
+          t.own.final_outputs =
+              kPresets[k].first ? game::planet_final_preset(*kPresets[k].first, *t.planet) : t.by_hand;
         }
         draw(kDrawNormal);
         return;
@@ -599,6 +613,7 @@ class ManagementBox final : public GWindow {
         case Kind::kFinal:
           t.own.final_outputs[static_cast<std::size_t>(row.index)] =
               first.own.final_outputs[static_cast<std::size_t>(row.index)];
+          t.by_hand = t.own.final_outputs;
           break;
         case Kind::kHead:
         case Kind::kLayout:

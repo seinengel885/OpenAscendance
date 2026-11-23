@@ -57,17 +57,21 @@ class Layout {
     std::array<std::int32_t, PlanetManagement::kOutputs> kept{};
     for (std::uint16_t i = 0; i < base_.size(); ++i) {
       Square& sq = base_[i];
+      // An automated square needs no worker (laid out anew, it stays as
+      // it is: one worker less for its square).
+      const bool automated = (sq.flags & kSquareAutomated) != 0;
       if (laid_out(sq.item)) {
         const PlanItem& it = item(sq.item);
         for (std::size_t o = 0; o < kept.size(); ++o) {
           kept[o] += output_of(it, o) > 0 && it.max_population == 0 ? 1 : 0;
         }
+        workers_ -= automated ? it.used_population : 0;
         sq = Square{sq.color, kNoItem, 0};
       }
       if (sq.item != kNoItem) {
         const PlanItem& it = item(sq.item);
         cap_ += it.max_population;
-        workers_ += (it.flags & kItemNoPopulation) == 0 ? it.used_population : 0;
+        workers_ += (it.flags & kItemNoPopulation) == 0 && !automated ? it.used_population : 0;
         defences_built += std::ranges::any_of(kDefences, [&](const auto& d) { return d.second == sq.item; }) ? 1 : 0;
       } else if (i < planet.surface_squares && (sq.color & kSquareRuins) == 0 &&
                  ((sq.color & 7u) != kBlack || black_usable)) {

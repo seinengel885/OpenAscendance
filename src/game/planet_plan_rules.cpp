@@ -9,6 +9,8 @@
 //    needed building makes way for it.
 //    The workers wanted: one per empty square, or the more the final
 //    layout needs (its housing with workers in place of Outposts).
+//    Automation first where it frees a worker for less than the housing's
+//    room per worker costs (no square taken).
 // 2. Growth: when workers come slower than the goal's buildings are done
 //    (or as slow), or too slow for a Shipyard's ships or the growth kept,
 //    the growth building that brings inhabitants soonest; without a worker,
@@ -43,6 +45,9 @@
 //    makes way for the layout's housing first). Each
 //    replacement raises the goal's outputs, so buildings never replace each
 //    other back and forth.
+// 9. Colours: two buildings each on the other's colour swap squares (one
+//    replacement, then the other), the most gained per day of building
+//    both first.
 // Orbital squares: one each for the Shipyard, a ship and the Orbital Dock
 // unless set to never, the rest for the orbital defence (up to its count);
 // the workers for
@@ -282,7 +287,7 @@ class Rules {
   // The project, none to wait.
   Action decide() {
     for (auto rule : {&Rules::housing, &Rules::growth, &Rules::first, &Rules::access, &Rules::along,
-                      &Rules::productivity, &Rules::goal, &Rules::replacement, &Rules::endless}) {
+                      &Rules::productivity, &Rules::goal, &Rules::replacement, &Rules::swap, &Rules::endless}) {
       if (const std::optional<Action> a = (this->*rule)()) {
         return *a;
       }
@@ -847,6 +852,9 @@ class Rules {
     if (wanted_population() <= b_.planet.max_population || b_.free_population() > 1) {
       return std::nullopt;
     }
+    if (const std::optional<Action> a = automation()) {
+      return a;
+    }
     const auto houses = [](const PlanItem& it) { return it.max_population > 0; };
     std::vector<Action> options = toward_target(candidates(Role::kHousing, houses));
     if (options.empty() && free_workers() < 1 && b_.room() <= 0) {
@@ -872,6 +880,37 @@ class Rules {
     }
     // A factory first when it has the housing done sooner.
     return best ? std::optional<Action>(faster(*best)) : best;
+  }
+
+  // Automation in place of housing (rule 1): the building whose worker it
+  // frees for least, when that costs less than a worker's room in the known
+  // housing that houses most per cost (and takes no square). Not on
+  // buildings the final layout has too many of: they make way.
+  std::optional<Action> automation() {
+    if (!knows(kItemAutomation) || b_.planet.project_item != kNoItem) {
+      return std::nullopt;
+    }
+    std::int32_t per_worker = kNever;
+    for (const std::uint8_t house : kBuildings) {
+      const PlanItem& h = b_.item(house);
+      if (h.max_population > h.used_population && knows(house)) {
+        per_worker = std::min<std::int32_t>(per_worker, h.cost / (h.max_population - h.used_population));
+      }
+    }
+    std::optional<Action> best;
+    std::int32_t best_cost = per_worker;
+    for (std::uint16_t i = 0; i < b_.squares.size(); ++i) {
+      const std::uint8_t it = b_.squares[i].item;
+      if (!b_.built(i) || (b_.squares[i].flags & kSquareAutomated) != 0 || b_.item(it).used_population <= 0 ||
+          (it < surplus_.size() && surplus_[it] > 0) || !b_.can_place(kItemAutomation, i)) {
+        continue;
+      }
+      if (const std::int32_t c = b_.cost(Action{kItemAutomation, i}); c <= best_cost) {
+        best = Action{kItemAutomation, i};
+        best_cost = c;
+      }
+    }
+    return best;
   }
 
   // Whether an Endless Party brings inhabitants (its prosperity, a quarter
@@ -1250,6 +1289,44 @@ class Rules {
       b_.squares[victim] = there;
       b_.recalc();
       distance_ = {};
+    }
+    return best;
+  }
+
+  // 9. Colours once the final layout's counts are reached: two buildings
+  // each on the other's colour swap squares (the first replaced by the
+  // second's kind now, then replacement puts the first's kind on the
+  // second's square), the most gained per day of both buildings first.
+  std::optional<Action> swap() {
+    if (reachable_ > 0 || b_.planet.project_item != kNoItem) {
+      return std::nullopt;
+    }
+    const std::vector<std::uint16_t> may = victims();
+    const double now = value(b_);
+    std::optional<Action> best;
+    double best_score = 0.0;
+    for (const std::uint16_t a : may) {
+      for (const std::uint16_t b : may) {
+        const std::uint8_t ia = b_.squares[a].item;
+        const std::uint8_t ib = b_.squares[b].item;
+        if (ia == ib || !planet_final_output(ia) || !planet_final_output(ib) ||
+            (b_.squares[a].color & 7u) == (b_.squares[b].color & 7u)) {
+          continue;
+        }
+        const Square sa = b_.squares[a];
+        const Square sb = b_.squares[b];
+        b_.squares[a].item = ib;
+        b_.squares[b].item = ia;
+        b_.recalc();
+        const double gain = value(b_) - now;
+        b_.squares[a] = sa;
+        b_.squares[b] = sb;
+        b_.recalc();
+        if (const double score = gain / (days(ia) + days(ib)); score > best_score) {
+          best = Action{ib, a, a};
+          best_score = score;
+        }
+      }
     }
     return best;
   }
