@@ -85,10 +85,14 @@ class GameFiles {
   // files (`Translation::text`).
   std::string text(std::string_view file, std::string_view text) const { return translation_.text(file, text); }
   const Translation& translation() const { return translation_; }
+  // Returns whether the tables of `language` are there (the original's
+  // texts always are).
+  bool has_language(Language language) const;
 
  private:
   Install install_;
   CobDirectory directory_;
+  std::vector<std::filesystem::path> lang_roots_;
   Translation translation_;
 };
 

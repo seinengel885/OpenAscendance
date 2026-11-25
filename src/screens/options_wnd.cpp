@@ -296,23 +296,30 @@ struct Setting {
 // The rows, in order (their indices are `OptionsWnd`'s).
 enum SettingRow : std::size_t { kRowVariant, kRowDisplay, kRowScaling, kRowMusic, kRowSound, kRowLanguage };
 
-std::vector<Setting> settings() {
+// The rows; the language's only with a translation there (`files`), or
+// when one is set.
+std::vector<Setting> settings(const GameFiles& files, Language set) {
   std::vector<std::string_view> variants;
   for (const game::VariantInfo& v : game::kVariants) {
     variants.push_back(v.label);
   }
   std::vector<std::string_view> languages;
+  bool translated = set != Language::kOriginal;
   for (const LanguageInfo& l : kLanguages) {
     languages.push_back(l.label);
+    translated = translated || (l.language != Language::kOriginal && files.has_language(l.language));
   }
-  return {
+  std::vector<Setting> rows{
       {"Game Variant", "For the next new game", "oa_variant", std::move(variants)},
       {"Display", "", "oa_display", {"Window", "Full Screen"}},
       {"Scaling", "", "oa_scaling", {"Smooth", "Sharp"}},
       {"Music", "", "oa_music", {}},
       {"Sound Effects", "", "oa_sound", {}},
-      {"Language", "From the next start", "oa_language", std::move(languages)},
   };
+  if (translated) {
+    rows.push_back({"Language", "From the next start", "oa_language", std::move(languages)});
+  }
+  return rows;
 }
 
 // The options screen: the settings' rows on the body of `10status.tmp`,
@@ -320,7 +327,7 @@ std::vector<Setting> settings() {
 class OptionsWnd final : public GWindow {
  public:
   OptionsWnd(WinMgr& wm, OptionsContext context, std::shared_ptr<const Image8> gif)
-      : GWindow(wm, "Options", kBodyPane), context_(std::move(context)), gif_(std::move(gif)), settings_(settings()) {
+      : GWindow(wm, "Options", kBodyPane), context_(std::move(context)), gif_(std::move(gif)), settings_(settings(wm.services().files, context_.options->language)) {
     selected_.assign(settings_.size(), 0);
     sliders_.assign(settings_.size(), nullptr);
   }
@@ -496,7 +503,7 @@ class OptionsWnd final : public GWindow {
     const Scaling scaling = context_.display != nullptr ? context_.display->scaling() : o.scaling;
     select(kRowDisplay, fullscreen ? 1 : 0);
     select(kRowScaling, scaling == Scaling::kSharp ? 1 : 0);
-    for (std::size_t i = 0; i < kLanguages.size(); ++i) {
+    for (std::size_t i = 0; i < kLanguages.size() && kRowLanguage < settings_.size(); ++i) {
       if (kLanguages[i].language == o.language) {
         select(kRowLanguage, static_cast<int>(i));
       }
@@ -567,7 +574,9 @@ class OptionsWnd final : public GWindow {
     o.variant = game::kVariants.at(static_cast<std::size_t>(selected_[kRowVariant])).variant;
     o.fullscreen = selected_[kRowDisplay] == 1;
     o.scaling = selected_[kRowScaling] == 1 ? Scaling::kSharp : Scaling::kSmooth;
-    o.language = kLanguages.at(static_cast<std::size_t>(selected_[kRowLanguage])).language;
+    if (kRowLanguage < settings_.size()) {
+      o.language = kLanguages.at(static_cast<std::size_t>(selected_[kRowLanguage])).language;
+    }
     apply(DisplayState{.variant = o.variant, .fullscreen = o.fullscreen, .scaling = o.scaling});
   }
 

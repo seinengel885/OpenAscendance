@@ -131,17 +131,17 @@ std::vector<std::uint8_t> CobDirectory::read(const CobMember& member) const {
 
 namespace {
 
-// The folder of `language`'s tables: in `$OA_LANG_DIR`, else in `roots`,
-// else in the install's `lang`.
-std::filesystem::path language_folder(const Install& install, Language language,
-                                      std::span<const std::filesystem::path> roots) {
+// The folders of the translations: `$OA_LANG_DIR`, `roots`, the install's
+// `lang`.
+std::vector<std::filesystem::path> language_roots(const Install& install,
+                                                  std::span<const std::filesystem::path> roots) {
   std::vector<std::filesystem::path> all;
   if (const char* dir = std::getenv("OA_LANG_DIR"); dir != nullptr && *dir != '\0') {
     all.emplace_back(dir);
   }
   all.insert(all.end(), roots.begin(), roots.end());
   all.push_back(install.root() / "lang");
-  return translation_folder(language, all);
+  return all;
 }
 
 }  // namespace
@@ -149,7 +149,12 @@ std::filesystem::path language_folder(const Install& install, Language language,
 GameFiles::GameFiles(Install install, Language language, std::span<const std::filesystem::path> lang_roots)
     : install_(std::move(install)),
       directory_(install_),
-      translation_(language_folder(install_, language, lang_roots)) {}
+      lang_roots_(language_roots(install_, lang_roots)),
+      translation_(translation_folder(language, lang_roots_)) {}
+
+bool GameFiles::has_language(Language language) const {
+  return language == Language::kOriginal || !translation_folder(language, lang_roots_).empty();
+}
 
 std::optional<std::vector<std::uint8_t>> GameFiles::try_load(std::string_view dos_path) const {
   if (const CobMember* m = directory_.find(dos_path)) {
