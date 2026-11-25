@@ -6,6 +6,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -18,6 +19,7 @@
 #include "game/variant.h"
 #include "gfx/font.h"
 #include "screens/options_wnd.h"
+#include "ui/remake_help.h"
 
 namespace oa {
 
@@ -207,6 +209,12 @@ class ManagementBox final : public GWindow {
           return GWindow::handle_event(type, a, b);
         }
         type_key(static_cast<char>(a), static_cast<std::uint16_t>(b));
+        return true;
+      case kEventHelpClick:
+        if (!contains(a, b)) {
+          return false;
+        }
+        show_remake_help(wm_, help_topic(a - pane_.x0, b - pane_.y0));
         return true;
       case kEventMouseEnter:
       case kEventMouseLeave:
@@ -499,6 +507,52 @@ class ManagementBox final : public GWindow {
     font.draw_string(screen, p.x0 + (p.x1 - p.x0 - font.string_width(caption)) / 2, p.y0 + dy, caption, 0, kWhite, 0xff);
   }
 
+  // The row at (x, y) of the window, if any.
+  std::optional<std::size_t> row_at(int x, int y) {
+    std::optional<std::size_t> hit;
+    for (std::size_t r = 0; r < rows_.size(); ++r) {
+      const int column = rows_[r].column;
+      const bool in_column = column < 0 || (x >= kColumnX[static_cast<std::size_t>(column)] &&
+                                            x <= kColumnX[static_cast<std::size_t>(column)] + kColumnWidth);
+      if (in_column && y >= row_top(r) && y < row_top(r) + line() - 3) {
+        hit = r;
+      }
+    }
+    return hit;
+  }
+
+  // The help topic (`remake_help.cpp`) of what is at (x, y) of the window.
+  std::string_view help_topic(int x, int y) {
+    if (ok_pane().contains(x, y)) {
+      return "oa_ok";
+    }
+    if (cancel_pane().contains(x, y)) {
+      return "oa_cancel";
+    }
+    for (std::size_t k = 0; k < kPresets.size(); ++k) {
+      if (preset_pane(k).contains(x, y)) {
+        return "oa_manage_presets";
+      }
+    }
+    const std::optional<std::size_t> hit = row_at(x, y);
+    if (!hit) {
+      return "oa_manage";
+    }
+    const Row& row = rows_[*hit];
+    switch (row.kind) {
+      case Kind::kManaged:
+        return "oa_manage_on";
+      case Kind::kFinal:
+        return "oa_manage_final";
+      case Kind::kLayout:
+        return "oa_manage_layout";
+      case Kind::kHead:
+        return row.line == kFinalLine ? "oa_manage_final" : "oa_manage_buildings";
+      default:
+        return "oa_manage_buildings";
+    }
+  }
+
   // A click at (x, y) of the window (`back`: the right button, which steps
   // backwards).
   void click(int x, int y, bool back) {
@@ -520,15 +574,7 @@ class ManagementBox final : public GWindow {
         return;
       }
     }
-    std::optional<std::size_t> hit;
-    for (std::size_t r = 0; r < rows_.size(); ++r) {
-      const int column = rows_[r].column;
-      const bool in_column = column < 0 || (x >= kColumnX[static_cast<std::size_t>(column)] &&
-                                            x <= kColumnX[static_cast<std::size_t>(column)] + kColumnWidth);
-      if (in_column && y >= row_top(r) && y < row_top(r) + line() - 3) {
-        hit = r;
-      }
-    }
+    const std::optional<std::size_t> hit = row_at(x, y);
     commit_typing();
     if (!hit || rows_[*hit].kind == Kind::kHead) {
       draw(kDrawNormal);

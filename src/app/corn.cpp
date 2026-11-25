@@ -1,5 +1,6 @@
 #include "app/corn.h"
 
+#include <SDL3/SDL_filesystem.h>
 #include <SDL3/SDL_hints.h>
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_timer.h>
@@ -7,11 +8,13 @@
 #include <cstdint>
 #include <ctime>
 #include <deque>
+#include <filesystem>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <stdexcept>
 #include <utility>
+#include <vector>
 
 #include "assets/cfile.h"
 #include "assets/gif.h"
@@ -443,7 +446,12 @@ int run_game(const GameOptions& options, const Install& install) {
     SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "dummy");
     SDL_SetHint(SDL_HINT_AUDIO_DRIVER, "dummy");
   }
-  const GameFiles files(install, options.settings.language);
+  // The translations beside the program (`lang/<language>`), else in the install.
+  std::vector<std::filesystem::path> lang_roots;
+  if (const char* base = SDL_GetBasePath(); base != nullptr) {
+    lang_roots.push_back(std::filesystem::path(base) / "lang");
+  }
+  const GameFiles files(install, options.settings.language, lang_roots);
   try {
     run(options, files);
   } catch (const ScreenshotTaken&) {

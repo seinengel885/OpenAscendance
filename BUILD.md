@@ -51,9 +51,10 @@ original buttons are a little shorter to make room). Its screen sets:
 - **Scaling**: smooth or sharp pixels.
 - **Music** and **Sound effects**: on or off (also Alt+M and Alt+N).
 - **Language**: English or German texts, from the next start; saves load in
-  either. The translations are built in from `src/lang/<language>/*.tsv` (one
-  table per data file: number, English, translation); the fonts get the
-  German letters.
+  either. The translations are not part of the sources: they are read from a
+  folder `lang/<language>/*.tsv` (one table per data file: number, English,
+  translation) beside the program, in the install, or in `$OA_LANG_DIR`;
+  without it the texts stay English. The fonts get the German letters.
 
 OK (Enter) keeps the settings, Cancel (Esc) leaves them; Shift and a click on
 a row explains it. They are kept in `options.cfg` in the user folder (the

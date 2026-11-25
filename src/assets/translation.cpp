@@ -2,8 +2,10 @@
 
 #include <cctype>
 #include <format>
+#include <vector>
 
 #include "core/error.h"
+#include "core/install.h"
 
 namespace oa {
 
@@ -73,14 +75,19 @@ std::string utf8_to_cp437(std::string_view text, std::string_view context) {
   return out;
 }
 
-Translation::Translation(Language language) {
-  const std::string_view key = language_info(language).key;
-  for (const TranslationTable& table : built_in_translations()) {
-    if (table.language != key) {
+Translation::Translation(const std::filesystem::path& folder) {
+  std::error_code error;
+  if (!std::filesystem::is_directory(folder, error)) {
+    return;
+  }
+  for (const auto& entry : std::filesystem::directory_iterator(folder)) {
+    if (entry.path().extension() != ".tsv") {
       continue;
     }
-    auto& texts = tables_[std::string(table.file)];
-    std::string_view rest = table.text;
+    const std::string file = entry.path().stem().string();
+    const std::vector<std::uint8_t> data = read_file(entry.path());
+    auto& texts = tables_[file];
+    std::string_view rest(reinterpret_cast<const char*>(data.data()), data.size());
     int line_number = 0;
     while (!rest.empty()) {
       const std::size_t end = std::min(rest.find('\n'), rest.size());
@@ -93,7 +100,7 @@ Translation::Translation(Language language) {
       if (line.empty() || line.starts_with('#')) {
         continue;
       }
-      const std::string context = std::format("lang/{}/{} line {}", key, table.file, line_number);
+      const std::string context = std::format("{} line {}", entry.path().string(), line_number);
       const std::size_t tab1 = line.find('\t');
       const std::size_t tab2 = tab1 == std::string_view::npos ? tab1 : line.find('\t', tab1 + 1);
       if (tab2 == std::string_view::npos || line.find('\t', tab2 + 1) != std::string_view::npos) {
@@ -111,8 +118,22 @@ Translation::Translation(Language language) {
   }
 }
 
+std::filesystem::path translation_folder(Language language, std::span<const std::filesystem::path> roots) {
+  if (language == Language::kOriginal) {
+    return {};
+  }
+  const std::string_view key = language_info(language).key;
+  for (const std::filesystem::path& root : roots) {
+    std::error_code error;
+    if (!root.empty() && std::filesystem::is_directory(root / key, error)) {
+      return root / key;
+    }
+  }
+  return {};
+}
+
 const Translation& Translation::none() {
-  static const Translation kNone(Language::kOriginal);
+  static const Translation kNone;
   return kNone;
 }
 

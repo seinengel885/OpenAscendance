@@ -2,8 +2,10 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdlib>
 #include <format>
 #include <fstream>
+#include <vector>
 
 #include "core/byte_reader.h"
 #include "core/error.h"
@@ -127,8 +129,27 @@ std::vector<std::uint8_t> CobDirectory::read(const CobMember& member) const {
   return data;
 }
 
-GameFiles::GameFiles(Install install, Language language)
-    : install_(std::move(install)), directory_(install_), translation_(language) {}
+namespace {
+
+// The folder of `language`'s tables: in `$OA_LANG_DIR`, else in `roots`,
+// else in the install's `lang`.
+std::filesystem::path language_folder(const Install& install, Language language,
+                                      std::span<const std::filesystem::path> roots) {
+  std::vector<std::filesystem::path> all;
+  if (const char* dir = std::getenv("OA_LANG_DIR"); dir != nullptr && *dir != '\0') {
+    all.emplace_back(dir);
+  }
+  all.insert(all.end(), roots.begin(), roots.end());
+  all.push_back(install.root() / "lang");
+  return translation_folder(language, all);
+}
+
+}  // namespace
+
+GameFiles::GameFiles(Install install, Language language, std::span<const std::filesystem::path> lang_roots)
+    : install_(std::move(install)),
+      directory_(install_),
+      translation_(language_folder(install_, language, lang_roots)) {}
 
 std::optional<std::vector<std::uint8_t>> GameFiles::try_load(std::string_view dos_path) const {
   if (const CobMember* m = directory_.find(dos_path)) {

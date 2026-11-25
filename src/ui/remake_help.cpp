@@ -219,6 +219,90 @@ button
 title OK
 msg 0
 
+help oa_manage
+text
+Management
+endtext
+pos 0 15
+flags TJ_HC
+text
+Sets how this planet builds by itself. White values are set for this planet, the others are its standards. A row the marked planets differ in shows -; a change sets it on all of them. OK applies, Cancel leaves everything as it was.
+endtext
+pos 5 50
+button
+title OK
+msg 0
+
+help oa_manage_on
+text
+Management
+endtext
+pos 0 15
+flags TJ_HC
+text
+On: the planet chooses its projects itself whenever it has none, by the settings below. Off: you choose them.
+endtext
+pos 5 50
+button
+title OK
+msg 0
+
+help oa_manage_buildings
+text
+Buildings
+endtext
+pos 0 15
+flags TJ_HC
+text
+Never: not built. Reserve: room and workers are kept for it, but it is not built. Along: built as the planet grows, in step with its other buildings. First: built before the others, after housing and growth. The rows below a defence give how many to build. The arrows step a value (the right button backwards), a click on a number types it.
+endtext
+pos 5 50
+button
+title OK
+msg 0
+
+help oa_manage_final
+text
+Final build-out
+endtext
+pos 0 15
+flags TJ_HC
+text
+What a full planet aims for, per output. Keep: its buildings are neither built nor demolished. At least: at least these points. Maximise: the squares left over, shared by the boxes 1 to 5. If the squares do not reach every At least, all are shortened alike.
+endtext
+pos 5 50
+button
+title OK
+msg 0
+
+help oa_manage_presets
+text
+Presets
+endtext
+pos 0 15
+flags TJ_HC
+text
+Each button fills in the final build-out with a preset for this planet: Balanced, Research, Shipyard or Dock. Own brings back the final build-out last set by hand.
+endtext
+pos 5 50
+button
+title OK
+msg 0
+
+help oa_manage_layout
+text
+Final layout
+endtext
+pos 0 15
+flags TJ_HC
+text
+The squares of the final build-out: how many go to each output and its points, to housing, to other buildings, and how many stay open.
+endtext
+pos 5 50
+button
+title OK
+msg 0
+
 help end
 )";
 #undef OA_KEY_HINT

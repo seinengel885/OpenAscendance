@@ -65,9 +65,12 @@ class CobDirectory {
 // first, else the loose file of the install (archive members win).
 class GameFiles {
  public:
-  // Throws `DataError` when the COB directory cannot be read. The texts are
-  // in `language` (`text`).
-  explicit GameFiles(Install install, Language language = Language::kOriginal);
+  // Throws `DataError` when the COB directory or a table of the translation
+  // cannot be read. The texts are in `language` (`text`), its tables found in
+  // `lang_roots` or the install's `lang` (`translation_folder`); they stay
+  // as read when none has them.
+  explicit GameFiles(Install install, Language language = Language::kOriginal,
+                     std::span<const std::filesystem::path> lang_roots = {});
 
   const Install& install() const { return install_; }
   const CobDirectory& directory() const { return directory_; }

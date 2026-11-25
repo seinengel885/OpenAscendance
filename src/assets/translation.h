@@ -1,5 +1,6 @@
-// The remake's translations of the game's texts, built in from
-// `src/lang/<language>/<file>.tsv`: per data file of the original, named
+// The remake's translations of the game's texts, read at start from the
+// language's folder (`lang/<language>/<file>.tsv`, `translation_folder`;
+// not part of the sources): per data file of the original, named
 // by its stem in lower case (`restree.tsv` for `RESTREE.TXT`, `race00.tsv`
 // for `RACE00.DIP`), one text per line,
 //
@@ -12,6 +13,7 @@
 // a translation are left out. A text the table lacks stays English.
 #pragma once
 
+#include <filesystem>
 #include <map>
 #include <span>
 #include <string>
@@ -23,9 +25,11 @@ namespace oa {
 
 class Translation {
  public:
-  // Throws `DataError` when a built-in table of `language` is malformed.
-  explicit Translation(Language language);
   // No translation: every text stays as read (the original language).
+  Translation() = default;
+  // The tables `<file>.tsv` of `folder`, none when `folder` does not exist.
+  // Throws `DataError` when a table cannot be read or is malformed.
+  explicit Translation(const std::filesystem::path& folder);
   static const Translation& none();
 
   // Returns the translation of `text` (cp437, as read from data file
@@ -42,16 +46,9 @@ class Translation {
   std::map<std::string, Table, std::less<>> tables_;
 };
 
-// A built-in table: the text of `src/lang/<language>/<file>.tsv`, `file`
-// the data file's stem (`restree`).
-struct TranslationTable {
-  std::string_view language;
-  std::string_view file;
-  std::string_view text;
-};
-
-// The tables generated from `src/lang` at build time (`lang_tables.cpp`).
-std::span<const TranslationTable> built_in_translations();
+// The folder of `language`'s tables: `<key>` (`de`) in the first of `roots`
+// that has it; empty for the original language or when none has it.
+std::filesystem::path translation_folder(Language language, std::span<const std::filesystem::path> roots);
 
 // Returns UTF-8 `text` in cp437: ASCII and the German letters; throws
 // `DataError` naming `context` on any other character.

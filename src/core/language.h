@@ -15,7 +15,7 @@ enum class Language { kOriginal, kGerman };
 struct LanguageInfo {
   Language language;
   // The name in the settings file and of the translation's folder
-  // (`src/lang/<key>`).
+  // (`lang/<key>`).
   std::string_view key;
   // The name shown to the player, in that language ("Original": the files'
   // own texts; its key stays "en", as in the settings files written so far).

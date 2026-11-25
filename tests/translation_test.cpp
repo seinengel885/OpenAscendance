@@ -5,7 +5,10 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <cctype>
+#include <cstdlib>
+#include <filesystem>
 #include <format>
+#include <fstream>
 #include <set>
 #include <sstream>
 #include <string>
@@ -18,10 +21,12 @@
 #include "assets/text_lines.h"
 #include "assets/translation.h"
 #include "assets/windows_txt.h"
+#include "core/error.h"
 #include "game/negotiation.h"
 #include "game/state.h"
 #include "game/tables.h"
 #include "game_data.h"
+#include "test_dirs.h"
 
 namespace oa {
 namespace {
@@ -203,9 +208,39 @@ Texts looked_up(const GameFiles& files, const std::string& stem) {
   return help_texts(files.load(file), file);
 }
 
+TEST_CASE("translations: the tables of the language's folder", "[translation]") {
+  const test::TempDir dir("oa_lang");
+  std::filesystem::create_directories(dir.path / "de");
+  {
+    std::ofstream out(dir.path / "de" / "restree.tsv", std::ios::binary);
+    out << "# a comment\nT01\tFirst Text\tErster Text\r\nT02\tNot Done\t\nT03\tTwo\\nLines\tZwei\\nZeilen\n";
+  }
+  const std::filesystem::path missing = dir.path / "none";
+  const std::filesystem::path roots[] = {missing, dir.path};
+  CHECK(translation_folder(Language::kOriginal, roots).empty());
+  const std::filesystem::path folder = translation_folder(Language::kGerman, roots);
+  REQUIRE(folder == dir.path / "de");
+
+  const Translation german(folder);
+  CHECK(german.text("RESTREE.TXT", "First Text") == "Erster Text");
+  CHECK(german.text("restree.txt", "Two\nLines") == "Zwei\nZeilen");
+  CHECK(german.text("restree.txt", "Not Done") == "Not Done");
+  CHECK(german.text("static.txt", "First Text") == "First Text");
+  CHECK(Translation(missing).tables().empty());
+
+  std::ofstream(dir.path / "de" / "bad.tsv", std::ios::binary) << "T01\tno translation column\n";
+  CHECK_THROWS_AS(Translation(folder), DataError);
+}
+
 TEST_CASE("translations: every English text is one the game looks up", "[translation][content]") {
   OA_REQUIRE_GAME_FILES(files);
-  const Translation german(Language::kGerman);
+  const char* dir = std::getenv("OA_LANG_DIR");
+  const std::filesystem::path root = dir != nullptr ? dir : "";
+  const std::filesystem::path folder = translation_folder(Language::kGerman, {&root, 1});
+  if (folder.empty()) {
+    SKIP("OA_LANG_DIR has no German translation");
+  }
+  const Translation german(folder);
   REQUIRE_FALSE(german.tables().empty());
   for (const auto& [stem, table] : german.tables()) {
     // The remake's own texts: looked up by the English of its code.

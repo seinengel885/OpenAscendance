@@ -203,7 +203,7 @@ class WinMgr final : public WindowStateIo {
   // the table.
   const std::string& static_string(int index);
   // A text of the remake's own (not of the game files), in the files'
-  // language: `src/lang/<language>/openascendance.tsv`.
+  // language: `lang/<language>/openascendance.tsv`.
   std::string remake_text(std::string_view english) const { return services_.files.text(kRemakeTexts, english); }
   static constexpr std::string_view kRemakeTexts = "openascendance.txt";
 
